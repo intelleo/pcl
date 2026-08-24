@@ -28,16 +28,16 @@ onMounted(async () => {
       <div class="inline-flex p-1 rounded-xl bg-pcl-navy border border-pcl-border w-full sm:w-auto">
         <button
           @click="tabAktif = 'grup'"
-          class="flex-1 sm:flex-initial flex items-center justify-center gap-2 px-4 py-2 rounded-lg text-xs font-bold uppercase tracking-wider transition-all"
-          :class="tabAktif === 'grup' ? 'bg-gradient-to-r from-pcl-gold to-pcl-bronze text-slate-950 shadow-md font-black' : 'text-pcl-silver hover:text-white'"
+          class="flex-1 sm:flex-initial flex items-center justify-center gap-2 px-4 py-2 rounded-lg text-xs font-bold uppercase tracking-wider transition-all cursor-pointer"
+          :class="tabAktif === 'grup' ? 'bg-pcl-gold text-slate-950 shadow-md font-black' : 'text-pcl-silver hover:text-white'"
         >
           <Shield class="w-4 h-4" />
           Fase Grup
         </button>
         <button
           @click="tabAktif = 'knockout'"
-          class="flex-1 sm:flex-initial flex items-center justify-center gap-2 px-4 py-2 rounded-lg text-xs font-bold uppercase tracking-wider transition-all"
-          :class="tabAktif === 'knockout' ? 'bg-gradient-to-r from-pcl-gold to-pcl-bronze text-slate-950 shadow-md font-black' : 'text-pcl-silver hover:text-white'"
+          class="flex-1 sm:flex-initial flex items-center justify-center gap-2 px-4 py-2 rounded-lg text-xs font-bold uppercase tracking-wider transition-all cursor-pointer"
+          :class="tabAktif === 'knockout' ? 'bg-pcl-gold text-slate-950 shadow-md font-black' : 'text-pcl-silver hover:text-white'"
         >
           <GitBranch class="w-4 h-4" />
           Bagan Gugur
