@@ -1,5 +1,5 @@
 <script setup>
-import { Flag } from 'lucide-vue-next'
+import { Activity } from 'lucide-vue-next'
 
 defineProps({
   data: {
@@ -13,28 +13,19 @@ defineProps({
   <div class="bg-white rounded-xl border border-slate-200 overflow-hidden shadow-card">
     <div class="px-4 sm:px-5 py-3.5 border-b border-slate-100 flex items-center justify-between gap-3">
       <h3 class="text-sm font-semibold text-ink-900 flex items-center gap-2">
-        <Flag class="w-4 h-4 text-ucl-600" />
-        Kedisiplinan &amp; kartu
+        <Activity class="w-4 h-4 text-ucl-600" />
+        Top pass
       </h3>
     </div>
 
     <div v-if="data.length === 0" class="px-4 py-10 text-center text-sm text-ink-400">
-      Belum ada data kartu.
+      Belum ada rekaman umpan.
     </div>
 
     <template v-else>
       <div class="bg-slate-50 border-b border-slate-100 px-4 sm:px-5 py-2 flex items-center justify-between gap-3 text-[11px] font-semibold uppercase tracking-wider text-slate-500">
         <span>Pemain</span>
-        <span class="flex items-center gap-3">
-          <span class="flex items-center gap-1.5">
-            <span class="w-1.5 h-1.5 rounded-full bg-yellow-400"></span>
-            Kuning
-          </span>
-          <span class="flex items-center gap-1.5">
-            <span class="w-1.5 h-1.5 rounded-full bg-red-500"></span>
-            Merah
-          </span>
-        </span>
+        <span>Umpan</span>
       </div>
 
       <div class="divide-y divide-slate-100">
@@ -52,17 +43,12 @@ defineProps({
             </span>
             <div class="min-w-0">
               <div class="text-sm font-medium text-ink-900 truncate">{{ item.name }}</div>
-              <div class="mt-0.5 text-[11px] text-ink-400">{{ item.team_short }}</div>
+              <div class="mt-0.5 text-[11px] text-ink-400">{{ item.team_short }} · Gelandang</div>
             </div>
           </div>
 
-          <div class="flex items-center gap-2 shrink-0 ml-2">
-            <span class="w-8 h-8 flex items-center justify-center rounded-lg border bg-yellow-50 text-xs font-semibold tabular-nums text-yellow-700 border-yellow-200">
-              {{ item.kuning }}
-            </span>
-            <span class="w-8 h-8 flex items-center justify-center rounded-lg border bg-red-50 text-xs font-semibold tabular-nums text-red-700 border-red-200">
-              {{ item.merah }}
-            </span>
+          <div class="shrink-0 ml-2">
+            <span class="text-base font-semibold tabular-nums text-ink-900">{{ item.total }}</span>
           </div>
         </div>
       </div>

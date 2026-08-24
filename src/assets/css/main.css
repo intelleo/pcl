@@ -1,38 +1,87 @@
+@import url('https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700;800;900&family=Manrope:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 @layer base {
+  html {
+    scroll-behavior: smooth;
+  }
   body {
-    background-color: #0B162C;
-    color: #F8FAFC;
+    background-color: #F5F8FD;
+    color: #0C1B3A;
+    font-family: 'Manrope', sans-serif;
     overflow-x: hidden;
+    -webkit-font-smoothing: antialiased;
+  }
+  ::selection {
+    background: rgba(21, 83, 207, 0.18);
+    color: #0C1B3A;
   }
 }
 
-.text-gold-gradient {
-  background: linear-gradient(135deg, #F3E0A3 0%, #D4AF37 50%, #8C6B2D 100%);
-  background-clip: text;
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
+@layer utilities {
+  .tabular-nums {
+    font-variant-numeric: tabular-nums;
+  }
+  .scrollbar-none {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  .scrollbar-none::-webkit-scrollbar {
+    display: none;
+  }
 }
 
-.border-gold-gradient {
-  border-image: linear-gradient(135deg, #F3E0A3, #D4AF37, #8C6B2D) 1;
-}
-
-/* Custom Scrollbar */
+/* Scrollbar terang rapi */
 ::-webkit-scrollbar {
   width: 8px;
   height: 8px;
 }
 ::-webkit-scrollbar-track {
-  background: #0B162C;
+  background: #EEF2F9;
 }
 ::-webkit-scrollbar-thumb {
-  background: #1E3A6E;
-  border-radius: 4px;
+  background: #C7D2E5;
+  border-radius: 8px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: #D4AF37;
+  background: #A5B4CE;
+}
+
+/* Animasi kemunculan */
+@keyframes muncul-naik {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+.anim-muncul {
+  animation: muncul-naik 0.55s cubic-bezier(0.22, 0.61, 0.36, 1) both;
+}
+@media (prefers-reduced-motion: reduce) {
+  .anim-muncul {
+    animation: none;
+  }
+}
+
+/* Hero navy ala malam final UCL */
+.hero-navy {
+  background:
+    radial-gradient(ellipse 75% 60% at 50% -20%, rgba(36, 101, 235, 0.35), transparent 62%),
+    linear-gradient(180deg, #051636 0%, #04122E 100%);
+}
+
+/* Motif bintang stadion (titik cahaya halus) */
+.pola-bintang {
+  background-image:
+    radial-gradient(rgba(255, 255, 255, 0.14) 1px, transparent 1.4px),
+    radial-gradient(rgba(228, 237, 255, 0.09) 1px, transparent 1.4px);
+  background-size: 34px 34px, 22px 22px;
+  background-position: 0 0, 11px 17px;
 }

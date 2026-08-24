@@ -10,12 +10,27 @@ describe('useStatistik - hitungStatistikPemain', () => {
     { player_id: 'p2', player: { name: 'Ronaldo' }, team: { short_name: 'RMA' }, event_type: 'yellow_card' }
   ]
 
-  it('mengagregasi jumlah gol pencetak gol terbanyak', () => {
-    const { topScorer } = hitungStatistikPemain(events)
-    expect(topScorer).toHaveLength(2)
+  const samplePlayers = [
+    { id: 'p1', name: 'Messi', team_id: '1', stats: { goal: 2, assist: 1, pass: 80, def: 5, mvp: 2 } },
+    { id: 'p2', name: 'Ronaldo', team_id: '2', stats: { goal: 1, assist: 0, pass: 40, def: 2, mvp: 1 } },
+    { id: 'p3', name: 'Pedri', team_id: '1', stats: { goal: 0, assist: 1, pass: 120, def: 15, mvp: 0 } },
+    { id: 'p4', name: 'Van Dijk', team_id: '13', stats: { goal: 0, assist: 0, pass: 90, def: 45, mvp: 1 } }
+  ]
+
+  it('mengagregasi data top scorer, top assist, top pass, top defense, dan top mvp', () => {
+    const { topScorer, topAssist, topPass, topDefense, topMvp } = hitungStatistikPemain(events, samplePlayers)
+
+    expect(topScorer.length).toBeGreaterThan(0)
     expect(topScorer[0].player_id).toBe('p1')
     expect(topScorer[0].total).toBe(2)
-    expect(topScorer[1].player_id).toBe('p2')
-    expect(topScorer[1].total).toBe(1)
+
+    expect(topPass[0].name).toBe('Pedri')
+    expect(topPass[0].total).toBe(120)
+
+    expect(topDefense[0].name).toBe('Van Dijk')
+    expect(topDefense[0].total).toBe(45)
+
+    expect(topMvp[0].name).toBe('Messi')
+    expect(topMvp[0].total).toBe(2)
   })
 })

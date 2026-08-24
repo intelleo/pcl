@@ -1,99 +1,150 @@
 <script setup>
-import { ref } from 'vue'
-import { useRouter, useRoute } from 'vue-router'
-import { Trophy, Calendar, Users, BarChart3, Shield, Menu, X, ShieldAlert } from 'lucide-vue-next'
-import logoPcl from '@/assets/img/logoo.webp'
+import { ref } from "vue";
+import { useRouter, useRoute } from "vue-router";
+import {
+  Trophy,
+  Calendar,
+  Users,
+  BarChart3,
+  Shield,
+  Menu,
+  X,
+  ShieldAlert,
+  Newspaper,
+  Crown,
+} from "lucide-vue-next";
+import logoPcl from "@/assets/img/logoo.webp";
 
-const router = useRouter()
-const route = useRoute()
-const menuTerbuka = ref(false)
+const router = useRouter();
+const route = useRoute();
+const menuTerbuka = ref(false);
 
 const daftarMenu = [
-  { nama: 'Beranda', rute: '/', ikon: Trophy },
-  { nama: 'Turnamen', rute: '/turnamen', ikon: Shield },
-  { nama: 'Jadwal & Hasil', rute: '/jadwal', ikon: Calendar },
-  { nama: 'Statistik', rute: '/statistik', ikon: BarChart3 },
-  { nama: 'Tim', rute: '/tim', ikon: Users },
-  { nama: 'Admin', rute: '/admin', ikon: ShieldAlert }
-]
+  { nama: "Beranda", rute: "/", ikon: Trophy },
+  { nama: "Turnamen", rute: "/turnamen", ikon: Shield },
+  { nama: "Jadwal & Hasil", rute: "/jadwal", ikon: Calendar },
+  { nama: "Statistik", rute: "/statistik", ikon: BarChart3 },
+  { nama: "Tim", rute: "/tim", ikon: Users },
+  { nama: "Riwayat Juara", rute: "/riwayat-juara", ikon: Crown },
+  { nama: "Berita", rute: "/berita", ikon: Newspaper },
+];
 
 function navigasi(rute) {
-  menuTerbuka.value = false
-  router.push(rute)
+  menuTerbuka.value = false;
+  router.push(rute);
 }
 </script>
 
 <template>
-  <header class="sticky top-0 z-40 w-full border-b border-pcl-border/70 bg-pcl-navy/95 backdrop-blur-md shadow-lg shadow-black/20">
+  <header
+    class="sticky top-0 z-40 w-full border-b border-slate-200 bg-white/95 backdrop-blur-md"
+  >
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-      <div class="flex items-center justify-between h-16 sm:h-20">
-        <!-- Logo Brand -->
-        <div class="flex items-center gap-3 cursor-pointer group" @click="navigasi('/')">
-          <div class="relative w-12 h-12 sm:w-14 sm:h-14 flex items-center justify-center p-1 rounded-xl bg-gradient-to-b from-pcl-royal/30 to-pcl-navy/80 border border-pcl-gold/40 group-hover:border-pcl-gold transition-colors shadow-lg shadow-pcl-gold/5">
-            <img :src="logoPcl" alt="PCL Logo" class="w-full h-full object-contain filter drop-shadow-md" />
+      <div class="flex items-center justify-between h-16 sm:h-[72px]">
+        <div
+          class="flex items-center gap-3 cursor-pointer group"
+          @click="navigasi('/')"
+        >
+          <div
+            class="w-10 h-10 flex items-center justify-center rounded-lg border border-slate-200 bg-slate-50 group-hover:border-ucl-500/50 transition-colors overflow-hidden"
+          >
+            <img
+              :src="logoPcl"
+              alt="PCL Logo"
+              class="w-full h-full object-contain p-0.5"
+            />
           </div>
-          <div>
-            <div class="flex items-center gap-2">
-              <span class="text-xl sm:text-2xl font-black tracking-wider text-white font-display uppercase leading-none">
-                PEAK CHAMPIONS
-              </span>
-              <span class="text-[10px] font-black px-1.5 py-0.5 rounded bg-gradient-to-r from-pcl-gold to-pcl-bronze text-slate-950 shadow-sm uppercase font-mono">
-                LEAGUE
-              </span>
-            </div>
-            <p class="text-[10px] text-pcl-silver/70 tracking-widest uppercase font-semibold mt-0.5">Flash Soccer Tournament 2026</p>
+          <div class="leading-tight">
+            <span
+              class="font-display text-base sm:text-lg font-semibold tracking-tight text-ink-900 block"
+            >
+              Peak <span class="text-gold-600">Champions League</span>
+            </span>
+            <p
+              class="text-[10px] font-semibold uppercase tracking-[0.18em] text-ink-400 hidden sm:block mt-0.5"
+            >
+              Flash Tournament 2026
+            </p>
           </div>
         </div>
 
-        <!-- Desktop Menu -->
-        <nav class="hidden md:flex items-center gap-1">
+        <nav class="hidden md:flex items-stretch self-stretch gap-1">
           <button
             v-for="item in daftarMenu"
             :key="item.rute"
             @click="navigasi(item.rute)"
-            class="flex items-center gap-2 px-3.5 py-2 rounded-lg text-xs font-bold tracking-wider uppercase transition-all duration-200"
-            :class="[
+            class="relative px-3 text-sm font-medium transition-colors cursor-pointer focus:outline-none focus-visible:text-ucl-600"
+            :class="
               route.path === item.rute
-                ? 'text-pcl-goldLight bg-gradient-to-r from-pcl-royal/40 to-pcl-card border border-pcl-gold/40 shadow-sm shadow-pcl-gold/10 font-black'
-                : 'text-pcl-silver hover:text-white hover:bg-pcl-cardLight/50'
-            ]"
+                ? 'text-ucl-600 font-semibold'
+                : 'text-slate-600 hover:text-ink-900'
+            "
           >
-            <component :is="item.ikon" class="w-4 h-4 text-pcl-gold" />
-            {{ item.nama }}
+            <span class="flex items-center gap-1.5 h-full">
+              <component
+                :is="item.ikon"
+                class="w-4 h-4"
+                :class="
+                  route.path === item.rute ? 'text-ucl-600' : 'text-slate-400'
+                "
+              />
+              {{ item.nama }}
+            </span>
+            <span
+              v-if="route.path === item.rute"
+              aria-hidden="true"
+              class="absolute inset-x-2 bottom-0 h-[3px] rounded-t-full bg-ucl-600"
+            ></span>
           </button>
         </nav>
 
-        <!-- Mobile Menu Toggle -->
         <div class="md:hidden flex items-center">
           <button
             @click="menuTerbuka = !menuTerbuka"
-            class="p-2 rounded-lg text-pcl-silver hover:text-white hover:bg-pcl-card"
+            class="p-2 rounded-lg text-slate-500 hover:text-ink-900 hover:bg-slate-100 transition-colors cursor-pointer"
+            aria-label="Buka menu"
           >
-            <component :is="menuTerbuka ? X : Menu" class="w-6 h-6" />
+            <component :is="menuTerbuka ? X : Menu" class="w-5 h-5" />
           </button>
         </div>
       </div>
     </div>
 
-    <!-- Mobile Dropdown -->
-    <div
-      v-if="menuTerbuka"
-      class="md:hidden border-b border-pcl-border bg-pcl-card px-4 pt-2 pb-4 space-y-1 shadow-2xl"
+    <Transition
+      enter-active-class="transition duration-150 ease-out"
+      enter-from-class="-translate-y-1 opacity-0"
+      enter-to-class="translate-y-0 opacity-100"
+      leave-active-class="transition duration-100 ease-in"
+      leave-from-class="translate-y-0 opacity-100"
+      leave-to-class="-translate-y-1 opacity-0"
     >
-      <button
-        v-for="item in daftarMenu"
-        :key="item.rute"
-        @click="navigasi(item.rute)"
-        class="w-full flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-semibold tracking-wide transition-colors"
-        :class="[
-          route.path === item.rute
-            ? 'text-pcl-gold bg-pcl-royal/30 border border-pcl-gold/30'
-            : 'text-pcl-silver hover:text-white hover:bg-pcl-cardLight/40'
-        ]"
+      <div
+        v-if="menuTerbuka"
+        class="md:hidden absolute inset-x-0 top-full border-b border-slate-200 bg-white shadow-lift"
       >
-        <component :is="item.ikon" class="w-4 h-4 text-pcl-gold" />
-        {{ item.nama }}
-      </button>
-    </div>
+        <nav class="px-4 py-3 space-y-1">
+          <button
+            v-for="item in daftarMenu"
+            :key="item.rute"
+            @click="navigasi(item.rute)"
+            class="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors text-left cursor-pointer"
+            :class="
+              route.path === item.rute
+                ? 'text-ucl-600 bg-ucl-50 font-semibold'
+                : 'text-slate-600 hover:text-ink-900 hover:bg-slate-50'
+            "
+          >
+            <component
+              :is="item.ikon"
+              class="w-4 h-4"
+              :class="
+                route.path === item.rute ? 'text-ucl-600' : 'text-slate-400'
+              "
+            />
+            {{ item.nama }}
+          </button>
+        </nav>
+      </div>
+    </Transition>
   </header>
 </template>

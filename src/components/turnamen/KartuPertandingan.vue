@@ -14,57 +14,67 @@ const emit = defineEmits(['klikDetail'])
 <template>
   <div
     @click="emit('klikDetail', laga)"
-    class="relative bg-pcl-card/95 hover:bg-pcl-cardLight border border-pcl-border hover:border-pcl-gold/50 rounded-2xl p-4 transition-all duration-200 cursor-pointer shadow-lg hover:shadow-pcl-gold/10 group"
+    class="bg-white border border-slate-200 rounded-xl p-4 transition-shadow duration-150 cursor-pointer shadow-card hover:shadow-lift group space-y-3"
   >
-    <!-- Header: Matchday / Grup & Status -->
-    <div class="flex items-center justify-between pb-3 mb-3 border-b border-pcl-border/70 text-xs text-pcl-silver font-semibold">
-      <span>
-        {{ laga.group?.name ? laga.group.name : 'Knockout Stage' }}
-        <span class="text-pcl-silver/60">• Matchday {{ laga.matchday }}</span>
+    <div class="flex items-center justify-between gap-2 border-b border-slate-100 pb-2.5">
+      <span class="text-[11px] font-semibold text-slate-400 truncate">
+        {{ laga.group?.name ? laga.group.name : 'Knockout' }}
+        <span class="tabular-nums">· MD {{ laga.matchday }}</span>
       </span>
       <LencanaStatus :status="laga.status" />
     </div>
 
-    <!-- Match Teams & Score Grid -->
-    <div class="space-y-3">
-      <!-- Home Team -->
-      <div class="flex items-center justify-between">
-        <div class="flex items-center gap-3">
-          <div class="w-8 h-8 rounded-lg bg-gradient-to-b from-pcl-royal/40 to-pcl-navy border border-pcl-border flex items-center justify-center font-bold text-xs text-pcl-gold shadow-sm">
+    <div class="space-y-2">
+      <div class="flex items-center justify-between gap-2">
+        <div class="flex items-center gap-2.5 min-w-0">
+          <div class="w-7 h-7 rounded-full bg-slate-50 border border-slate-200 flex items-center justify-center font-semibold text-[11px] text-navy-800 shrink-0">
             {{ laga.home_team?.short_name || 'HOM' }}
           </div>
-          <span class="text-sm font-bold text-slate-100 group-hover:text-pcl-goldLight transition-colors">
+          <span
+            class="text-sm truncate transition-colors"
+            :class="
+              laga.status === 'finished' && laga.home_score > laga.away_score
+                ? 'font-semibold text-ink-900'
+                : 'font-medium text-ink-600 group-hover:text-ucl-600'
+            "
+          >
             {{ laga.home_team?.name || 'Home Team' }}
           </span>
         </div>
         <span
-          class="text-base font-black px-2.5 py-0.5 rounded-md font-mono"
+          class="text-base tabular-nums min-w-[1.5rem] text-right"
           :class="[
             laga.status === 'finished'
-              ? laga.home_score > laga.away_score ? 'bg-pcl-gold/20 text-pcl-goldLight border border-pcl-gold/30' : 'bg-pcl-navy text-pcl-silver'
-              : 'text-slate-500'
+              ? laga.home_score > laga.away_score ? 'text-ucl-600 font-semibold' : 'text-slate-400'
+              : 'text-slate-400'
           ]"
         >
           {{ laga.status !== 'scheduled' ? laga.home_score : '-' }}
         </span>
       </div>
 
-      <!-- Away Team -->
-      <div class="flex items-center justify-between">
-        <div class="flex items-center gap-3">
-          <div class="w-8 h-8 rounded-lg bg-gradient-to-b from-pcl-royal/40 to-pcl-navy border border-pcl-border flex items-center justify-center font-bold text-xs text-pcl-blueGlow shadow-sm">
+      <div class="flex items-center justify-between gap-2">
+        <div class="flex items-center gap-2.5 min-w-0">
+          <div class="w-7 h-7 rounded-full bg-slate-50 border border-slate-200 flex items-center justify-center font-semibold text-[11px] text-navy-800 shrink-0">
             {{ laga.away_team?.short_name || 'AWY' }}
           </div>
-          <span class="text-sm font-bold text-slate-100 group-hover:text-pcl-goldLight transition-colors">
+          <span
+            class="text-sm truncate transition-colors"
+            :class="
+              laga.status === 'finished' && laga.away_score > laga.home_score
+                ? 'font-semibold text-ink-900'
+                : 'font-medium text-ink-600 group-hover:text-ucl-600'
+            "
+          >
             {{ laga.away_team?.name || 'Away Team' }}
           </span>
         </div>
         <span
-          class="text-base font-black px-2.5 py-0.5 rounded-md font-mono"
+          class="text-base tabular-nums min-w-[1.5rem] text-right"
           :class="[
             laga.status === 'finished'
-              ? laga.away_score > laga.home_score ? 'bg-pcl-gold/20 text-pcl-goldLight border border-pcl-gold/30' : 'bg-pcl-navy text-pcl-silver'
-              : 'text-slate-500'
+              ? laga.away_score > laga.home_score ? 'text-ucl-600 font-semibold' : 'text-slate-400'
+              : 'text-slate-400'
           ]"
         >
           {{ laga.status !== 'scheduled' ? laga.away_score : '-' }}
@@ -72,12 +82,11 @@ const emit = defineEmits(['klikDetail'])
       </div>
     </div>
 
-    <!-- Knockout Penalty Score Indicator -->
     <div
       v-if="laga.home_penalty_score !== null && laga.away_penalty_score !== null"
-      class="mt-3 pt-2 border-t border-pcl-border/40 text-[11px] text-center text-pcl-goldLight font-bold"
+      class="pt-2 border-t border-slate-100 text-[11px] text-center text-slate-500 font-medium tabular-nums"
     >
-      Adu Penalti: {{ laga.home_penalty_score }} - {{ laga.away_penalty_score }}
+      Penalti: {{ laga.home_penalty_score }} – {{ laga.away_penalty_score }}
     </div>
   </div>
 </template>

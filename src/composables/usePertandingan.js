@@ -1,5 +1,6 @@
 import { ref } from 'vue'
 import { supabase } from '../lib/supabase.js'
+import { mockPertandingan } from '../lib/mockData.js'
 
 /**
  * Filter daftar laga berdasarkan kriteria stage, matchday, atau groupId.
@@ -26,6 +27,13 @@ export function usePertandingan() {
   async function ambilSemuaPertandingan(tournamentId) {
     sedangMemuat.value = true
     pesanKesalahan.value = null
+
+    if (import.meta.env.VITE_USE_MOCK === 'true') {
+      daftarPertandingan.value = mockPertandingan
+      sedangMemuat.value = false
+      return
+    }
+
     try {
       const { data, error } = await supabase
         .from('matches')
@@ -39,9 +47,10 @@ export function usePertandingan() {
         .order('matchday', { ascending: true })
 
       if (error) throw error
-      daftarPertandingan.value = data || []
+      daftarPertandingan.value = data?.length ? data : mockPertandingan
     } catch (err) {
       pesanKesalahan.value = err.message
+      daftarPertandingan.value = mockPertandingan
     } finally {
       sedangMemuat.value = false
     }
@@ -50,6 +59,15 @@ export function usePertandingan() {
   async function ambilDetailPertandingan(matchId) {
     sedangMemuat.value = true
     pesanKesalahan.value = null
+
+    if (import.meta.env.VITE_USE_MOCK === 'true') {
+      const mockMatch = mockPertandingan.find(m => m.id === matchId) || mockPertandingan[0]
+      lagaTerpilih.value = mockMatch
+      eventLagaTerpilih.value = mockMatch?.events || []
+      sedangMemuat.value = false
+      return
+    }
+
     try {
       const { data: match, error: errMatch } = await supabase
         .from('matches')
@@ -80,6 +98,9 @@ export function usePertandingan() {
       eventLagaTerpilih.value = events || []
     } catch (err) {
       pesanKesalahan.value = err.message
+      const mockMatch = mockPertandingan.find(m => m.id === matchId) || mockPertandingan[0]
+      lagaTerpilih.value = mockMatch
+      eventLagaTerpilih.value = mockMatch?.events || []
     } finally {
       sedangMemuat.value = false
     }

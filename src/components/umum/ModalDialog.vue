@@ -1,5 +1,6 @@
 <script setup>
 import { onMounted, onUnmounted } from 'vue'
+import { X } from 'lucide-vue-next'
 
 const props = defineProps({
   terbuka: {
@@ -31,46 +32,41 @@ onUnmounted(() => window.removeEventListener('keydown', tanganiKeydown))
 <template>
   <Teleport to="body">
     <Transition
-      enter-active-class="transition duration-200 ease-out"
+      enter-active-class="transition duration-150 ease-out"
       enter-from-class="opacity-0"
       enter-to-class="opacity-100"
-      leave-active-class="transition duration-150 ease-in"
+      leave-active-class="transition duration-100 ease-in"
       leave-from-class="opacity-100"
       leave-to-class="opacity-0"
     >
       <div
         v-if="terbuka"
-        class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm"
+        class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-navy-950/60 backdrop-blur-sm"
         @click.self="emit('tutup')"
       >
         <div
-          class="relative w-full bg-pcl-card border border-slate-700/80 rounded-2xl shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-150"
+          class="relative w-full bg-white rounded-2xl shadow-lift overflow-hidden"
           :class="lebarMaksimal"
         >
-          <!-- Header -->
-          <div class="flex items-center justify-between px-6 py-4 border-b border-slate-800 bg-slate-900/60">
-            <h3 class="text-lg font-bold text-slate-100 tracking-wide">
+          <div class="flex items-center justify-between px-5 py-4 border-b border-slate-100">
+            <h3 class="text-base font-semibold text-ink-900">
               {{ judul }}
             </h3>
             <button
               @click="emit('tutup')"
-              class="p-1 text-slate-400 hover:text-white rounded-lg hover:bg-slate-800 transition-colors"
+              class="p-1.5 text-slate-400 hover:text-ink-900 rounded-lg hover:bg-slate-100 transition-colors cursor-pointer"
             >
-              <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-              </svg>
+              <X class="w-4 h-4" />
             </button>
           </div>
 
-          <!-- Content -->
-          <div class="p-6 max-h-[80vh] overflow-y-auto">
+          <div class="p-5 max-h-[80vh] overflow-y-auto">
             <slot />
           </div>
 
-          <!-- Footer -->
           <div
             v-if="$slots.footer"
-            class="flex items-center justify-end gap-3 px-6 py-3 border-t border-slate-800 bg-slate-900/40"
+            class="flex items-center justify-end gap-2 px-5 py-3.5 border-t border-slate-100 bg-slate-50/70"
           >
             <slot name="footer" />
           </div>

@@ -1,4 +1,6 @@
 <script setup>
+import { Flame } from 'lucide-vue-next'
+
 defineProps({
   data: {
     type: Array,
@@ -8,46 +10,48 @@ defineProps({
 </script>
 
 <template>
-  <div class="bg-pcl-card/90 border border-slate-800 rounded-xl overflow-hidden shadow-xl">
-    <div class="px-5 py-4 bg-slate-900/80 border-b border-slate-800 flex items-center justify-between">
-      <h3 class="font-bold text-sm text-slate-100 uppercase tracking-wider flex items-center gap-2">
-        <span class="w-2.5 h-2.5 rounded-full bg-emerald-400"></span>
-        Top Scorer (Pencetak Gol Terbanyak)
+  <div class="bg-white rounded-xl border border-slate-200 overflow-hidden shadow-card">
+    <div class="px-4 sm:px-5 py-3.5 border-b border-slate-100 flex items-center justify-between gap-3">
+      <h3 class="text-sm font-semibold text-ink-900 flex items-center gap-2">
+        <Flame class="w-4 h-4 text-ucl-600" />
+        Top scorer
       </h3>
-      <span class="text-xs text-slate-400 font-mono">GOL</span>
     </div>
 
-    <div v-if="data.length === 0" class="p-8 text-center text-slate-500 text-sm">
-      Belum ada data pencetak gol.
+    <div v-if="data.length === 0" class="px-4 py-10 text-center text-sm text-ink-400">
+      Belum ada rekaman pencetak gol.
     </div>
 
-    <div v-else class="divide-y divide-slate-800/60">
-      <div
-        v-for="(item, idx) in data"
-        :key="item.player_id"
-        class="flex items-center justify-between px-5 py-3 hover:bg-slate-800/30 transition-colors"
-      >
-        <div class="flex items-center gap-3">
-          <span
-            class="w-6 h-6 rounded-md flex items-center justify-center text-xs font-black"
-            :class="[
-              idx === 0 ? 'bg-amber-500/20 text-amber-400 border border-amber-500/30' :
-              idx === 1 ? 'bg-slate-700 text-slate-300' :
-              idx === 2 ? 'bg-amber-800/30 text-amber-600' : 'text-slate-500'
-            ]"
-          >
-            {{ idx + 1 }}
-          </span>
-          <div>
-            <div class="text-sm font-bold text-slate-200">{{ item.name }}</div>
-            <div class="text-[11px] text-slate-400 font-semibold">{{ item.team_short }}</div>
+    <template v-else>
+      <div class="bg-slate-50 border-b border-slate-100 px-4 sm:px-5 py-2 flex items-center justify-between gap-3 text-[11px] font-semibold uppercase tracking-wider text-slate-500">
+        <span>Pemain</span>
+        <span>Gol</span>
+      </div>
+
+      <div class="divide-y divide-slate-100">
+        <div
+          v-for="(item, idx) in data"
+          :key="item.player_id"
+          class="flex items-center justify-between px-4 sm:px-5 py-2.5 transition-colors hover:bg-ucl-50/50"
+        >
+          <div class="flex items-center gap-3 min-w-0">
+            <span
+              class="w-6 h-6 flex items-center justify-center shrink-0 rounded-full text-xs tabular-nums transition-colors"
+              :class="idx < 3 ? 'font-semibold text-ucl-600 bg-ucl-50' : 'text-slate-400'"
+            >
+              {{ idx + 1 }}
+            </span>
+            <div class="min-w-0">
+              <div class="text-sm font-medium text-ink-900 truncate">{{ item.name }}</div>
+              <div class="mt-0.5 text-[11px] text-ink-400">{{ item.team_short }} · Penyerang</div>
+            </div>
+          </div>
+
+          <div class="shrink-0 ml-2">
+            <span class="text-base font-semibold tabular-nums text-ink-900">{{ item.total }}</span>
           </div>
         </div>
-
-        <div class="text-lg font-black font-mono text-emerald-400 px-3 py-0.5 rounded bg-emerald-500/10 border border-emerald-500/20">
-          {{ item.total }}
-        </div>
       </div>
-    </div>
+    </template>
   </div>
 </template>

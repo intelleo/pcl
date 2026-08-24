@@ -12,83 +12,70 @@ defineProps({
 </script>
 
 <template>
-  <div class="bg-pcl-card/90 border border-pcl-border rounded-2xl overflow-hidden shadow-xl">
-    <!-- Group Title Header -->
-    <div class="px-4 py-3 bg-gradient-to-r from-pcl-royal/25 to-pcl-card border-b border-pcl-border flex items-center justify-between">
-      <h3 class="font-bold text-sm text-white tracking-wide flex items-center gap-2 font-display text-base">
-        <span class="w-2 h-2 rounded-full bg-pcl-gold"></span>
+  <div class="rounded-xl border border-slate-200 overflow-hidden bg-white shadow-card">
+    <div class="px-4 py-3 border-b border-slate-100 flex items-center justify-between">
+      <h3 class="text-sm font-semibold tracking-tight text-ink-900 flex items-center gap-2">
+        <span class="w-2 h-2 rounded-full bg-ucl-500"></span>
         {{ namaGrup }}
       </h3>
-      <span class="text-[10px] sm:text-xs text-pcl-goldLight font-bold uppercase tracking-wider">Top 2 Lolos Knockout</span>
+      <span class="inline-flex items-center px-2.5 py-0.5 rounded-full bg-ucl-50 border border-ucl-100 text-[11px] font-semibold text-ucl-600">
+        Top 2 Lolos
+      </span>
     </div>
 
-    <!-- Standings Table -->
-    <div class="overflow-x-auto scrollbar-thin">
-      <table class="w-full text-left text-xs min-w-[340px] sm:min-w-[450px]">
-        <thead class="bg-pcl-navy/60 text-pcl-silver font-bold uppercase tracking-wider border-b border-pcl-border/70 text-[10px] sm:text-xs">
+    <div class="overflow-x-auto">
+      <table class="w-full text-left text-xs min-w-[340px] sm:min-w-[420px]">
+        <thead class="bg-slate-50 text-[11px] font-semibold uppercase tracking-wider text-slate-500 border-b border-slate-200">
           <tr>
-            <th class="py-2.5 px-2 sm:px-3 w-7 sm:w-8 text-center">#</th>
-            <th class="py-2.5 px-2 sm:px-3">Klub</th>
-            <th class="py-2.5 px-1.5 sm:px-2 text-center" title="Main">P</th>
-            <th class="py-2.5 px-1.5 sm:px-2 text-center text-emerald-400" title="Menang">W</th>
-            <th class="py-2.5 px-1.5 sm:px-2 text-center" title="Seri">D</th>
-            <th class="py-2.5 px-1.5 sm:px-2 text-center text-red-400" title="Kalah">L</th>
-            <th class="py-2.5 px-1.5 sm:px-2 text-center hidden sm:table-cell" title="Gol Masuk">GF</th>
-            <th class="py-2.5 px-1.5 sm:px-2 text-center hidden sm:table-cell" title="Gol Kemasukan">GA</th>
-            <th class="py-2.5 px-1.5 sm:px-2 text-center" title="Selisih Gol">GD</th>
-            <th class="py-2.5 px-2 sm:px-3 text-center font-black text-white" title="Poin">PTS</th>
+            <th class="py-2.5 px-3 w-8 text-center font-semibold">#</th>
+            <th class="py-2.5 px-3 font-semibold">Klub</th>
+            <th class="py-2.5 px-2 text-center font-semibold" title="Main">P</th>
+            <th class="py-2.5 px-2 text-center font-semibold" title="Menang">W</th>
+            <th class="py-2.5 px-2 text-center font-semibold" title="Seri">D</th>
+            <th class="py-2.5 px-2 text-center font-semibold" title="Kalah">L</th>
+            <th class="py-2.5 px-2 text-center font-semibold hidden sm:table-cell" title="Gol Masuk">GF</th>
+            <th class="py-2.5 px-2 text-center font-semibold hidden sm:table-cell" title="Gol Kemasukan">GA</th>
+            <th class="py-2.5 px-2 text-center font-semibold" title="Selisih Gol">GD</th>
+            <th class="py-2.5 px-3 text-center font-semibold text-ucl-600" title="Poin">PTS</th>
           </tr>
         </thead>
-        <tbody class="divide-y divide-pcl-border/50 text-slate-200">
+        <tbody class="divide-y divide-slate-100 text-ink-600">
           <tr
             v-for="(row, idx) in klasemen"
             :key="row.team_id"
-            class="hover:bg-pcl-cardLight/50 transition-colors"
-            :class="{
-              'bg-pcl-royal/10': idx < 2
-            }"
+            class="hover:bg-ucl-50/50 transition-colors"
           >
-            <!-- Rank Indicator -->
-            <td class="py-2.5 px-2 sm:px-3 text-center font-bold">
+            <td
+              class="py-2.5 px-3 text-center border-l-2"
+              :class="idx < 2 ? 'border-ucl-500' : 'border-l-transparent'"
+            >
               <span
-                class="inline-flex items-center justify-center w-5 h-5 rounded-md text-[10px] sm:text-xs"
-                :class="[
-                  idx === 0 ? 'bg-gradient-to-br from-pcl-gold to-pcl-bronze text-slate-950 font-black shadow-sm' :
-                  idx === 1 ? 'bg-pcl-royal/40 text-pcl-blueGlow border border-pcl-blueGlow/30 font-black' :
-                  'text-pcl-silver/60'
-                ]"
+                class="inline-flex items-center justify-center w-5 h-5 text-[11px]"
+                :class="idx < 3 ? 'font-semibold text-ucl-600' : 'text-slate-400'"
               >
                 {{ idx + 1 }}
               </span>
             </td>
 
-            <!-- Team Name -->
-            <td class="py-2.5 px-2 sm:px-3 font-semibold text-white flex items-center gap-1.5 sm:gap-2">
-              <span class="w-6 h-6 rounded bg-pcl-navy border border-pcl-border text-[9px] sm:text-[10px] flex items-center justify-center font-bold text-pcl-gold shrink-0">
-                {{ row.team_short_name || 'TIM' }}
-              </span>
-              <span class="truncate max-w-[90px] xs:max-w-[120px] sm:max-w-none text-xs sm:text-sm">{{ row.team_name }}</span>
+            <td class="py-2.5 px-3">
+              <div class="flex items-center gap-2">
+                <span class="w-6 h-6 rounded-full bg-slate-50 border border-slate-200 text-[10px] flex items-center justify-center font-semibold text-navy-800 shrink-0">
+                  {{ row.team_short_name || 'TIM' }}
+                </span>
+                <span class="truncate max-w-[100px] sm:max-w-none text-xs sm:text-sm font-medium text-ink-900">{{ row.team_name }}</span>
+              </div>
             </td>
 
-            <!-- Stats -->
-            <td class="py-2.5 px-1.5 sm:px-2 text-center font-mono">{{ row.played }}</td>
-            <td class="py-2.5 px-1.5 sm:px-2 text-center font-mono text-emerald-400 font-semibold">{{ row.won }}</td>
-            <td class="py-2.5 px-1.5 sm:px-2 text-center font-mono text-pcl-silver">{{ row.drawn }}</td>
-            <td class="py-2.5 px-1.5 sm:px-2 text-center font-mono text-red-400">{{ row.lost }}</td>
-            <td class="py-2.5 px-1.5 sm:px-2 text-center font-mono text-pcl-silver hidden sm:table-cell">{{ row.goals_for }}</td>
-            <td class="py-2.5 px-1.5 sm:px-2 text-center font-mono text-pcl-silver hidden sm:table-cell">{{ row.goals_against }}</td>
-            <td
-              class="py-2.5 px-1.5 sm:px-2 text-center font-mono font-bold"
-              :class="[
-                row.goal_difference > 0 ? 'text-emerald-400' :
-                row.goal_difference < 0 ? 'text-red-400' : 'text-pcl-silver'
-              ]"
-            >
+            <td class="py-2.5 px-2 text-center tabular-nums">{{ row.played }}</td>
+            <td class="py-2.5 px-2 text-center tabular-nums text-emerald-600 font-medium">{{ row.won }}</td>
+            <td class="py-2.5 px-2 text-center tabular-nums text-slate-400">{{ row.drawn }}</td>
+            <td class="py-2.5 px-2 text-center tabular-nums text-red-500">{{ row.lost }}</td>
+            <td class="py-2.5 px-2 text-center tabular-nums text-slate-400 hidden sm:table-cell">{{ row.goals_for }}</td>
+            <td class="py-2.5 px-2 text-center tabular-nums text-slate-400 hidden sm:table-cell">{{ row.goals_against }}</td>
+            <td class="py-2.5 px-2 text-center tabular-nums" :class="row.goal_difference > 0 ? 'text-emerald-600' : row.goal_difference < 0 ? 'text-red-500' : 'text-slate-400'">
               {{ row.goal_difference > 0 ? `+${row.goal_difference}` : row.goal_difference }}
             </td>
-            <td class="py-2.5 px-2 sm:px-3 text-center font-mono font-black text-pcl-goldLight bg-pcl-navy/50">
-              {{ row.points }}
-            </td>
+            <td class="py-2.5 px-3 text-center tabular-nums font-semibold text-ucl-600">{{ row.points }}</td>
           </tr>
         </tbody>
       </table>

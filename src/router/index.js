@@ -5,6 +5,9 @@ import JadwalView from '../views/JadwalView.vue'
 import StatistikView from '../views/StatistikView.vue'
 import TimView from '../views/TimView.vue'
 import DetailTimView from '../views/DetailTimView.vue'
+import RiwayatJuaraView from '../views/RiwayatJuaraView.vue'
+import BeritaView from '../views/BeritaView.vue'
+import DetailBeritaView from '../views/DetailBeritaView.vue'
 import AdminView from '../views/AdminView.vue'
 
 const routes = [
@@ -14,6 +17,9 @@ const routes = [
   { path: '/statistik', name: 'statistik', component: StatistikView },
   { path: '/tim', name: 'tim', component: TimView },
   { path: '/tim/:id', name: 'detail-tim', component: DetailTimView },
+  { path: '/riwayat-juara', name: 'riwayat-juara', component: RiwayatJuaraView },
+  { path: '/berita', name: 'berita', component: BeritaView },
+  { path: '/berita/:id', name: 'detail-berita', component: DetailBeritaView },
   { path: '/admin', name: 'admin', component: AdminView }
 ]
 

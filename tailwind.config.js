@@ -7,29 +7,41 @@ export default {
   theme: {
     extend: {
       colors: {
-        pcl: {
-          navy: '#0B162C',       // Midnight Navy (Background dasar & base tekstur)
-          royal: '#1A4B9C',      // Royal Blue (Panel samping & aksen gradasi)
-          blueGlow: '#3B82F6',   // Vibrant Blue Highlight (Pencahayaan tepi/glow)
-          gold: '#D4AF37',       // Metallic Gold (Mahkota, border lis emas)
-          goldLight: '#F3E0A3',  // Pale Gold Highlight (Kilau sudut logam)
-          bronze: '#8C6B2D',     // Dark Bronze Shadow (Bayangan depth 3D)
-          white: '#F8FAFC',      // Platinum White (Teks utama & panel)
-          silver: '#CBD5E1',     // Metallic Silver (Gradasi bayangan teks)
-          card: '#0F1E3D',       // Kartu navy elevated
-          cardLight: '#182C54',  // Hover kartu
-          border: '#1E3A6E',     // Border navy royal
-        }
+        navy: {
+          950: '#030D26',
+          900: '#051636',
+          800: '#0A224F',
+          700: '#123069',
+          600: '#1B4085',
+        },
+        ucl: {
+          50: '#EFF4FF',
+          100: '#E4EDFF',
+          500: '#2465EB',
+          600: '#1553CF',
+        },
+        gold: {
+          300: '#F3D98B',
+          400: '#E9C46A',
+          500: '#C99738',
+          600: '#A87B22',
+        },
+        ink: {
+          900: '#0C1B3A',
+          600: '#33415C',
+          400: '#64748B',
+          300: '#94A3B8',
+        },
       },
       fontFamily: {
-        sans: ['Inter', 'system-ui', '-apple-system', 'sans-serif'],
-        display: ['Teko', 'Impact', 'sans-serif']
+        display: ['Archivo', 'sans-serif'],
+        sans: ['Manrope', 'sans-serif'],
+        mono: ['JetBrains Mono', 'monospace'],
       },
-      backgroundImage: {
-        'gold-gradient': 'linear-gradient(135deg, #F3E0A3 0%, #D4AF37 50%, #8C6B2D 100%)',
-        'blue-gradient': 'linear-gradient(135deg, #3B82F6 0%, #1A4B9C 50%, #0B162C 100%)',
-        'silver-gradient': 'linear-gradient(135deg, #F8FAFC 0%, #CBD5E1 100%)'
-      }
+      boxShadow: {
+        card: '0 1px 2px rgba(12, 27, 58, 0.06), 0 4px 16px -8px rgba(12, 27, 58, 0.10)',
+        lift: '0 8px 28px -12px rgba(12, 27, 58, 0.22)',
+      },
     },
   },
   plugins: [],

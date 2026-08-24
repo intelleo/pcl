@@ -1,8 +1,7 @@
 <script setup>
+import { ref, computed } from "vue";
 import { useRouter } from "vue-router";
-import TombolDasar from "../components/umum/TombolDasar.vue";
-import KartuDasar from "../components/umum/KartuDasar.vue";
-import LencanaStatus from "../components/umum/LencanaStatus.vue";
+import ModalDetailPertandingan from "../components/turnamen/ModalDetailPertandingan.vue";
 import {
   Trophy,
   Calendar,
@@ -10,258 +9,385 @@ import {
   ArrowRight,
   Star,
   Crown,
+  Newspaper,
+  Award,
+  Activity,
+  ChevronRight,
 } from "lucide-vue-next";
-import heroBannerImg from "@/assets/img/bg-pattern.webp";
 import logoPcl from "@/assets/img/logoo.webp";
+import heroBanner from "@/assets/img/hero-banner.webp";
+import { mockPertandingan, mockBerita } from "../lib/mockData.js";
 
 const router = useRouter();
 
-const lagaUnggulan = {
-  id: "m1",
-  home: { nama: "Barcelona FC", short: "BAR", skor: 3 },
-  away: { nama: "Real Madrid", short: "RMA", skor: 1 },
-  status: "finished",
-  stage: "El Clasico • Fase Grup",
-};
+// Match highlight aktif
+const idLagaTerpilih = ref("m1");
+const modalLagaTerbuka = ref(false);
+
+const lagaUnggulanList = computed(() => mockPertandingan.slice(0, 3));
+const lagaAktif = computed(
+  () =>
+    mockPertandingan.find((m) => m.id === idLagaTerpilih.value) ||
+    mockPertandingan[0],
+);
+
+function bukaModalLaga(laga) {
+  idLagaTerpilih.value = laga.id;
+  modalLagaTerbuka.value = true;
+}
+
+function bukaBeritaLaga(berita) {
+  if (berita.terkait_match_id) {
+    const match = mockPertandingan.find(
+      (m) => m.id === berita.terkait_match_id,
+    );
+    if (match) {
+      bukaModalLaga(match);
+      return;
+    }
+  }
+  router.push(`/berita/${berita.id}`);
+}
 </script>
 
 <template>
-  <div class="space-y-12 pb-16">
-    <!-- Hero Banner with Background Image & Pattern -->
-    <section
-      class="relative overflow-hidden pt-8 pb-16 sm:py-20 border-b border-pcl-border/80 bg-pcl-navy"
-    >
-      <!-- Background Banner Graphic Layer -->
-      <div class="absolute inset-0 z-0 opacity-25">
-        <img
-          :src="heroBannerImg"
-          alt="PCL Hero Background"
-          class="w-full h-full object-cover object-center filter blur-[1px]"
-        />
-      </div>
-      <!-- Gradient Overlays -->
+  <div class="space-y-10 sm:space-y-14 pb-16">
+    <!-- Hero -->
+    <section class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-4 sm:pt-8">
       <div
-        class="absolute inset-0 z-0 bg-gradient-to-t from-pcl-navy via-pcl-navy/80 to-transparent"
-      ></div>
-      <div
-        class="absolute top-0 right-1/4 w-96 h-96 bg-pcl-royal/20 rounded-full blur-3xl pointer-events-none"
-      ></div>
-      <div
-        class="absolute bottom-0 left-1/4 w-96 h-96 bg-pcl-gold/10 rounded-full blur-3xl pointer-events-none"
-      ></div>
-
-      <div
-        class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10 text-center space-y-6"
+        class="anim-muncul relative overflow-hidden rounded-2xl shadow-lift min-h-[400px] sm:min-h-[450px] lg:min-h-[500px] flex items-center"
       >
-        <!-- Badge Title -->
+        <img
+          :src="heroBanner"
+          alt="Peak Champions League Banner"
+          class="absolute inset-0 w-full h-full object-cover object-center opacity-30 scale-105"
+          loading="eager"
+        />
         <div
-          class="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-gradient-to-r from-pcl-royal/60 to-pcl-card border border-pcl-gold/50 shadow-lg shadow-black/40 text-pcl-goldLight text-xs font-bold uppercase tracking-widest"
+          aria-hidden="true"
+          class="absolute inset-0 hero-navy opacity-95"
+        ></div>
+        <div
+          aria-hidden="true"
+          class="absolute inset-0 pola-bintang opacity-60"
+        ></div>
+        <div
+          class="absolute inset-0 bg-gradient-to-r from-navy-950/80 via-transparent to-transparent"
+        ></div>
+        <div
+          aria-hidden="true"
+          class="absolute -right-12 top-1/2 -translate-y-1/2 w-64 sm:w-96 lg:w-[440px] opacity-10 pointer-events-none select-none"
         >
-          <Crown class="w-4 h-4 text-pcl-gold" />
-          Turnamen Resmi Sepak Bola Flash Peak • Season 2026
+          <img :src="logoPcl" alt="" class="w-full h-auto object-contain" />
         </div>
 
-        <!-- Big Logo & Title Combination -->
-        <div class="flex flex-col items-center justify-center gap-4">
-          <img
-            :src="logoPcl"
-            alt="PCL Tournament"
-            class="w-36 h-36 sm:w-48 sm:h-48 md:w-56 md:h-56 object-contain filter drop-shadow-[0_12px_28px_rgba(212,175,55,0.25)] transition-transform hover:scale-105 duration-300"
-          />
+        <div
+          class="relative z-10 max-w-3xl px-6 sm:px-12 lg:px-16 py-12 sm:py-16 space-y-5 sm:space-y-6"
+        >
+          <span
+            class="anim-muncul inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-white/10 border border-white/20 backdrop-blur-sm text-[11px] font-semibold uppercase tracking-[0.16em] text-blue-100"
+            style="animation-delay: 40ms"
+          >
+            <Crown class="w-3.5 h-3.5 text-gold-400" />
+            Flash Peak Tournament 2026
+          </span>
 
           <h1
-            class="text-4xl sm:text-6xl lg:text-7xl font-black tracking-tight text-white font-display uppercase leading-tight"
+            class="anim-muncul font-display text-4xl sm:text-5xl lg:text-6xl font-semibold leading-[1.05] tracking-tight text-white"
+            style="animation-delay: 110ms"
           >
-            PEAK CHAMPIONS
-            <span class="text-gold-gradient drop-shadow-md">LEAGUE</span>
+            Peak Champions<br />
+            <span class="text-gold-400">League</span>
           </h1>
-        </div>
 
-        <p
-          class="max-w-2xl mx-auto text-sm sm:text-base text-pcl-silver font-medium leading-relaxed"
-        >
-          Panggung kompetisi tertinggi mempertemukan 8 klub elit Flash Peak. Ikuti persaingan sengit fase grup, drama babak gugur, hingga penentuan raja sepak bola Flash sesungguhnya.
-        </p>
+          <p
+            class="anim-muncul text-sm sm:text-base text-blue-100/85 leading-relaxed max-w-lg"
+            style="animation-delay: 180ms"
+          >
+            Panggung turnamen elit 16 klub Flash Soccer. Pantau klasemen grup,
+            papan skor, statistik pemain, dan bagan juara PCL 2026.
+          </p>
 
-        <!-- Key Metrics Bar -->
-        <div class="flex items-center justify-center gap-6 sm:gap-10 pt-1 text-xs sm:text-sm font-bold uppercase tracking-wider text-pcl-silver">
-          <div class="flex items-center gap-2">
-            <span class="w-2 h-2 rounded-full bg-pcl-gold"></span>
-            <span><strong class="text-white font-mono text-base">8</strong> Klub Elit</span>
+          <div
+            class="anim-muncul flex items-stretch divide-x divide-white/15 border-y border-white/15 max-w-md"
+            style="animation-delay: 240ms"
+          >
+            <div class="flex-1 py-3 pr-4">
+              <div
+                class="text-xl sm:text-2xl font-semibold tabular-nums text-white"
+              >
+                16
+              </div>
+              <div
+                class="text-[11px] font-semibold uppercase tracking-wider text-blue-200/70 mt-0.5"
+              >
+                Klub
+              </div>
+            </div>
+            <div class="flex-1 py-3 px-4">
+              <div
+                class="text-xl sm:text-2xl font-semibold tabular-nums text-white"
+              >
+                4
+              </div>
+              <div
+                class="text-[11px] font-semibold uppercase tracking-wider text-blue-200/70 mt-0.5"
+              >
+                Grup
+              </div>
+            </div>
+            <div class="flex-1 py-3 pl-4">
+              <div
+                class="text-xl sm:text-2xl font-semibold tabular-nums text-gold-400"
+              >
+                1
+              </div>
+              <div
+                class="text-[11px] font-semibold uppercase tracking-wider text-blue-200/70 mt-0.5"
+              >
+                Juara
+              </div>
+            </div>
           </div>
-          <div class="flex items-center gap-2">
-            <span class="w-2 h-2 rounded-full bg-pcl-blueGlow"></span>
-            <span><strong class="text-white font-mono text-base">2</strong> Grup Sengit</span>
-          </div>
-          <div class="flex items-center gap-2">
-            <span class="w-2 h-2 rounded-full bg-emerald-400"></span>
-            <span><strong class="text-white font-mono text-base">1</strong> Gelar Juara</span>
-          </div>
-        </div>
 
-        <!-- CTA Buttons -->
-        <div class="flex flex-wrap items-center justify-center gap-4 pt-4">
-          <TombolDasar varian="primer" @click="router.push('/turnamen')">
-            <Trophy class="w-4 h-4 mr-2 text-slate-950" />
-            Jelajahi Bagan & Klasemen
-          </TombolDasar>
-          <TombolDasar varian="outline" @click="router.push('/jadwal')">
-            <Calendar class="w-4 h-4 mr-2 text-pcl-gold" />
-            Jadwal & Hasil Laga
-          </TombolDasar>
+          <div
+            class="anim-muncul flex flex-col sm:flex-row items-stretch sm:items-center gap-3 pt-1"
+            style="animation-delay: 310ms"
+          >
+            <button
+              @click="router.push('/turnamen')"
+              class="w-full sm:w-auto inline-flex items-center justify-center px-6 py-2.5 rounded-full bg-ucl-600 hover:bg-blue-700 text-white font-semibold text-sm transition-all shadow-card hover:shadow-lift focus:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-navy-900 cursor-pointer"
+            >
+              <Trophy class="w-4 h-4 mr-2" />
+              Bagan & Klasemen
+            </button>
+            <button
+              @click="router.push('/jadwal')"
+              class="w-full sm:w-auto inline-flex items-center justify-center px-6 py-2.5 rounded-full bg-white/10 border border-white/25 text-white font-semibold text-sm transition-colors hover:bg-white/20 focus:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-navy-900 cursor-pointer"
+            >
+              <Calendar class="w-4 h-4 mr-2" />
+              Jadwal Pertandingan
+            </button>
+          </div>
         </div>
       </div>
     </section>
 
-    <!-- Main Dashboard Widgets -->
-    <div
-      class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 grid grid-cols-1 lg:grid-cols-3 gap-8"
-    >
-      <!-- Big Match Highlight -->
-      <div class="lg:col-span-2 space-y-6">
-        <div class="flex items-center justify-between">
+    <!-- Sorotan Matchday -->
+    <section class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-5">
+      <div class="flex items-end justify-between gap-4">
+        <div>
+          <span
+            class="text-xs font-semibold uppercase tracking-[0.14em] text-gold-600"
+            >Matchday</span
+          >
           <h2
-            class="text-xl font-bold text-white uppercase tracking-wider flex items-center gap-2 font-display"
+            class="font-display text-xl sm:text-2xl font-semibold tracking-tight text-ink-900 mt-0.5 flex items-center gap-2"
           >
-            <Star class="w-4 h-4 text-pcl-gold" />
-            Sorotan Pertandingan Terkini
+            <Star class="w-5 h-5 text-gold-500 fill-gold-300" />
+            Sorotan Laga
           </h2>
-          <button
-            @click="router.push('/jadwal')"
-            class="text-xs font-bold text-pcl-goldLight hover:text-pcl-gold transition-colors flex items-center gap-1"
-          >
-            Lihat Semua Jadwal <ArrowRight class="w-3.5 h-3.5" />
-          </button>
         </div>
-
-        <div
-          class="bg-gradient-to-br from-pcl-card via-pcl-cardLight to-pcl-navy border border-pcl-border/80 hover:border-pcl-gold/50 transition-colors rounded-2xl p-6 sm:p-8 shadow-2xl relative overflow-hidden group"
+        <button
+          @click="router.push('/jadwal')"
+          class="shrink-0 inline-flex items-center gap-1 text-sm font-semibold text-ucl-600 hover:text-blue-700 transition-colors cursor-pointer"
         >
-          <div
-            class="flex items-center justify-between pb-4 border-b border-pcl-border/60 text-xs text-pcl-silver font-semibold"
-          >
-            <span class="flex items-center gap-2">
-              <Shield class="w-3.5 h-3.5 text-pcl-gold" />
-              {{ lagaUnggulan.stage }}
-            </span>
-            <LencanaStatus :status="lagaUnggulan.status" />
-          </div>
-
-          <div class="py-6 flex items-center justify-around">
-            <!-- Home -->
-            <div class="text-center">
-              <div
-                class="w-16 h-16 mx-auto rounded-2xl bg-gradient-to-b from-pcl-royal/40 to-pcl-navy border border-pcl-border flex items-center justify-center font-black text-lg text-pcl-gold mb-2 shadow-lg"
-              >
-                {{ lagaUnggulan.home.short }}
-              </div>
-              <div class="font-bold text-slate-100 text-sm">
-                {{ lagaUnggulan.home.nama }}
-              </div>
-            </div>
-
-            <!-- Score -->
-            <div class="text-center">
-              <div
-                class="text-4xl sm:text-5xl font-black font-mono text-gold-gradient tracking-wider"
-              >
-                {{ lagaUnggulan.home.skor }} - {{ lagaUnggulan.away.skor }}
-              </div>
-              <span
-                class="text-[10px] font-bold text-pcl-silver/70 uppercase tracking-widest mt-1 block"
-                >Full Time</span
-              >
-            </div>
-
-            <!-- Away -->
-            <div class="text-center">
-              <div
-                class="w-16 h-16 mx-auto rounded-2xl bg-gradient-to-b from-pcl-royal/40 to-pcl-navy border border-pcl-border flex items-center justify-center font-black text-lg text-pcl-blueGlow mb-2 shadow-lg"
-              >
-                {{ lagaUnggulan.away.short }}
-              </div>
-              <div class="font-bold text-slate-100 text-sm">
-                {{ lagaUnggulan.away.nama }}
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <!-- Quick Summary Cards -->
-        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <KartuDasar judul="Format Kompetisi" subJudul="Sistem Turnamen PCL">
-            <p class="text-xs text-pcl-silver leading-relaxed">
-              Babak penyisihan dibagi menjadi 2 grup (masing-masing 4 tim) dengan format round-robin. Dua tim teratas setiap grup melaju ke babak Knockout (Semi Final & Grand Final) untuk memperebutkan trofi PCL 2026.
-            </p>
-          </KartuDasar>
-
-          <KartuDasar judul="Pusat Data & Panitia" subJudul="Real-Time Match Operations">
-            <p class="text-xs text-pcl-silver leading-relaxed">
-              Sistem pencatatan skor dan statistik terintegrasi langsung: update otomatis klasemen poin, selisih gol, daftar pencetak gol (Top Scorer), assist, hingga catatan kedisiplinan kartu pemain.
-            </p>
-          </KartuDasar>
-        </div>
+          Semua Laga <ArrowRight class="w-4 h-4" />
+        </button>
       </div>
 
-      <!-- Quick Top Scorer Widget -->
-      <div class="space-y-6">
-        <h2
-          class="text-xl font-bold text-white uppercase tracking-wider flex items-center gap-2 font-display"
-        >
-          <Crown class="w-4 h-4 text-pcl-gold" />
-          Pencetak Gol Terbanyak
-        </h2>
-
-        <div
-          class="bg-pcl-card border border-pcl-border rounded-2xl p-5 shadow-xl space-y-4"
-        >
+      <div
+        class="bg-white rounded-2xl border border-slate-200 shadow-card overflow-hidden"
+      >
+        <div class="p-4 sm:p-6 space-y-4">
           <div
-            class="flex items-center justify-between p-3 rounded-xl bg-gradient-to-r from-pcl-royal/30 to-pcl-cardLight border border-pcl-gold/30"
+            class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 pb-4"
           >
-            <div class="flex items-center gap-3">
+            <div class="flex items-center gap-2.5">
               <span
-                class="w-7 h-7 rounded-lg bg-gradient-to-br from-pcl-gold to-pcl-bronze text-slate-950 flex items-center justify-center text-xs font-black shadow-md"
-                >1</span
+                class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-ucl-50 border border-ucl-100 text-ucl-600 text-[11px] font-semibold"
               >
-              <div>
-                <div class="text-xs font-bold text-white">L. Messi (Peak)</div>
-                <div class="text-[10px] text-pcl-silver">Barcelona FC</div>
-              </div>
+                <Shield class="w-3 h-3" />
+                {{ lagaAktif.group?.name || "Grup A" }} · Matchday
+                {{ lagaAktif.matchday || 1 }}
+              </span>
             </div>
-            <span class="text-base font-black font-mono text-gold-gradient"
-              >3 Gol</span
+
+            <div
+              class="flex items-center gap-1 p-1 rounded-full bg-slate-100 overflow-x-auto scrollbar-none self-start"
             >
+              <button
+                v-for="laga in lagaUnggulanList"
+                :key="laga.id"
+                @click="idLagaTerpilih = laga.id"
+                class="px-3 py-1.5 rounded-full text-xs font-semibold transition-colors whitespace-nowrap cursor-pointer"
+                :class="
+                  idLagaTerpilih === laga.id
+                    ? 'bg-white text-ink-900 shadow-card'
+                    : 'text-slate-500 hover:text-ink-900'
+                "
+              >
+                {{ laga.home_team.short_name }} vs
+                {{ laga.away_team.short_name }}
+              </button>
+            </div>
           </div>
 
+          <!-- Scoreboard -->
           <div
-            class="flex items-center justify-between p-3 rounded-xl bg-pcl-navy/70 border border-pcl-border"
+            class="grid grid-cols-3 items-center gap-2 sm:gap-6 py-3 sm:py-5"
           >
-            <div class="flex items-center gap-3">
-              <span
-                class="w-7 h-7 rounded-lg bg-slate-800 text-pcl-silver flex items-center justify-center text-xs font-black"
-                >2</span
+            <div
+              class="flex flex-col sm:flex-row-reverse items-center gap-2 sm:gap-4 text-center min-w-0"
+            >
+              <div
+                class="w-12 h-12 sm:w-14 sm:h-14 rounded-full bg-slate-50 border border-slate-200 flex items-center justify-center font-display font-semibold text-sm text-navy-800 shrink-0"
               >
-              <div>
-                <div class="text-xs font-bold text-slate-200">
-                  C. Ronaldo (Peak)
-                </div>
-                <div class="text-[10px] text-pcl-silver">Real Madrid</div>
+                {{ lagaAktif.home_team.short_name }}
+              </div>
+              <div class="min-w-0">
+                <h3
+                  class="text-xs sm:text-base font-semibold text-ink-900 truncate"
+                >
+                  {{ lagaAktif.home_team.name }}
+                </h3>
+                <span class="text-[11px] text-slate-400 hidden sm:inline"
+                  >Tuan Rumah</span
+                >
               </div>
             </div>
-            <span class="text-base font-black font-mono text-pcl-silver"
-              >1 Gol</span
+
+            <div class="text-center space-y-1.5">
+              <div
+                class="font-display text-2xl sm:text-4xl font-semibold tabular-nums tracking-tight text-navy-800"
+              >
+                {{ lagaAktif.home_score }} – {{ lagaAktif.away_score }}
+              </div>
+              <span
+                class="inline-block px-2.5 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 text-[11px] font-semibold"
+              >
+                Selesai
+              </span>
+            </div>
+
+            <div
+              class="flex flex-col sm:flex-row items-center gap-2 sm:gap-4 text-center min-w-0"
             >
+              <div
+                class="w-12 h-12 sm:w-14 sm:h-14 rounded-full bg-slate-50 border border-slate-200 flex items-center justify-center font-display font-semibold text-sm text-navy-800 shrink-0"
+              >
+                {{ lagaAktif.away_team.short_name }}
+              </div>
+              <div class="min-w-0">
+                <h3
+                  class="text-xs sm:text-base font-semibold text-ink-900 truncate"
+                >
+                  {{ lagaAktif.away_team.name }}
+                </h3>
+                <span class="text-[11px] text-slate-400 hidden sm:inline"
+                  >Tim Tamu</span
+                >
+              </div>
+            </div>
           </div>
 
-          <TombolDasar
-            varian="outline"
-            class="w-full text-xs"
-            @click="router.push('/statistik')"
+          <!-- Footer: MVP & Detail -->
+          <div
+            class="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 pt-4 border-t border-slate-100"
           >
-            Papan Statistik Lengkap
-          </TombolDasar>
+            <div v-if="lagaAktif.mvp" class="flex items-center gap-2 text-sm">
+              <Award class="w-4 h-4 text-gold-500 shrink-0" />
+              <span class="text-slate-500 text-xs">
+                MVP:
+                <strong class="text-ink-900">{{ lagaAktif.mvp.name }}</strong>
+                ({{ lagaAktif.mvp.team_short }})
+              </span>
+            </div>
+
+            <button
+              @click="bukaModalLaga(lagaAktif)"
+              class="inline-flex items-center justify-center px-5 py-2 rounded-full bg-ucl-600 hover:bg-blue-700 text-white text-sm font-semibold transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-ucl-500 focus-visible:ring-offset-2 cursor-pointer w-full sm:w-auto"
+            >
+              <Activity class="w-4 h-4 mr-1.5" />
+              Lihat Detail Laga
+            </button>
+          </div>
         </div>
       </div>
-    </div>
+    </section>
+
+    <!-- Kabar & Liputan -->
+    <section class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-5">
+      <div class="flex items-end justify-between gap-4">
+        <div>
+          <span
+            class="text-xs font-semibold uppercase tracking-[0.14em] text-gold-600"
+            >Liputan</span
+          >
+          <h2
+            class="font-display text-xl sm:text-2xl font-semibold tracking-tight text-ink-900 mt-0.5 flex items-center gap-2"
+          >
+            <Newspaper class="w-5 h-5 text-ucl-600" />
+            Kabar & Liputan
+          </h2>
+        </div>
+        <button
+          @click="router.push('/berita')"
+          class="shrink-0 inline-flex items-center gap-1 text-sm font-semibold text-ucl-600 hover:text-blue-700 transition-colors cursor-pointer"
+        >
+          Lihat Semua <ArrowRight class="w-4 h-4" />
+        </button>
+      </div>
+
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <article
+          v-for="(berita, idx) in mockBerita"
+          :key="berita.id"
+          @click="bukaBeritaLaga(berita)"
+          class="anim-muncul flex flex-col justify-between p-4 rounded-xl bg-white border border-slate-200 shadow-card hover:shadow-lift transition-shadow group cursor-pointer space-y-3"
+          :style="{ animationDelay: `${idx * 70}ms` }"
+        >
+          <div class="space-y-2">
+            <div class="flex items-center justify-between">
+              <span
+                class="px-2 py-0.5 rounded-full bg-ucl-50 text-ucl-600 text-[10px] font-semibold uppercase tracking-wide"
+              >
+                {{ berita.tag }}
+              </span>
+              <span class="font-mono text-[11px] text-slate-400">{{
+                berita.tanggal
+              }}</span>
+            </div>
+
+            <h3
+              class="text-sm font-semibold text-ink-900 group-hover:text-ucl-600 transition-colors line-clamp-2 leading-snug"
+            >
+              {{ berita.judul }}
+            </h3>
+
+            <p class="text-xs text-slate-500 line-clamp-2 leading-relaxed">
+              {{ berita.ringkasan }}
+            </p>
+          </div>
+
+          <div
+            class="pt-2.5 border-t border-slate-100 flex items-center justify-between text-xs font-semibold text-ucl-600"
+          >
+            <span>Baca Berita</span>
+            <ChevronRight
+              class="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform"
+            />
+          </div>
+        </article>
+      </div>
+    </section>
+
+    <!-- Modal -->
+    <ModalDetailPertandingan
+      :terbuka="modalLagaTerbuka"
+      :laga="lagaAktif"
+      :events="lagaAktif.events || []"
+      @tutup="modalLagaTerbuka = false"
+    />
   </div>
 </template>

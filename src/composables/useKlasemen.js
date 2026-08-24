@@ -1,5 +1,6 @@
 import { ref } from 'vue'
 import { supabase } from '../lib/supabase.js'
+import { mockTim, mockPertandingan } from '../lib/mockData.js'
 
 /**
  * Menghitung klasemen tim berdasarkan daftar pertandingan yang berstatus finished.
@@ -99,6 +100,45 @@ export function useKlasemen() {
   async function ambilKlasemenGrup(tournamentId) {
     sedangMemuat.value = true
     pesanKesalahan.value = null
+
+    // Mode Mock: bypass network request
+    if (import.meta.env.VITE_USE_MOCK === 'true') {
+      const timGrupA = mockTim.filter(t => t.group_name === 'Grup A')
+      const timGrupB = mockTim.filter(t => t.group_name === 'Grup B')
+      const timGrupC = mockTim.filter(t => t.group_name === 'Grup C')
+      const timGrupD = mockTim.filter(t => t.group_name === 'Grup D')
+
+      const lagaGrupA = mockPertandingan.filter(m => m.group_id === 'g1' && m.stage === 'group')
+      const lagaGrupB = mockPertandingan.filter(m => m.group_id === 'g2' && m.stage === 'group')
+      const lagaGrupC = mockPertandingan.filter(m => m.group_id === 'g3' && m.stage === 'group')
+      const lagaGrupD = mockPertandingan.filter(m => m.group_id === 'g4' && m.stage === 'group')
+
+      klasemenPerGrup.value = {
+        g1: {
+          id: 'g1',
+          nama: 'Grup A',
+          klasemen: hitungKlasemen(lagaGrupA, timGrupA)
+        },
+        g2: {
+          id: 'g2',
+          nama: 'Grup B',
+          klasemen: hitungKlasemen(lagaGrupB, timGrupB)
+        },
+        g3: {
+          id: 'g3',
+          nama: 'Grup C',
+          klasemen: hitungKlasemen(lagaGrupC, timGrupC)
+        },
+        g4: {
+          id: 'g4',
+          nama: 'Grup D',
+          klasemen: hitungKlasemen(lagaGrupD, timGrupD)
+        }
+      }
+      sedangMemuat.value = false
+      return
+    }
+
     try {
       // Ambil grup, tim, dan laga
       const { data: grupList, error: errGrup } = await supabase
@@ -126,7 +166,6 @@ export function useKlasemen() {
       const hasil = {}
       ;(grupList || []).forEach(grup => {
         const lagaGrup = (lagaList || []).filter(m => m.group_id === grup.id)
-        // Ambil tim yang ada di laga grup atau seluruh tim jika baru
         hasil[grup.id] = {
           id: grup.id,
           nama: grup.name,
@@ -150,3 +189,4 @@ export function useKlasemen() {
     ambilKlasemenGrup
   }
 }
+

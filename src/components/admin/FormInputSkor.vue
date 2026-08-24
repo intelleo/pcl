@@ -30,45 +30,45 @@ function submit() {
 </script>
 
 <template>
-  <form @submit.prevent="submit" class="bg-slate-900 border border-slate-800 rounded-xl p-5 space-y-4">
-    <div class="text-xs font-bold uppercase tracking-wider text-slate-400 pb-2 border-b border-slate-800 flex items-center justify-between">
-      <span>Input Skor Pertandingan</span>
-      <span class="text-emerald-400">{{ laga.stage }}</span>
+  <form @submit.prevent="submit" class="bg-white border border-slate-200 rounded-xl p-5 space-y-5 shadow-card">
+    <div class="flex items-center justify-between gap-3 pb-3 border-b border-slate-100">
+      <h3 class="text-sm font-semibold text-ink-900">Input skor pertandingan</h3>
+      <span class="px-2.5 py-0.5 rounded-full bg-ucl-50 border border-ucl-100 text-[11px] font-semibold text-ucl-600 truncate">
+        {{ laga.stage }}
+      </span>
     </div>
 
-    <!-- Inputs -->
     <div class="grid grid-cols-2 gap-4">
       <div>
-        <label class="block text-xs font-bold text-slate-300 mb-1 truncate">
+        <label class="block text-xs font-semibold text-ink-600 mb-1.5 truncate">
           {{ laga.home_team?.name || 'Home' }}
         </label>
         <input
           v-model.number="homeScore"
           type="number"
           min="0"
-          class="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-center text-lg font-mono font-bold text-white focus:ring-2 focus:ring-emerald-500 focus:outline-none"
+          class="w-full bg-white border border-slate-300 rounded-lg px-3 py-2 text-center text-xl font-semibold tabular-nums text-ink-900 placeholder-slate-400 outline-none transition focus:border-ucl-500 focus:ring-2 focus:ring-ucl-500/20"
         />
       </div>
 
       <div>
-        <label class="block text-xs font-bold text-slate-300 mb-1 truncate">
+        <label class="block text-xs font-semibold text-ink-600 mb-1.5 truncate">
           {{ laga.away_team?.name || 'Away' }}
         </label>
         <input
           v-model.number="awayScore"
           type="number"
           min="0"
-          class="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-center text-lg font-mono font-bold text-white focus:ring-2 focus:ring-emerald-500 focus:outline-none"
+          class="w-full bg-white border border-slate-300 rounded-lg px-3 py-2 text-center text-xl font-semibold tabular-nums text-ink-900 placeholder-slate-400 outline-none transition focus:border-ucl-500 focus:ring-2 focus:ring-ucl-500/20"
         />
       </div>
     </div>
 
-    <!-- Status Selector -->
     <div>
-      <label class="block text-xs font-bold text-slate-400 mb-1">Status Laga</label>
+      <label class="block text-xs font-semibold text-ink-600 mb-1.5">Status laga</label>
       <select
         v-model="status"
-        class="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-xs text-slate-200 focus:ring-2 focus:ring-emerald-500 focus:outline-none cursor-pointer"
+        class="w-full bg-white border border-slate-300 rounded-lg px-3 py-2 text-sm text-ink-900 placeholder-slate-400 outline-none transition focus:border-ucl-500 focus:ring-2 focus:ring-ucl-500/20 cursor-pointer"
       >
         <option value="scheduled">Jadwal (Scheduled)</option>
         <option value="ongoing">Sedang Berlangsung (Live)</option>
@@ -77,7 +77,7 @@ function submit() {
     </div>
 
     <TombolDasar tipe="submit" varian="primer" :sedangMemuat="sedangMemuat" class="w-full">
-      Simpan & Perbarui Skor
+      Simpan &amp; perbarui skor
     </TombolDasar>
   </form>
 </template>
