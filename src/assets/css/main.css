@@ -4,8 +4,9 @@
 
 @layer base {
   body {
-    @apply bg-pcl-navy text-pcl-white overflow-x-hidden;
     background-color: #0B162C;
+    color: #F8FAFC;
+    overflow-x: hidden;
   }
 }
 
@@ -18,6 +19,7 @@
 
 .text-gold-gradient {
   background: linear-gradient(135deg, #F3E0A3 0%, #D4AF37 50%, #8C6B2D 100%);
+  background-clip: text;
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
 }
