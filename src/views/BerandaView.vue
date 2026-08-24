@@ -58,7 +58,7 @@ const lagaUnggulan = {
           class="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-gradient-to-r from-pcl-royal/60 to-pcl-card border border-pcl-gold/50 shadow-lg shadow-black/40 text-pcl-goldLight text-xs font-bold uppercase tracking-widest"
         >
           <Crown class="w-4 h-4 text-pcl-gold" />
-          Kompetisi Bergengsi Game Flash Peak
+          Turnamen Resmi Sepak Bola Flash Peak • Season 2026
         </div>
 
         <!-- Big Logo & Title Combination -->
@@ -80,19 +80,34 @@ const lagaUnggulan = {
         <p
           class="max-w-2xl mx-auto text-sm sm:text-base text-pcl-silver font-medium leading-relaxed"
         >
-          Panggung juara sepak bola Flash Peak. Pantau statistik tim, klasemen
-          grup, bagan fase gugur, dan pencetak gol terbanyak musim 2026.
+          Panggung kompetisi tertinggi mempertemukan 8 klub elit Flash Peak. Ikuti persaingan sengit fase grup, drama babak gugur, hingga penentuan raja sepak bola Flash sesungguhnya.
         </p>
 
+        <!-- Key Metrics Bar -->
+        <div class="flex items-center justify-center gap-6 sm:gap-10 pt-1 text-xs sm:text-sm font-bold uppercase tracking-wider text-pcl-silver">
+          <div class="flex items-center gap-2">
+            <span class="w-2 h-2 rounded-full bg-pcl-gold"></span>
+            <span><strong class="text-white font-mono text-base">8</strong> Klub Elit</span>
+          </div>
+          <div class="flex items-center gap-2">
+            <span class="w-2 h-2 rounded-full bg-pcl-blueGlow"></span>
+            <span><strong class="text-white font-mono text-base">2</strong> Grup Sengit</span>
+          </div>
+          <div class="flex items-center gap-2">
+            <span class="w-2 h-2 rounded-full bg-emerald-400"></span>
+            <span><strong class="text-white font-mono text-base">1</strong> Gelar Juara</span>
+          </div>
+        </div>
+
         <!-- CTA Buttons -->
-        <div class="flex flex-wrap items-center justify-center gap-4 pt-2">
+        <div class="flex flex-wrap items-center justify-center gap-4 pt-4">
           <TombolDasar varian="primer" @click="router.push('/turnamen')">
             <Trophy class="w-4 h-4 mr-2 text-slate-950" />
-            Bagan & Klasemen
+            Jelajahi Bagan & Klasemen
           </TombolDasar>
           <TombolDasar varian="outline" @click="router.push('/jadwal')">
             <Calendar class="w-4 h-4 mr-2 text-pcl-gold" />
-            Jadwal Pertandingan
+            Jadwal & Hasil Laga
           </TombolDasar>
         </div>
       </div>
@@ -174,19 +189,15 @@ const lagaUnggulan = {
 
         <!-- Quick Summary Cards -->
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <KartuDasar judul="Format Turnamen" subJudul="PCL Season 1">
+          <KartuDasar judul="Format Kompetisi" subJudul="Sistem Turnamen PCL">
             <p class="text-xs text-pcl-silver leading-relaxed">
-              2 Grup @ 4 Klub bertanding format liga mini. 2 Tim peringkat
-              teratas masing-masing grup otomatis lolos ke babak Knockout Semi
-              Final dan Grand Final.
+              Babak penyisihan dibagi menjadi 2 grup (masing-masing 4 tim) dengan format round-robin. Dua tim teratas setiap grup melaju ke babak Knockout (Semi Final & Grand Final) untuk memperebutkan trofi PCL 2026.
             </p>
           </KartuDasar>
 
-          <KartuDasar judul="Panel Panitia" subJudul="Admin & Operator">
+          <KartuDasar judul="Pusat Data & Panitia" subJudul="Real-Time Match Operations">
             <p class="text-xs text-pcl-silver leading-relaxed">
-              Panel khusus admin untuk mencatat live score, gol per menit,
-              assist, serta kartu pelanggaran pemain secara terintegrasi dengan
-              database.
+              Sistem pencatatan skor dan statistik terintegrasi langsung: update otomatis klasemen poin, selisih gol, daftar pencetak gol (Top Scorer), assist, hingga catatan kedisiplinan kartu pemain.
             </p>
           </KartuDasar>
         </div>
