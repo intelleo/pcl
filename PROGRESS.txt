@@ -1,0 +1,26 @@
+# PROGRESS.txt - Log Perkembangan Proyek PCL
+
+## Target Utama
+Membangun web turnamen Peak Champions League (PCL) berbasis Vue 3 + Supabase dengan format Group Stage ke Knockout, lengkap dengan manajemen skor admin dan statistik pemain.
+
+---
+
+## Status Fase
+
+- [x] Inisialisasi aturan proyek & arsitektur (CLAUDE.md & PROGRESS.txt)
+- [x] Fase 1: Perancangan Spesifikasi Dokumen Desain (Design Spec)
+- [x] Fase 2: Scaffolding Project Frontend (Vue 3 + Vite + Tailwind + Pinia + Vue Router + Lucide)
+- [x] Fase 3: Skrip Skema Database SQL Supabase (Tabel, Relasi, Enum, Indeks & Seed Data)
+- [x] Fase 4: Integrasi Client Supabase & Modul Composables / Stores
+- [x] Fase 5: UI/UX Komponen Turnamen (Klasemen Grup, Bracket Fase Gugur, Jadwal & Hasil)
+- [x] Fase 6: UI/UX Komponen Statistik (Top Scorer, Assist, Kartu)
+- [x] Fase 7: Admin Panel (Input Skor, Event Pencetak Gol, Manajemen Tim & Grup)
+- [x] Fase 8: Pengujian & Validasi Alur Pertandingan hingga Final (9/9 Unit Tests Pass & 100% Clean Production Build)
+
+---
+
+## Catatan Log & Keputusan
+- [2026-08-24]: Inisialisasi proyek. Tech stack: Vue 3 + Supabase Local + Tailwind CSS.
+- [2026-08-24]: Implementasi skema DDL 7 tabel di `supabase/schema.sql` dan sample seed di `supabase/seed.sql`.
+- [2026-08-24]: Implementasi modul logika klasemen, pertandingan, statistik pemain, dan admin panel dengan bahasa fungsi Indonesia murni & batas file di bawah 500 baris.
+- [2026-08-24]: Semua unit tests (5 file suite, 9 test cases) berhasil lolos dan build produksi sukses.
