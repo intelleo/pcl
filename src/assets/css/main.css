@@ -4,8 +4,26 @@
 
 @layer base {
   body {
-    @apply bg-pcl-dark text-slate-200 overflow-x-hidden;
+    @apply bg-pcl-navy text-pcl-white overflow-x-hidden;
+    background-color: #0B162C;
   }
+}
+
+/* Custom Sports Glass & Textures */
+.pcl-bg-pattern {
+  background-image: url('../img/bg-pattern.webp');
+  background-repeat: repeat;
+  background-size: 300px;
+}
+
+.text-gold-gradient {
+  background: linear-gradient(135deg, #F3E0A3 0%, #D4AF37 50%, #8C6B2D 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.border-gold-gradient {
+  border-image: linear-gradient(135deg, #F3E0A3, #D4AF37, #8C6B2D) 1;
 }
 
 /* Custom Scrollbar */
@@ -14,12 +32,12 @@
   height: 8px;
 }
 ::-webkit-scrollbar-track {
-  background: #080c14;
+  background: #0B162C;
 }
 ::-webkit-scrollbar-thumb {
-  background: #334155;
+  background: #1E3A6E;
   border-radius: 4px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: #10b981;
+  background: #D4AF37;
 }

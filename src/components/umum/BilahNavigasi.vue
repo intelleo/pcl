@@ -2,6 +2,7 @@
 import { ref } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { Trophy, Calendar, Users, BarChart3, Shield, Menu, X, ShieldAlert } from 'lucide-vue-next'
+import logoPcl from '@/assets/img/logoo.webp'
 
 const router = useRouter()
 const route = useRoute()
@@ -23,19 +24,24 @@ function navigasi(rute) {
 </script>
 
 <template>
-  <header class="sticky top-0 z-40 w-full border-b border-slate-800/80 bg-pcl-dark/95 backdrop-blur-md">
+  <header class="sticky top-0 z-40 w-full border-b border-pcl-border/70 bg-pcl-navy/95 backdrop-blur-md shadow-lg shadow-black/20">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-      <div class="flex items-center justify-between h-16">
-        <!-- Logo -->
-        <div class="flex items-center gap-3 cursor-pointer" @click="navigasi('/')">
-          <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-emerald-600 to-cyan-500 flex items-center justify-center shadow-lg shadow-emerald-500/20 ring-1 ring-white/20">
-            <Trophy class="w-5 h-5 text-slate-950 stroke-[2.5]" />
+      <div class="flex items-center justify-between h-16 sm:h-20">
+        <!-- Logo Brand -->
+        <div class="flex items-center gap-3 cursor-pointer group" @click="navigasi('/')">
+          <div class="relative w-12 h-12 sm:w-14 sm:h-14 flex items-center justify-center p-1 rounded-xl bg-gradient-to-b from-pcl-royal/30 to-pcl-navy/80 border border-pcl-gold/40 group-hover:border-pcl-gold transition-colors shadow-lg shadow-pcl-gold/5">
+            <img :src="logoPcl" alt="PCL Logo" class="w-full h-full object-contain filter drop-shadow-md" />
           </div>
           <div>
-            <span class="text-xl font-black tracking-wider text-white flex items-center gap-1.5 font-display text-2xl uppercase">
-              PCL <span class="text-emerald-400 font-sans text-xs px-2 py-0.5 rounded bg-emerald-500/10 border border-emerald-500/30">2026</span>
-            </span>
-            <p class="text-[10px] text-slate-400 tracking-widest uppercase -mt-1 font-semibold">Peak Champions League</p>
+            <div class="flex items-center gap-2">
+              <span class="text-xl sm:text-2xl font-black tracking-wider text-white font-display uppercase leading-none">
+                PEAK CHAMPIONS
+              </span>
+              <span class="text-[10px] font-black px-1.5 py-0.5 rounded bg-gradient-to-r from-pcl-gold to-pcl-bronze text-slate-950 shadow-sm uppercase font-mono">
+                LEAGUE
+              </span>
+            </div>
+            <p class="text-[10px] text-pcl-silver/70 tracking-widest uppercase font-semibold mt-0.5">Flash Soccer Tournament 2026</p>
           </div>
         </div>
 
@@ -45,14 +51,14 @@ function navigasi(rute) {
             v-for="item in daftarMenu"
             :key="item.rute"
             @click="navigasi(item.rute)"
-            class="flex items-center gap-2 px-3.5 py-2 rounded-lg text-xs font-bold tracking-wide uppercase transition-all duration-200"
+            class="flex items-center gap-2 px-3.5 py-2 rounded-lg text-xs font-bold tracking-wider uppercase transition-all duration-200"
             :class="[
               route.path === item.rute
-                ? 'text-emerald-400 bg-emerald-500/10 border border-emerald-500/30 shadow-sm'
-                : 'text-slate-400 hover:text-slate-100 hover:bg-slate-800/50'
+                ? 'text-pcl-goldLight bg-gradient-to-r from-pcl-royal/40 to-pcl-card border border-pcl-gold/40 shadow-sm shadow-pcl-gold/10 font-black'
+                : 'text-pcl-silver hover:text-white hover:bg-pcl-cardLight/50'
             ]"
           >
-            <component :is="item.ikon" class="w-4 h-4" />
+            <component :is="item.ikon" class="w-4 h-4 text-pcl-gold" />
             {{ item.nama }}
           </button>
         </nav>
@@ -61,7 +67,7 @@ function navigasi(rute) {
         <div class="md:hidden flex items-center">
           <button
             @click="menuTerbuka = !menuTerbuka"
-            class="p-2 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800"
+            class="p-2 rounded-lg text-pcl-silver hover:text-white hover:bg-pcl-card"
           >
             <component :is="menuTerbuka ? X : Menu" class="w-6 h-6" />
           </button>
@@ -72,7 +78,7 @@ function navigasi(rute) {
     <!-- Mobile Dropdown -->
     <div
       v-if="menuTerbuka"
-      class="md:hidden border-b border-slate-800 bg-pcl-card px-4 pt-2 pb-4 space-y-1"
+      class="md:hidden border-b border-pcl-border bg-pcl-card px-4 pt-2 pb-4 space-y-1 shadow-2xl"
     >
       <button
         v-for="item in daftarMenu"
@@ -81,11 +87,11 @@ function navigasi(rute) {
         class="w-full flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-semibold tracking-wide transition-colors"
         :class="[
           route.path === item.rute
-            ? 'text-emerald-400 bg-emerald-500/10 border border-emerald-500/20'
-            : 'text-slate-400 hover:text-white hover:bg-slate-800/50'
+            ? 'text-pcl-gold bg-pcl-royal/30 border border-pcl-gold/30'
+            : 'text-pcl-silver hover:text-white hover:bg-pcl-cardLight/40'
         ]"
       >
-        <component :is="item.ikon" class="w-4 h-4" />
+        <component :is="item.ikon" class="w-4 h-4 text-pcl-gold" />
         {{ item.nama }}
       </button>
     </div>

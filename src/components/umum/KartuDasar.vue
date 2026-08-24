@@ -17,23 +17,23 @@ defineProps({
 
 <template>
   <div
-    class="relative bg-pcl-card/90 backdrop-blur-md rounded-xl border transition-all duration-200 overflow-hidden shadow-xl"
+    class="relative bg-pcl-card/90 backdrop-blur-md rounded-2xl border transition-all duration-200 overflow-hidden shadow-xl"
     :class="[
       sorotan
-        ? 'border-emerald-500/50 shadow-emerald-950/30 ring-1 ring-emerald-500/20'
-        : 'border-slate-800/80 hover:border-slate-700/80 shadow-slate-950/40'
+        ? 'border-pcl-gold/60 shadow-pcl-gold/10 ring-1 ring-pcl-gold/30'
+        : 'border-pcl-border hover:border-pcl-gold/40 shadow-black/30'
     ]"
   >
-    <!-- Header jika ada judul -->
+    <!-- Header -->
     <div
       v-if="judul || $slots.aksiHeader"
-      class="flex items-center justify-between px-5 py-4 border-b border-slate-800/60 bg-slate-900/40"
+      class="flex items-center justify-between px-5 py-4 border-b border-pcl-border/70 bg-gradient-to-r from-pcl-royal/20 to-pcl-card"
     >
       <div>
-        <h3 class="text-base font-bold text-slate-100 tracking-wide flex items-center gap-2">
+        <h3 class="text-sm font-bold text-white tracking-wider uppercase flex items-center gap-2 font-display text-base">
           {{ judul }}
         </h3>
-        <p v-if="subJudul" class="text-xs text-slate-400 mt-0.5">{{ subJudul }}</p>
+        <p v-if="subJudul" class="text-xs text-pcl-silver/70 mt-0.5">{{ subJudul }}</p>
       </div>
       <div v-if="$slots.aksiHeader" class="flex items-center space-x-2">
         <slot name="aksiHeader" />
@@ -48,7 +48,7 @@ defineProps({
     <!-- Footer slot -->
     <div
       v-if="$slots.footer"
-      class="px-5 py-3 border-t border-slate-800/60 bg-slate-900/30 text-xs text-slate-400"
+      class="px-5 py-3 border-t border-pcl-border/70 bg-pcl-navy/40 text-xs text-pcl-silver"
     >
       <slot name="footer" />
     </div>

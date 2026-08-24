@@ -3,7 +3,7 @@ defineProps({
   varian: {
     type: String,
     default: 'primer',
-    validator: (v) => ['primer', 'sekunder', 'bahaya', 'outline', 'aksen'].includes(v)
+    validator: (v) => ['primer', 'sekunder', 'bahaya', 'outline', 'aksen', 'gold'].includes(v)
   },
   tipe: {
     type: String,
@@ -24,13 +24,13 @@ defineProps({
   <button
     :type="tipe"
     :disabled="dinonaktifkan || sedangMemuat"
-    class="relative inline-flex items-center justify-center px-4 py-2 text-sm font-semibold tracking-wide transition-all duration-200 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-pcl-dark disabled:opacity-50 disabled:cursor-not-allowed group"
+    class="relative inline-flex items-center justify-center px-4 py-2.5 text-xs sm:text-sm font-bold tracking-wider uppercase transition-all duration-200 rounded-xl shadow-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-pcl-navy disabled:opacity-50 disabled:cursor-not-allowed group cursor-pointer"
     :class="{
-      'bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold focus:ring-emerald-500 shadow-emerald-500/20 hover:shadow-emerald-500/40 shadow-lg': varian === 'primer',
-      'bg-slate-800 hover:bg-slate-700 text-slate-100 focus:ring-slate-600 border border-slate-700': varian === 'sekunder',
-      'bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold focus:ring-cyan-500 shadow-cyan-500/20 shadow-lg': varian === 'aksen',
-      'bg-red-600 hover:bg-red-500 text-white focus:ring-red-500 shadow-red-600/20 shadow-lg': varian === 'bahaya',
-      'bg-transparent hover:bg-slate-800/60 text-slate-300 hover:text-white border border-slate-700 hover:border-slate-500 focus:ring-slate-500': varian === 'outline'
+      'bg-gradient-to-r from-pcl-gold via-pcl-goldLight to-pcl-gold hover:from-pcl-goldLight hover:to-pcl-gold text-slate-950 font-black shadow-pcl-gold/20 hover:shadow-pcl-gold/40 border border-pcl-goldLight/40': varian === 'primer' || varian === 'gold',
+      'bg-pcl-cardLight hover:bg-pcl-royal/40 text-pcl-white border border-pcl-border hover:border-pcl-gold/40': varian === 'sekunder',
+      'bg-gradient-to-r from-pcl-blueGlow to-pcl-royal hover:from-blue-400 hover:to-pcl-royal text-white shadow-pcl-blueGlow/20': varian === 'aksen',
+      'bg-red-600/90 hover:bg-red-500 text-white shadow-red-600/20 border border-red-500/40': varian === 'bahaya',
+      'bg-transparent hover:bg-pcl-cardLight/60 text-pcl-silver hover:text-white border border-pcl-border hover:border-pcl-gold/50': varian === 'outline'
     }"
   >
     <svg
