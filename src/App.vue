@@ -4,7 +4,7 @@ import KakiHalaman from './components/umum/KakiHalaman.vue'
 </script>
 
 <template>
-  <div class="min-h-screen flex flex-col bg-pcl-navy text-pcl-white selection:bg-pcl-gold selection:text-slate-950 pcl-bg-pattern bg-blend-soft-light">
+  <div class="min-h-screen flex flex-col bg-pcl-navy text-pcl-white selection:bg-pcl-gold selection:text-slate-950">
     <BilahNavigasi />
     <main class="flex-1">
       <router-view />

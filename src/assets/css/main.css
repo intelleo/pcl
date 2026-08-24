@@ -10,13 +10,6 @@
   }
 }
 
-/* Custom Sports Glass & Textures */
-.pcl-bg-pattern {
-  background-image: url('../img/bg-pattern.webp');
-  background-repeat: repeat;
-  background-size: 300px;
-}
-
 .text-gold-gradient {
   background: linear-gradient(135deg, #F3E0A3 0%, #D4AF37 50%, #8C6B2D 100%);
   background-clip: text;
