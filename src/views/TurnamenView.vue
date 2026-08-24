@@ -14,33 +14,33 @@ onMounted(async () => {
 </script>
 
 <template>
-  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 space-y-6 sm:space-y-8">
     <!-- Header & Tab Switcher -->
-    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6 border-b border-slate-800">
+    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6 border-b border-pcl-border">
       <div>
         <h1 class="text-2xl sm:text-3xl font-black text-white font-display tracking-wide uppercase">
           Fase & Bagan Turnamen
         </h1>
-        <p class="text-sm text-slate-400">Pantau klasemen fase grup dan bagan perjalanan menuju gelar juara</p>
+        <p class="text-xs sm:text-sm text-pcl-silver">Pantau klasemen fase grup dan bagan perjalanan menuju gelar juara</p>
       </div>
 
       <!-- Tab Buttons -->
-      <div class="inline-flex p-1 rounded-xl bg-slate-900 border border-slate-800">
+      <div class="inline-flex p-1 rounded-xl bg-pcl-navy border border-pcl-border w-full sm:w-auto">
         <button
           @click="tabAktif = 'grup'"
-          class="flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-bold uppercase tracking-wider transition-all"
-          :class="tabAktif === 'grup' ? 'bg-emerald-500 text-slate-950 shadow-md font-black' : 'text-slate-400 hover:text-white'"
+          class="flex-1 sm:flex-initial flex items-center justify-center gap-2 px-4 py-2 rounded-lg text-xs font-bold uppercase tracking-wider transition-all"
+          :class="tabAktif === 'grup' ? 'bg-gradient-to-r from-pcl-gold to-pcl-bronze text-slate-950 shadow-md font-black' : 'text-pcl-silver hover:text-white'"
         >
           <Shield class="w-4 h-4" />
           Fase Grup
         </button>
         <button
           @click="tabAktif = 'knockout'"
-          class="flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-bold uppercase tracking-wider transition-all"
-          :class="tabAktif === 'knockout' ? 'bg-emerald-500 text-slate-950 shadow-md font-black' : 'text-slate-400 hover:text-white'"
+          class="flex-1 sm:flex-initial flex items-center justify-center gap-2 px-4 py-2 rounded-lg text-xs font-bold uppercase tracking-wider transition-all"
+          :class="tabAktif === 'knockout' ? 'bg-gradient-to-r from-pcl-gold to-pcl-bronze text-slate-950 shadow-md font-black' : 'text-pcl-silver hover:text-white'"
         >
           <GitBranch class="w-4 h-4" />
-          Fase Gugur / Bagan
+          Bagan Gugur
         </button>
       </div>
     </div>
@@ -48,11 +48,11 @@ onMounted(async () => {
     <!-- Content Tab 1: Fase Grup -->
     <div v-if="tabAktif === 'grup'" class="space-y-6">
       <div v-if="sedangMemuat" class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <div v-for="n in 2" :key="n" class="h-64 rounded-xl bg-slate-900/50 animate-pulse border border-slate-800"></div>
+        <div v-for="n in 2" :key="n" class="h-64 rounded-2xl bg-pcl-card/50 animate-pulse border border-pcl-border"></div>
       </div>
 
       <div v-else class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <!-- Sample Group A & B jika kosong/load -->
+        <!-- Sample Group A & B -->
         <TabelKlasemenGrup
           namaGrup="Grup A"
           :klasemen="[
