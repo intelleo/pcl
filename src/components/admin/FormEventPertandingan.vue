@@ -1,12 +1,12 @@
 <script setup>
-import { ref } from 'vue'
+import { ref, watch } from 'vue'
 import { Target } from 'lucide-vue-next'
 import TombolDasar from '../umum/TombolDasar.vue'
 
 const props = defineProps({
   laga: {
     type: Object,
-    required: true
+    default: null
   },
   daftarPemain: {
     type: Array,
@@ -20,14 +20,20 @@ const props = defineProps({
 
 const emit = defineEmits(['tambahEvent'])
 
-const teamId = ref(props.laga.home_team_id)
+const teamId = ref(props.laga?.home_team_id || '')
 const playerId = ref('')
 const assistPlayerId = ref('')
 const eventType = ref('goal')
 const minute = ref(1)
 
+watch(() => props.laga, (newLaga) => {
+  if (newLaga) {
+    teamId.value = newLaga.home_team_id || ''
+  }
+}, { immediate: true })
+
 function submit() {
-  if (!playerId.value) return
+  if (!props.laga || !playerId.value) return
   emit('tambahEvent', {
     matchId: props.laga.id,
     teamId: teamId.value,
@@ -42,7 +48,10 @@ function submit() {
 </script>
 
 <template>
-  <form @submit.prevent="submit" class="bg-white border border-slate-200 rounded-xl p-5 space-y-5 shadow-card">
+  <div v-if="!laga" class="bg-white border border-slate-200 rounded-xl p-8 text-center text-slate-400 text-xs shadow-card">
+    Belum ada data laga yang dipilih.
+  </div>
+  <form v-else @submit.prevent="submit" class="bg-white border border-slate-200 rounded-xl p-5 space-y-5 shadow-card">
     <div class="flex items-center justify-between gap-3 pb-3 border-b border-slate-100">
       <h3 class="text-sm font-semibold text-ink-900">Tambah event laga (gol / kartu)</h3>
       <Target class="w-4 h-4 text-ucl-600 shrink-0" />
