@@ -34,7 +34,7 @@ function submit() {
 </script>
 
 <template>
-  <div class="space-y-4">
+  <div class="space-y-6">
     <form @submit.prevent="submit" class="bg-white border border-slate-200 rounded-xl p-5 space-y-5 shadow-card">
       <div class="flex items-center justify-between gap-3 pb-3 border-b border-slate-100">
         <h3 class="text-sm font-semibold text-ink-900">Tambah klub peserta baru</h3>
@@ -80,5 +80,40 @@ function submit() {
         Simpan tim baru
       </TombolDasar>
     </form>
+
+    <!-- Preview Tabel Klub -->
+    <div class="bg-white rounded-xl border border-slate-200 overflow-hidden shadow-card">
+      <div class="bg-slate-50 px-4 py-3 border-b border-slate-200 flex items-center justify-between">
+        <h4 class="font-semibold text-xs text-ink-900">Daftar Klub Aktif Turnamen ({{ daftarTim.length }} Tim)</h4>
+      </div>
+      <div class="overflow-x-auto">
+        <table class="w-full text-left border-collapse text-xs">
+          <thead>
+            <tr class="bg-slate-50/50 border-b border-slate-200 text-[11px] font-semibold uppercase text-slate-500">
+              <th class="py-2.5 px-4">Klub</th>
+              <th class="py-2.5 px-4">Grup</th>
+              <th class="py-2.5 px-4">Manajer</th>
+              <th class="py-2.5 px-4">Stadion</th>
+              <th class="py-2.5 px-4 text-right">OVR</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-slate-100">
+            <tr v-for="t in daftarTim" :key="t.id" class="hover:bg-slate-50">
+              <td class="py-2.5 px-4 font-semibold text-ink-900 flex items-center gap-2">
+                <span class="w-6 h-6 rounded bg-slate-100 text-[10px] font-bold flex items-center justify-center text-navy-800">
+                  {{ t.short_name }}
+                </span>
+                {{ t.name }}
+              </td>
+              <td class="py-2.5 px-4 text-slate-600">{{ t.group_name || '-' }}</td>
+              <td class="py-2.5 px-4 text-slate-500">{{ t.manager_name || '-' }}</td>
+              <td class="py-2.5 px-4 text-slate-400">{{ t.stadium || '-' }}</td>
+              <td class="py-2.5 px-4 text-right font-bold text-navy-800">{{ t.rating || 90 }}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
   </div>
 </template>
+

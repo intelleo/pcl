@@ -28,4 +28,6 @@ Membangun web turnamen Peak Champions League (PCL) berbasis Vue 3 + Supabase den
 - [2026-08-25]: Perbaikan AdminView (panel pendaftaran tim, drawing grup otomatis, input skor, arsip riwayat juara, UI tabs styling).
 - [2026-08-25]: Penyesuaian layout & tampilan UI views (Beranda, Berita, DetailBerita, DetailTim, Jadwal, RiwayatJuara, Statistik, Tim, Turnamen, BaganFaseGugur).
 - [2026-08-25]: Penambahan skrip migrasi/skema SQL (`schema.sql`, `schema_pcl.sql`, `seed_pcl.sql`, `schema_public_prefix.sql`).
-- [2026-08-25]: Validasi build produksi frontend (Vite) sukses tanpa error.
+- [2026-08-25]: Mengubah sistem autentikasi Admin dari PIN ke Login User (Username/Email & Password) via `useAuth.js` dan integrasi Supabase Auth + local fallback panitia.
+- [2026-08-25]: Menambahkan manajemen sesi admin di localStorage, tombol logout, serta perapihan komponen `AdminView.vue` tetap di bawah 500 baris.
+- [2026-08-25]: Validasi build produksi frontend (Vite) & unit tests (9/9) sukses 100%.

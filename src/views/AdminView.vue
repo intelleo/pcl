@@ -2,6 +2,7 @@
 import { ref, computed, onMounted, watch } from 'vue'
 import { supabase } from '../lib/supabase.js'
 import { useAdmin } from '../composables/useAdmin.js'
+import { useAuth } from '../composables/useAuth.js'
 import FormInputSkor from '../components/admin/FormInputSkor.vue'
 import FormEventPertandingan from '../components/admin/FormEventPertandingan.vue'
 import ManajemenTim from '../components/admin/ManajemenTim.vue'
@@ -11,6 +12,8 @@ import PanelManajemenJuara from '../components/admin/PanelManajemenJuara.vue'
 import {
   ShieldCheck,
   Lock,
+  User,
+  LogOut,
   Calendar,
   Users,
   Dices,
@@ -22,9 +25,9 @@ import {
 } from 'lucide-vue-next'
 import TombolDasar from '../components/umum/TombolDasar.vue'
 
-const pinAdmin = ref('')
-const terotentikasi = ref(false)
-const pesanErrorAuth = ref('')
+const { adminAktif, terotentikasi, sedangMasuk, pesanKesalahan: pesanErrorAuth, masukAdmin, keluarAdmin } = useAuth()
+const inputUsername = ref('')
+const inputPassword = ref('')
 const tabAktif = ref('skor') // 'skor' | 'pendaftaran' | 'drawing' | 'klub' | 'juara'
 
 const { sedangMemuat, pesanSukses, pesanKesalahan, perbaruiSkorPertandingan, tambahEventPertandingan } = useAdmin()
@@ -138,14 +141,16 @@ watch(selectedMatchId, async (newId) => {
   }
 }, { immediate: true })
 
-function verifikasiPin() {
-  if (pinAdmin.value === '1234' || pinAdmin.value === 'pcl2026') {
-    terotentikasi.value = true
-    pesanErrorAuth.value = ''
+async function handleLogin() {
+  const sukses = await masukAdmin(inputUsername.value, inputPassword.value)
+  if (sukses) {
+    inputPassword.value = ''
     muatSemuaDataAdmin()
-  } else {
-    pesanErrorAuth.value = 'PIN Admin salah. Coba: 1234'
   }
+}
+
+function handleLogout() {
+  keluarAdmin()
 }
 
 async function simpanSkor(payload) {
@@ -302,32 +307,58 @@ async function handleHapusRiwayat(riwayatId) {
 
 <template>
   <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-10 pb-16 space-y-6 sm:space-y-8">
-    <!-- Lock Screen -->
+    <!-- Login User Screen -->
     <div v-if="!terotentikasi" class="anim-muncul max-w-md mx-auto my-12 rounded-2xl bg-white border border-slate-200 shadow-lift p-6 sm:p-8 text-center">
       <div class="w-14 h-14 rounded-2xl bg-ucl-50 border border-ucl-100 flex items-center justify-center mx-auto mb-4 text-ucl-600 shadow-sm">
         <Lock class="w-6 h-6" />
       </div>
-      <h2 class="font-display text-xl font-semibold tracking-tight text-ink-900 mb-1">Panel Panitia PCL</h2>
+      <h2 class="font-display text-xl font-semibold tracking-tight text-ink-900 mb-1">Login Panitia PCL</h2>
       <p class="text-xs sm:text-sm text-ink-400 mb-6 leading-relaxed">
-        Masukkan PIN keamanan admin turnamen untuk mengelola skor, tim, dan jadwal laga.
+        Masuk menggunakan akun pengguna panitia untuk mengelola jadwal, skor, tim, dan turnamen.
       </p>
 
-      <form @submit.prevent="verifikasiPin" class="space-y-3">
-        <div class="text-left">
-          <label for="pin-admin" class="block text-xs font-semibold text-ink-600 mb-1.5">PIN Keamanan</label>
-          <input
-            id="pin-admin"
-            v-model="pinAdmin"
-            type="password"
-            placeholder="Masukkan PIN (Default: 1234)"
-            class="w-full bg-white border border-slate-300 rounded-lg px-4 py-2.5 text-center text-sm font-semibold text-ink-900 placeholder-slate-400 outline-none transition focus:border-ucl-500 focus:ring-2 focus:ring-ucl-500/20"
-            required
-          />
+      <form @submit.prevent="handleLogin" class="space-y-4 text-left">
+        <div>
+          <label for="admin-username" class="block text-xs font-semibold text-ink-600 mb-1.5">Username / Email</label>
+          <div class="relative">
+            <input
+              id="admin-username"
+              v-model="inputUsername"
+              type="text"
+              placeholder="admin atau admin@pcl.com"
+              class="w-full bg-white border border-slate-300 rounded-lg pl-9 pr-3.5 py-2 text-sm font-medium text-ink-900 placeholder-slate-400 outline-none transition focus:border-ucl-500 focus:ring-2 focus:ring-ucl-500/20"
+              required
+            />
+            <User class="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+          </div>
         </div>
-        <div v-if="pesanErrorAuth" class="text-xs text-red-600 font-semibold">{{ pesanErrorAuth }}</div>
-        <TombolDasar tipe="submit" varian="primer" class="w-full">
-          Buka Panel Admin
+
+        <div>
+          <label for="admin-password" class="block text-xs font-semibold text-ink-600 mb-1.5">Password</label>
+          <div class="relative">
+            <input
+              id="admin-password"
+              v-model="inputPassword"
+              type="password"
+              placeholder="••••••••"
+              class="w-full bg-white border border-slate-300 rounded-lg pl-9 pr-3.5 py-2 text-sm font-medium text-ink-900 placeholder-slate-400 outline-none transition focus:border-ucl-500 focus:ring-2 focus:ring-ucl-500/20"
+              required
+            />
+            <Lock class="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+          </div>
+        </div>
+
+        <div v-if="pesanErrorAuth" class="p-2.5 rounded-lg bg-red-50 border border-red-200 text-xs text-red-600 font-semibold leading-relaxed">
+          {{ pesanErrorAuth }}
+        </div>
+
+        <TombolDasar tipe="submit" varian="primer" class="w-full justify-center mt-2" :disabled="sedangMasuk">
+          {{ sedangMasuk ? 'Memverifikasi...' : 'Masuk Panel Admin' }}
         </TombolDasar>
+
+        <div class="pt-2 text-center">
+          <p class="text-[11px] text-slate-400">Akun default: <span class="font-mono text-slate-600 font-semibold">admin</span> / <span class="font-mono text-slate-600 font-semibold">admin123</span></p>
+        </div>
       </form>
     </div>
 
@@ -339,7 +370,7 @@ async function handleHapusRiwayat(riwayatId) {
           <div class="flex items-center gap-2">
             <span class="text-xs font-semibold uppercase tracking-[0.14em] text-gold-600">Control Room</span>
             <span class="text-slate-300">•</span>
-            <span class="text-xs text-slate-500">PCL Season 2026</span>
+            <span class="text-xs text-slate-500">{{ adminAktif?.nama || 'Admin PCL' }} ({{ adminAktif?.role || 'panitia' }})</span>
           </div>
           <h1 class="font-display text-2xl sm:text-3xl font-semibold tracking-tight text-ink-900 mt-1 flex items-center gap-2.5">
             <ShieldCheck class="w-7 h-7 text-emerald-600 shrink-0" />
@@ -348,10 +379,11 @@ async function handleHapusRiwayat(riwayatId) {
         </div>
 
         <button
-          @click="terotentikasi = false"
+          @click="handleLogout"
           class="shrink-0 inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-white border border-slate-300 text-xs font-semibold text-ink-600 transition-colors hover:border-red-500 hover:text-red-600 cursor-pointer shadow-sm"
         >
-          Kunci Kembali
+          <LogOut class="w-3.5 h-3.5 text-slate-400 group-hover:text-red-500" />
+          Keluar Admin
         </button>
       </div>
 
@@ -489,46 +521,12 @@ async function handleHapusRiwayat(riwayatId) {
       </div>
 
       <!-- TAB 4: Manajemen Klub Peserta -->
-      <div v-else-if="tabAktif === 'klub'" class="space-y-6">
+      <div v-else-if="tabAktif === 'klub'">
         <ManajemenTim
           :daftarTim="daftarTim"
           :sedangMemuat="sedangMemuat"
           @tambahTim="handleTambahTimBaru"
         />
-
-        <!-- Preview Tabel Klub -->
-        <div class="bg-white rounded-xl border border-slate-200 overflow-hidden shadow-card">
-          <div class="bg-slate-50 px-4 py-3 border-b border-slate-200 flex items-center justify-between">
-            <h4 class="font-semibold text-xs text-ink-900">Daftar Klub Aktif Turnamen ({{ daftarTim.length }} Tim)</h4>
-          </div>
-          <div class="overflow-x-auto">
-            <table class="w-full text-left border-collapse text-xs">
-              <thead>
-                <tr class="bg-slate-50/50 border-b border-slate-200 text-[11px] font-semibold uppercase text-slate-500">
-                  <th class="py-2.5 px-4">Klub</th>
-                  <th class="py-2.5 px-4">Grup</th>
-                  <th class="py-2.5 px-4">Manajer</th>
-                  <th class="py-2.5 px-4">Stadion</th>
-                  <th class="py-2.5 px-4 text-right">OVR</th>
-                </tr>
-              </thead>
-              <tbody class="divide-y divide-slate-100">
-                <tr v-for="t in daftarTim" :key="t.id" class="hover:bg-slate-50">
-                  <td class="py-2.5 px-4 font-semibold text-ink-900 flex items-center gap-2">
-                    <span class="w-6 h-6 rounded bg-slate-100 text-[10px] font-bold flex items-center justify-center text-navy-800">
-                      {{ t.short_name }}
-                    </span>
-                    {{ t.name }}
-                  </td>
-                  <td class="py-2.5 px-4 text-slate-600">{{ t.group_name || '-' }}</td>
-                  <td class="py-2.5 px-4 text-slate-500">{{ t.manager_name || '-' }}</td>
-                  <td class="py-2.5 px-4 text-slate-400">{{ t.stadium || '-' }}</td>
-                  <td class="py-2.5 px-4 text-right font-bold text-navy-800">{{ t.rating || 90 }}</td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-        </div>
       </div>
 
       <!-- TAB 5: Arsip Juara Musim -->
