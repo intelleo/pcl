@@ -24,7 +24,11 @@ Format: Group Stage hingga Knockout (Final) ala UEFA Champions League.
    - Prinsip Single Responsibility.
    - Pisahkan logic ke composables (`src/composables/`).
    - Store terpisah per domain (`src/stores/`).
-5. - catat setiap perubahan dan prpgrees kerjanya!
+5. **Diskusi & Persetujuan Sebelum Eksekusi**:
+   - Selalu diskusikan rencana teknis, pendekatan arsitektur, atau ide baru kepada pengguna terlebih dahulu.
+   - Tunggu persetujuan/konfirmasi pengguna sebelum mengeksekusi perubahan kode.
+6. **Pencatatan Log Wajib (PROGRESS.txt)**:
+   - Wajib mencatat setiap progres pekerjaan, perubahan fitur, dan keputusan teknis di `PROGRESS.txt`.
 
 ## Struktur Folder Proyek
 
