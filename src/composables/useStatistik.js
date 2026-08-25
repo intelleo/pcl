@@ -1,11 +1,10 @@
 import { ref } from 'vue'
 import { supabase } from '../lib/supabase.js'
-import { mockPertandingan, mockPemain, mockTim } from '../lib/mockData.js'
 
 /**
- * Agregasi list match_events & mock data menjadi data Top Scorer, Top Assist, Top Pass, Top Defense, Top MVP, dan Kartu.
+ * Agregasi list match_events & pemain menjadi data Top Scorer, Top Assist, Top Pass, Top Defense, Top MVP, dan Kartu.
  */
-export function hitungStatistikPemain(daftarEvent = [], daftarPemain = mockPemain) {
+export function hitungStatistikPemain(daftarEvent = [], daftarPemain = [], daftarTim = []) {
   const mapGol = {}
   const mapAssist = {}
   const mapKartu = {}
@@ -14,7 +13,7 @@ export function hitungStatistikPemain(daftarEvent = [], daftarPemain = mockPemai
   daftarEvent.forEach(ev => {
     // Gol
     if (ev.event_type === 'goal' || ev.event_type === 'penalty_goal') {
-      const pId = ev.player_id || ev.player?.name
+      const pId = ev.player_id || ev.player?.id || ev.player?.name
       if (!mapGol[pId]) {
         mapGol[pId] = {
           player_id: pId,
@@ -28,7 +27,7 @@ export function hitungStatistikPemain(daftarEvent = [], daftarPemain = mockPemai
 
     // Assist
     if (ev.assist_player_id || ev.assist_player || ev.event_type === 'assist') {
-      const aId = ev.assist_player_id || ev.assist_player?.name || ev.player_id
+      const aId = ev.assist_player_id || ev.assist_player?.id || ev.assist_player?.name || ev.player_id
       const name = ev.assist_player?.name || ev.player?.name || 'Pemain'
       if (!mapAssist[aId]) {
         mapAssist[aId] = {
@@ -43,7 +42,7 @@ export function hitungStatistikPemain(daftarEvent = [], daftarPemain = mockPemai
 
     // Kartu
     if (ev.event_type === 'yellow_card' || ev.event_type === 'red_card') {
-      const pId = ev.player_id || ev.player?.name
+      const pId = ev.player_id || ev.player?.id || ev.player?.name
       if (!mapKartu[pId]) {
         mapKartu[pId] = {
           player_id: pId,
@@ -58,9 +57,11 @@ export function hitungStatistikPemain(daftarEvent = [], daftarPemain = mockPemai
     }
   })
 
-  // Agregasi dari skuad jika event kosong / melengkapi data
+  // Agregasi dari tim & skuad jika tersedia
   const mapTeam = {}
-  mockTim.forEach(t => { mapTeam[t.id] = t.short_name })
+  daftarTim.forEach(t => {
+    if (t && t.id) mapTeam[t.id] = t.short_name
+  })
 
   const listPass = []
   const listDefense = []
@@ -69,7 +70,7 @@ export function hitungStatistikPemain(daftarEvent = [], daftarPemain = mockPemai
   const listAssistFinal = { ...mapAssist }
 
   daftarPemain.forEach(p => {
-    const tShort = mapTeam[p.team_id] || 'TIM'
+    const tShort = p.team?.short_name || mapTeam[p.team_id] || p.team_short || 'TIM'
     const stats = p.stats || {}
 
     // Lengkapi gol jika dari player stats
@@ -121,32 +122,34 @@ export function useStatistik() {
     sedangMemuat.value = true
     pesanKesalahan.value = null
 
-    if (import.meta.env.VITE_USE_MOCK === 'true') {
-      const semuaMockEvents = mockPertandingan.flatMap(m => m.events || [])
-      const { topScorer, topAssist, topPass, topDefense, topMvp, disiplin } = hitungStatistikPemain(semuaMockEvents, mockPemain)
-      dataTopScorer.value = topScorer
-      dataTopAssist.value = topAssist
-      dataTopPass.value = topPass
-      dataTopDefense.value = topDefense
-      dataTopMvp.value = topMvp
-      dataDisiplin.value = disiplin
-      sedangMemuat.value = false
-      return
-    }
-
     try {
-      const { data, error } = await supabase
-        .from('match_events')
-        .select(`
-          *,
-          player:players!match_events_player_id_fkey(*),
-          assist_player:players!match_events_assist_player_id_fkey(*),
-          team:teams(*)
-        `)
+      const [resEvents, resPlayers, resTeams] = await Promise.all([
+        supabase
+          .from('pcl_match_events')
+          .select(`
+            *,
+            player:pcl_players!pcl_match_events_player_id_fkey(*),
+            assist_player:pcl_players!pcl_match_events_assist_player_id_fkey(*),
+            team:pcl_teams(*)
+          `),
+        supabase
+          .from('pcl_players')
+          .select(`
+            *,
+            team:pcl_teams(*)
+          `),
+        supabase
+          .from('pcl_teams')
+          .select('*')
+      ])
 
-      if (error) throw error
+      if (resEvents.error) throw resEvents.error
 
-      const { topScorer, topAssist, topPass, topDefense, topMvp, disiplin } = hitungStatistikPemain(data || [], mockPemain)
+      const events = resEvents.data || []
+      const players = resPlayers.data || []
+      const teams = resTeams.data || []
+
+      const { topScorer, topAssist, topPass, topDefense, topMvp, disiplin } = hitungStatistikPemain(events, players, teams)
       dataTopScorer.value = topScorer
       dataTopAssist.value = topAssist
       dataTopPass.value = topPass
@@ -155,14 +158,12 @@ export function useStatistik() {
       dataDisiplin.value = disiplin
     } catch (err) {
       pesanKesalahan.value = err.message
-      const semuaMockEvents = mockPertandingan.flatMap(m => m.events || [])
-      const { topScorer, topAssist, topPass, topDefense, topMvp, disiplin } = hitungStatistikPemain(semuaMockEvents, mockPemain)
-      dataTopScorer.value = topScorer
-      dataTopAssist.value = topAssist
-      dataTopPass.value = topPass
-      dataTopDefense.value = topDefense
-      dataTopMvp.value = topMvp
-      dataDisiplin.value = disiplin
+      dataTopScorer.value = []
+      dataTopAssist.value = []
+      dataTopPass.value = []
+      dataTopDefense.value = []
+      dataTopMvp.value = []
+      dataDisiplin.value = []
     } finally {
       sedangMemuat.value = false
     }

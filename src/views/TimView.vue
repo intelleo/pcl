@@ -3,7 +3,6 @@ import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { supabase } from '../lib/supabase.js'
 import { Shield, User, Star, ChevronRight, Search, MapPin } from 'lucide-vue-next'
-import { mockTim } from '../lib/mockData.js'
 
 const router = useRouter()
 const sedangMemuat = ref(false)
@@ -13,16 +12,11 @@ const filterGrup = ref('semua')
 
 onMounted(async () => {
   sedangMemuat.value = true
-  if (import.meta.env.VITE_USE_MOCK === 'true') {
-    daftarTim.value = mockTim
-    sedangMemuat.value = false
-    return
-  }
   try {
-    const { data } = await supabase.from('teams').select('*').order('name')
-    daftarTim.value = data?.length ? data : mockTim
+    const { data } = await supabase.from('pcl_teams').select('*').order('name')
+    daftarTim.value = data || []
   } catch (err) {
-    daftarTim.value = mockTim
+    daftarTim.value = []
   } finally {
     sedangMemuat.value = false
   }

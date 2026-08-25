@@ -1,15 +1,117 @@
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, computed } from 'vue'
 import { useKlasemen } from '../composables/useKlasemen.js'
+import { supabase } from '../lib/supabase.js'
 import TabelKlasemenGrup from '../components/turnamen/TabelKlasemenGrup.vue'
 import BaganFaseGugur from '../components/turnamen/BaganFaseGugur.vue'
 import { Shield, GitBranch } from 'lucide-vue-next'
 
 const tabAktif = ref('grup')
 const { sedangMemuat, klasemenPerGrup, ambilKlasemenGrup } = useKlasemen()
+const sedangMemuatBagan = ref(false)
+const lagaKnockout = ref([])
+
+async function ambilBaganGugur() {
+  sedangMemuatBagan.value = true
+  try {
+    const { data, error } = await supabase
+      .from('pcl_matches')
+      .select(`
+        *,
+        home_team:pcl_teams!pcl_matches_home_team_id_fkey(*),
+        away_team:pcl_teams!pcl_matches_away_team_id_fkey(*)
+      `)
+      .in('stage', ['quarter_final', 'semi_final', 'final'])
+      .order('created_at', { ascending: true })
+
+    if (!error && data) {
+      lagaKnockout.value = data
+    }
+  } catch (err) {
+    lagaKnockout.value = []
+  } finally {
+    sedangMemuatBagan.value = false
+  }
+}
 
 onMounted(async () => {
-  await ambilKlasemenGrup('sample-tournament-id')
+  await Promise.all([
+    ambilKlasemenGrup('sample-tournament-id'),
+    ambilBaganGugur()
+  ])
+})
+
+const dataBaganDinamic = computed(() => {
+  const qfMatches = lagaKnockout.value.filter(m => m.stage === 'quarter_final')
+  const sfMatches = lagaKnockout.value.filter(m => m.stage === 'semi_final')
+  const finalMatch = lagaKnockout.value.find(m => m.stage === 'final')
+
+  const formatLaga = (m, defaultLabel) => {
+    if (!m) return null
+    const homeScore = Number(m.home_score || 0)
+    const awayScore = Number(m.away_score || 0)
+    const selesai = m.status === 'finished'
+    return {
+      id: m.id,
+      label: m.knockout_bracket_slot || defaultLabel,
+      home: {
+        nama: m.home_team?.name || 'TBD',
+        short: m.home_team?.short_name || '-',
+        skor: homeScore,
+        pemenang: selesai && homeScore > awayScore
+      },
+      away: {
+        nama: m.away_team?.name || 'TBD',
+        short: m.away_team?.short_name || '-',
+        skor: awayScore,
+        pemenang: selesai && awayScore > homeScore
+      },
+      selesai
+    }
+  }
+
+  const qfList = [0, 1, 2, 3].map(i => formatLaga(qfMatches[i], `QF ${i + 1}`) || {
+    id: `qf-${i + 1}`,
+    label: `QF ${i + 1}`,
+    home: { nama: `Juara Grup ${String.fromCharCode(65 + i)}`, short: `1${String.fromCharCode(65 + i)}`, skor: 0, pemenang: false },
+    away: { nama: `Runner-up Grup ${String.fromCharCode(65 + ((i + 1) % 4))}`, short: `2${String.fromCharCode(65 + ((i + 1) % 4))}`, skor: 0, pemenang: false },
+    selesai: false
+  })
+
+  const sfList = [0, 1].map(i => formatLaga(sfMatches[i], `Semi Final ${i + 1}`) || {
+    id: `sf-${i + 1}`,
+    label: `Semi Final ${i + 1}`,
+    home: { nama: `Pemenang QF ${i * 2 + 1}`, short: `W${i * 2 + 1}`, skor: 0, pemenang: false },
+    away: { nama: `Pemenang QF ${i * 2 + 2}`, short: `W${i * 2 + 2}`, skor: 0, pemenang: false },
+    selesai: false
+  })
+
+  let fin = formatLaga(finalMatch, 'Grand Final PCL 2026')
+  if (!fin) {
+    fin = {
+      id: 'fin',
+      label: 'Grand Final PCL 2026',
+      home: { nama: 'Pemenang SF 1', short: 'F1', skor: 0, pemenang: false },
+      away: { nama: 'Pemenang SF 2', short: 'F2', skor: 0, pemenang: false },
+      selesai: false,
+      juara: null
+    }
+  } else {
+    const homeMenang = fin.home.pemenang
+    const awayMenang = fin.away.pemenang
+    const timJuara = homeMenang ? finalMatch.home_team : awayMenang ? finalMatch.away_team : null
+    fin.juara = timJuara ? {
+      nama: timJuara.name,
+      short: timJuara.short_name,
+      trofi: 'Peak Champions League Trophy 2026'
+    } : null
+  }
+
+  return {
+    perempatFinal: qfList,
+    semiFinal: sfList,
+    final: fin
+  }
 })
 </script>
 
@@ -66,7 +168,7 @@ onMounted(async () => {
 
     <!-- Bagan Knockout -->
     <div v-else-if="tabAktif === 'knockout'" class="space-y-6">
-      <BaganFaseGugur />
+      <BaganFaseGugur :baganData="dataBaganDinamic" />
     </div>
   </div>
 </template>

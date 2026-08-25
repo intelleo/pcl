@@ -79,11 +79,8 @@ const infoKategoriAktif = computed(() => {
     }
   }
   if (tabAktif.value === 'cards') {
-    const listCards = dataDisiplin.value.length ? dataDisiplin.value : [
-      { player_id: '5', name: 'Antonio Rudiger', team_short: 'RMA', kuning: 1, merah: 0 }
-    ]
     return {
-      list: listCards,
+      list: dataDisiplin.value,
       satuan: 'Kartu',
       judul: 'Kedisiplinan',
       deskripsi: 'Catatan kartu kuning dan kartu merah selama turnamen.',
@@ -236,9 +233,7 @@ onMounted(async () => {
         <TabelTopDefense v-else-if="tabAktif === 'defense'" :data="dataTopDefense" />
         <TabelDisiplinKartu
           v-else-if="tabAktif === 'cards'"
-          :data="dataDisiplin.length ? dataDisiplin : [
-            { player_id: '5', name: 'Antonio Rudiger', team_short: 'RMA', kuning: 1, merah: 0 }
-          ]"
+          :data="dataDisiplin"
         />
       </div>
     </div>
@@ -250,11 +245,7 @@ onMounted(async () => {
       <TabelTopMvp :data="dataTopMvp" />
       <TabelTopPass :data="dataTopPass" />
       <TabelTopDefense :data="dataTopDefense" />
-      <TabelDisiplinKartu
-        :data="dataDisiplin.length ? dataDisiplin : [
-          { player_id: '5', name: 'Antonio Rudiger', team_short: 'RMA', kuning: 1, merah: 0 }
-        ]"
-      />
+      <TabelDisiplinKartu :data="dataDisiplin" />
     </div>
   </div>
 </template>

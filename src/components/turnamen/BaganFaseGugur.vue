@@ -11,13 +11,67 @@ import {
   Maximize2,
   Move
 } from 'lucide-vue-next'
-import { mockBaganData } from '../../lib/mockData.js'
 import pialaPcl from '@/assets/img/piala-pcl.webp'
 
-defineProps({
+const props = defineProps({
   baganData: {
     type: Object,
-    default: () => mockBaganData
+    default: () => ({
+      perempatFinal: [
+        {
+          id: 'qf1',
+          label: 'QF 1',
+          home: { nama: 'Juara Grup A', short: '1A', skor: 0, pemenang: false },
+          away: { nama: 'Runner-up Grup B', short: '2B', skor: 0, pemenang: false },
+          selesai: false
+        },
+        {
+          id: 'qf2',
+          label: 'QF 2',
+          home: { nama: 'Juara Grup B', short: '1B', skor: 0, pemenang: false },
+          away: { nama: 'Runner-up Grup A', short: '2A', skor: 0, pemenang: false },
+          selesai: false
+        },
+        {
+          id: 'qf3',
+          label: 'QF 3',
+          home: { nama: 'Juara Grup C', short: '1C', skor: 0, pemenang: false },
+          away: { nama: 'Runner-up Grup D', short: '2D', skor: 0, pemenang: false },
+          selesai: false
+        },
+        {
+          id: 'qf4',
+          label: 'QF 4',
+          home: { nama: 'Juara Grup D', short: '1D', skor: 0, pemenang: false },
+          away: { nama: 'Runner-up Grup C', short: '2C', skor: 0, pemenang: false },
+          selesai: false
+        }
+      ],
+      semiFinal: [
+        {
+          id: 'sf1',
+          label: 'Semi Final 1',
+          home: { nama: 'Pemenang QF 1', short: 'W1', skor: 0, pemenang: false },
+          away: { nama: 'Pemenang QF 2', short: 'W2', skor: 0, pemenang: false },
+          selesai: false
+        },
+        {
+          id: 'sf2',
+          label: 'Semi Final 2',
+          home: { nama: 'Pemenang QF 3', short: 'W3', skor: 0, pemenang: false },
+          away: { nama: 'Pemenang QF 4', short: 'W4', skor: 0, pemenang: false },
+          selesai: false
+        }
+      ],
+      final: {
+        id: 'fin',
+        label: 'Grand Final PCL 2026',
+        home: { nama: 'Pemenang SF 1', short: 'F1', skor: 0, pemenang: false },
+        away: { nama: 'Pemenang SF 2', short: 'F2', skor: 0, pemenang: false },
+        selesai: false,
+        juara: null
+      }
+    })
   }
 })
 
@@ -322,7 +376,7 @@ function geserKeFase(posisi) {
                       Juara 1
                     </span>
                     <h3 class="font-display text-base font-semibold tracking-tight text-ink-900 mt-1">
-                      {{ baganData.final.juara?.nama || 'Barcelona FC' }}
+                      {{ baganData.final.juara?.nama || 'Menunggu Juara' }}
                     </h3>
                     <p class="text-xs text-slate-400 mt-0.5">
                       Peak Champions League 2026

@@ -3,7 +3,6 @@ import { ref, onMounted, computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { supabase } from '../lib/supabase.js'
 import { ArrowLeft, User, Shield, Star, MapPin } from 'lucide-vue-next'
-import { mockTim, mockPemain } from '../lib/mockData.js'
 
 const route = useRoute()
 const router = useRouter()
@@ -14,40 +13,26 @@ const filterPosisi = ref('semua')
 
 onMounted(async () => {
   sedangMemuat.value = true
-  if (import.meta.env.VITE_USE_MOCK === 'true') {
-    const currentMockTeam = mockTim.find(t => t.id === route.params.id) || mockTim[0]
-    timData.value = currentMockTeam
-    const currentMockPlayers = mockPemain.filter(p => p.team_id === route.params.id)
-    skuadPemain.value = currentMockPlayers.length > 0 ? currentMockPlayers : mockPemain.slice(0, 7)
-    sedangMemuat.value = false
-    return
-  }
 
   try {
     const { data: team } = await supabase
-      .from('teams')
+      .from('pcl_teams')
       .select('*')
       .eq('id', route.params.id)
       .single()
 
-    const currentMockTeam = mockTim.find(t => t.id === route.params.id) || mockTim[0]
-    timData.value = team || currentMockTeam
+    timData.value = team || null
 
     const { data: players } = await supabase
-      .from('players')
+      .from('pcl_players')
       .select('*')
       .eq('team_id', route.params.id)
       .order('squad_number')
 
-    const currentMockPlayers = mockPemain.filter(p => p.team_id === route.params.id)
-    skuadPemain.value = (players && players.length > 0)
-      ? players
-      : (currentMockPlayers.length > 0 ? currentMockPlayers : mockPemain.slice(0, 7))
+    skuadPemain.value = players || []
   } catch (err) {
-    const currentMockTeam = mockTim.find(t => t.id === route.params.id) || mockTim[0]
-    timData.value = currentMockTeam
-    const currentMockPlayers = mockPemain.filter(p => p.team_id === route.params.id)
-    skuadPemain.value = currentMockPlayers.length > 0 ? currentMockPlayers : mockPemain.slice(0, 7)
+    timData.value = null
+    skuadPemain.value = []
   } finally {
     sedangMemuat.value = false
   }

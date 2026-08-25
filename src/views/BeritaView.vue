@@ -1,6 +1,7 @@
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
+import { supabase } from '../lib/supabase.js'
 import {
   Newspaper,
   Search,
@@ -11,12 +12,29 @@ import {
   Clock,
   Sparkles
 } from 'lucide-vue-next'
-import { mockBerita } from '../lib/mockData.js'
 
 const router = useRouter()
 
 const kataKunci = ref('')
 const tagTerpilih = ref('semua')
+const sedangMemuat = ref(false)
+const daftarBerita = ref([])
+
+onMounted(async () => {
+  sedangMemuat.value = true
+  try {
+    const { data } = await supabase
+      .from('pcl_news')
+      .select('*')
+      .order('diterbitkan_pada', { ascending: false })
+
+    daftarBerita.value = data || []
+  } catch (err) {
+    daftarBerita.value = []
+  } finally {
+    sedangMemuat.value = false
+  }
+})
 
 const daftarTag = [
   { id: 'semua', label: 'Semua' },
@@ -27,18 +45,18 @@ const daftarTag = [
 ]
 
 const beritaTersaring = computed(() => {
-  return mockBerita.filter(b => {
-    const cocokTag = tagTerpilih.value === 'semua' || b.tag === tagTerpilih.value
+  return daftarBerita.value.filter(b => {
+    const cocokTag = tagTerpilih.value === 'semua' || b.tag === tagTerpilih.value || b.kategori === tagTerpilih.value
     const query = kataKunci.value.toLowerCase().trim()
     const cocokKata = !query ||
       b.judul.toLowerCase().includes(query) ||
-      b.ringkasan.toLowerCase().includes(query) ||
-      b.penulis.toLowerCase().includes(query)
+      b.ringkasan?.toLowerCase().includes(query) ||
+      b.penulis?.toLowerCase().includes(query)
     return cocokTag && cocokKata
   })
 })
 
-const beritaUtama = computed(() => mockBerita[0])
+const beritaUtama = computed(() => beritaTersaring.value[0] || null)
 const beritaLainnya = computed(() => {
   if (tagTerpilih.value === 'semua' && !kataKunci.value) {
     return beritaTersaring.value.slice(1)

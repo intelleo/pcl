@@ -1,6 +1,5 @@
 import { ref } from 'vue'
 import { supabase } from '../lib/supabase.js'
-import { mockPertandingan } from '../lib/mockData.js'
 
 /**
  * Filter daftar laga berdasarkan kriteria stage, matchday, atau groupId.
@@ -28,29 +27,28 @@ export function usePertandingan() {
     sedangMemuat.value = true
     pesanKesalahan.value = null
 
-    if (import.meta.env.VITE_USE_MOCK === 'true') {
-      daftarPertandingan.value = mockPertandingan
-      sedangMemuat.value = false
-      return
-    }
-
     try {
-      const { data, error } = await supabase
-        .from('matches')
+      let query = supabase
+        .from('pcl_matches')
         .select(`
           *,
-          home_team:teams!matches_home_team_id_fkey(*),
-          away_team:teams!matches_away_team_id_fkey(*),
-          group:tournament_groups(*)
+          home_team:pcl_teams!pcl_matches_home_team_id_fkey(*),
+          away_team:pcl_teams!pcl_matches_away_team_id_fkey(*),
+          group:pcl_tournament_groups(*)
         `)
-        .eq('tournament_id', tournamentId)
         .order('matchday', { ascending: true })
 
+      if (tournamentId) {
+        query = query.eq('tournament_id', tournamentId)
+      }
+
+      const { data, error } = await query
+
       if (error) throw error
-      daftarPertandingan.value = data?.length ? data : mockPertandingan
+      daftarPertandingan.value = data || []
     } catch (err) {
       pesanKesalahan.value = err.message
-      daftarPertandingan.value = mockPertandingan
+      daftarPertandingan.value = []
     } finally {
       sedangMemuat.value = false
     }
@@ -60,22 +58,14 @@ export function usePertandingan() {
     sedangMemuat.value = true
     pesanKesalahan.value = null
 
-    if (import.meta.env.VITE_USE_MOCK === 'true') {
-      const mockMatch = mockPertandingan.find(m => m.id === matchId) || mockPertandingan[0]
-      lagaTerpilih.value = mockMatch
-      eventLagaTerpilih.value = mockMatch?.events || []
-      sedangMemuat.value = false
-      return
-    }
-
     try {
       const { data: match, error: errMatch } = await supabase
-        .from('matches')
+        .from('pcl_matches')
         .select(`
           *,
-          home_team:teams!matches_home_team_id_fkey(*),
-          away_team:teams!matches_away_team_id_fkey(*),
-          group:tournament_groups(*)
+          home_team:pcl_teams!pcl_matches_home_team_id_fkey(*),
+          away_team:pcl_teams!pcl_matches_away_team_id_fkey(*),
+          group:pcl_tournament_groups(*)
         `)
         .eq('id', matchId)
         .single()
@@ -84,12 +74,12 @@ export function usePertandingan() {
       lagaTerpilih.value = match
 
       const { data: events, error: errEvents } = await supabase
-        .from('match_events')
+        .from('pcl_match_events')
         .select(`
           *,
-          player:players!match_events_player_id_fkey(*),
-          assist_player:players!match_events_assist_player_id_fkey(*),
-          team:teams(*)
+          player:pcl_players!pcl_match_events_player_id_fkey(*),
+          assist_player:pcl_players!pcl_match_events_assist_player_id_fkey(*),
+          team:pcl_teams(*)
         `)
         .eq('match_id', matchId)
         .order('minute', { ascending: true })
@@ -98,9 +88,8 @@ export function usePertandingan() {
       eventLagaTerpilih.value = events || []
     } catch (err) {
       pesanKesalahan.value = err.message
-      const mockMatch = mockPertandingan.find(m => m.id === matchId) || mockPertandingan[0]
-      lagaTerpilih.value = mockMatch
-      eventLagaTerpilih.value = mockMatch?.events || []
+      lagaTerpilih.value = null
+      eventLagaTerpilih.value = []
     } finally {
       sedangMemuat.value = false
     }

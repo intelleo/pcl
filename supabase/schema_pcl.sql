@@ -1,5 +1,5 @@
 -- =========================================================
--- Skema Database Khusus: Schema PCL
+-- Skema Database Khusus: Schema PCL (Peak Champions League)
 -- Dialek: PostgreSQL / Supabase
 -- =========================================================
 
@@ -137,7 +137,7 @@ CREATE TABLE IF NOT EXISTS pcl.news (
     diterbitkan_pada TIMESTAMPTZ DEFAULT NOW()
 );
 
--- RLS
+-- 4. RLS POLICIES
 ALTER TABLE pcl.tournaments ENABLE ROW LEVEL SECURITY;
 ALTER TABLE pcl.teams ENABLE ROW LEVEL SECURITY;
 ALTER TABLE pcl.players ENABLE ROW LEVEL SECURITY;
@@ -160,7 +160,7 @@ CREATE POLICY "Public Read All" ON pcl.team_registrations FOR ALL USING (true);
 CREATE POLICY "Public Read All" ON pcl.season_champions FOR ALL USING (true);
 CREATE POLICY "Public Read All" ON pcl.news FOR ALL USING (true);
 
--- Hapus tabel sementara di schema public jika tadi sempat terbuat di public
+-- 5. HAPUS TABEL SISA PUBLIC JIKA ADA
 DROP TABLE IF EXISTS public.match_events CASCADE;
 DROP TABLE IF EXISTS public.matches CASCADE;
 DROP TABLE IF EXISTS public.group_standings CASCADE;
@@ -172,5 +172,5 @@ DROP TABLE IF EXISTS public.team_registrations CASCADE;
 DROP TABLE IF EXISTS public.season_champions CASCADE;
 DROP TABLE IF EXISTS public.news CASCADE;
 
--- Refresh schema PostgREST
+-- 6. REFRESH SCHEMA POSTGREST
 NOTIFY pgrst, 'reload schema';

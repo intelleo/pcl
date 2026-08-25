@@ -33,7 +33,7 @@ export function useAdmin() {
     pesanKesalahan.value = null
     try {
       const { error } = await supabase
-        .from('matches')
+        .from('pcl_matches')
         .update({
           home_score: Number(homeScore),
           away_score: Number(awayScore),
@@ -57,7 +57,7 @@ export function useAdmin() {
     pesanKesalahan.value = null
     try {
       const { error } = await supabase
-        .from('match_events')
+        .from('pcl_match_events')
         .insert({
           match_id: matchId,
           team_id: teamId,
@@ -81,7 +81,7 @@ export function useAdmin() {
   async function hapusEventPertandingan(eventId) {
     sedangMemuat.value = true
     try {
-      const { error } = await supabase.from('match_events').delete().eq('id', eventId)
+      const { error } = await supabase.from('pcl_match_events').delete().eq('id', eventId)
       if (error) throw error
       return true
     } catch (err) {

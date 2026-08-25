@@ -4,7 +4,6 @@ import { usePertandingan } from '../composables/usePertandingan.js'
 import KartuPertandingan from '../components/turnamen/KartuPertandingan.vue'
 import ModalDetailPertandingan from '../components/turnamen/ModalDetailPertandingan.vue'
 import { Filter } from 'lucide-vue-next'
-import { mockPertandingan } from '../lib/mockData.js'
 
 const {
   sedangMemuat,
@@ -20,10 +19,7 @@ const filterMatchday = ref('semua')
 const modalDetailTerbuka = ref(false)
 
 onMounted(async () => {
-  await ambilSemuaPertandingan('sample-tournament-id')
-  if (!daftarPertandingan.value || daftarPertandingan.value.length === 0) {
-    daftarPertandingan.value = mockPertandingan
-  }
+  await ambilSemuaPertandingan()
 })
 
 const pertandinganTerfilter = computed(() => {
@@ -40,13 +36,6 @@ async function bukaDetail(laga) {
     eventLagaTerpilih.value = laga.events
   } else {
     await ambilDetailPertandingan(laga.id)
-    if (!eventLagaTerpilih.value || eventLagaTerpilih.value.length === 0) {
-      const mockMatch = mockPertandingan.find(m => m.id === laga.id)
-      if (mockMatch) {
-        lagaTerpilih.value = mockMatch
-        eventLagaTerpilih.value = mockMatch.events || []
-      }
-    }
   }
   modalDetailTerbuka.value = true
 }

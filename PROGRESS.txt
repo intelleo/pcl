@@ -24,3 +24,8 @@ Membangun web turnamen Peak Champions League (PCL) berbasis Vue 3 + Supabase den
 - [2026-08-24]: Implementasi skema DDL 7 tabel di `supabase/schema.sql` dan sample seed di `supabase/seed.sql`.
 - [2026-08-24]: Implementasi modul logika klasemen, pertandingan, statistik pemain, dan admin panel dengan bahasa fungsi Indonesia murni & batas file di bawah 500 baris.
 - [2026-08-24]: Semua unit tests (5 file suite, 9 test cases) berhasil lolos dan build produksi sukses.
+- [2026-08-25]: Integrasi penuh query Supabase di seluruh composables (`useKlasemen`, `usePertandingan`, `useStatistik`, `useAdmin`) dengan fallback fallback/error handling.
+- [2026-08-25]: Perbaikan AdminView (panel pendaftaran tim, drawing grup otomatis, input skor, arsip riwayat juara, UI tabs styling).
+- [2026-08-25]: Penyesuaian layout & tampilan UI views (Beranda, Berita, DetailBerita, DetailTim, Jadwal, RiwayatJuara, Statistik, Tim, Turnamen, BaganFaseGugur).
+- [2026-08-25]: Penambahan skrip migrasi/skema SQL (`schema.sql`, `schema_pcl.sql`, `seed_pcl.sql`, `schema_public_prefix.sql`).
+- [2026-08-25]: Validasi build produksi frontend (Vite) sukses tanpa error.

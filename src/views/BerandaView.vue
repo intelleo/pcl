@@ -1,6 +1,7 @@
 <script setup>
-import { ref, computed } from "vue";
+import { ref, computed, onMounted } from "vue";
 import { useRouter } from "vue-router";
+import { supabase } from "../lib/supabase.js";
 import ModalDetailPertandingan from "../components/turnamen/ModalDetailPertandingan.vue";
 import {
   Trophy,
@@ -16,29 +17,67 @@ import {
 } from "lucide-vue-next";
 import logoPcl from "@/assets/img/logoo.webp";
 import heroBanner from "@/assets/img/hero-banner.webp";
-import { mockPertandingan, mockBerita } from "../lib/mockData.js";
 
 const router = useRouter();
 
-// Match highlight aktif
-const idLagaTerpilih = ref("m1");
+const idLagaTerpilih = ref("");
 const modalLagaTerbuka = ref(false);
+const daftarPertandingan = ref([]);
+const daftarBerita = ref([]);
+const sedangMemuat = ref(false);
 
-const lagaUnggulanList = computed(() => mockPertandingan.slice(0, 3));
+onMounted(async () => {
+  sedangMemuat.value = true;
+
+  try {
+    const [resMatches, resNews] = await Promise.all([
+      supabase
+        .from("pcl_matches")
+        .select(`
+          *,
+          home_team:pcl_teams!pcl_matches_home_team_id_fkey(*),
+          away_team:pcl_teams!pcl_matches_away_team_id_fkey(*),
+          group:pcl_tournament_groups(*)
+        `)
+        .order("matchday", { ascending: true })
+        .limit(10),
+      supabase
+        .from("pcl_news")
+        .select("*")
+        .order("diterbitkan_pada", { ascending: false })
+        .limit(4),
+    ]);
+
+    daftarPertandingan.value = resMatches.data || [];
+    daftarBerita.value = resNews.data || [];
+    if (daftarPertandingan.value.length > 0) {
+      idLagaTerpilih.value = daftarPertandingan.value[0].id;
+    }
+  } catch (err) {
+    daftarPertandingan.value = [];
+    daftarBerita.value = [];
+  } finally {
+    sedangMemuat.value = false;
+  }
+});
+
+const lagaUnggulanList = computed(() => daftarPertandingan.value.slice(0, 3));
 const lagaAktif = computed(
   () =>
-    mockPertandingan.find((m) => m.id === idLagaTerpilih.value) ||
-    mockPertandingan[0],
+    daftarPertandingan.value.find((m) => m.id === idLagaTerpilih.value) ||
+    daftarPertandingan.value[0] ||
+    null,
 );
 
 function bukaModalLaga(laga) {
+  if (!laga) return;
   idLagaTerpilih.value = laga.id;
   modalLagaTerbuka.value = true;
 }
 
 function bukaBeritaLaga(berita) {
   if (berita.terkait_match_id) {
-    const match = mockPertandingan.find(
+    const match = daftarPertandingan.value.find(
       (m) => m.id === berita.terkait_match_id,
     );
     if (match) {
@@ -174,7 +213,7 @@ function bukaBeritaLaga(berita) {
     </section>
 
     <!-- Sorotan Matchday -->
-    <section class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-5">
+    <section v-if="lagaAktif" class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-5">
       <div class="flex items-end justify-between gap-4">
         <div>
           <span
@@ -214,6 +253,7 @@ function bukaBeritaLaga(berita) {
             </div>
 
             <div
+              v-if="lagaUnggulanList.length > 0"
               class="flex items-center gap-1 p-1 rounded-full bg-slate-100 overflow-x-auto scrollbar-none self-start"
             >
               <button
@@ -227,8 +267,8 @@ function bukaBeritaLaga(berita) {
                     : 'text-slate-500 hover:text-ink-900'
                 "
               >
-                {{ laga.home_team.short_name }} vs
-                {{ laga.away_team.short_name }}
+                {{ laga.home_team?.short_name || 'HOME' }} vs
+                {{ laga.away_team?.short_name || 'AWAY' }}
               </button>
             </div>
           </div>
@@ -243,13 +283,13 @@ function bukaBeritaLaga(berita) {
               <div
                 class="w-12 h-12 sm:w-14 sm:h-14 rounded-full bg-slate-50 border border-slate-200 flex items-center justify-center font-display font-semibold text-sm text-navy-800 shrink-0"
               >
-                {{ lagaAktif.home_team.short_name }}
+                {{ lagaAktif.home_team?.short_name || 'H' }}
               </div>
               <div class="min-w-0">
                 <h3
                   class="text-xs sm:text-base font-semibold text-ink-900 truncate"
                 >
-                  {{ lagaAktif.home_team.name }}
+                  {{ lagaAktif.home_team?.name || 'Home Team' }}
                 </h3>
                 <span class="text-[11px] text-slate-400 hidden sm:inline"
                   >Tuan Rumah</span
@@ -261,7 +301,7 @@ function bukaBeritaLaga(berita) {
               <div
                 class="font-display text-2xl sm:text-4xl font-semibold tabular-nums tracking-tight text-navy-800"
               >
-                {{ lagaAktif.home_score }} – {{ lagaAktif.away_score }}
+                {{ lagaAktif.home_score ?? 0 }} – {{ lagaAktif.away_score ?? 0 }}
               </div>
               <span
                 class="inline-block px-2.5 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 text-[11px] font-semibold"
@@ -276,13 +316,13 @@ function bukaBeritaLaga(berita) {
               <div
                 class="w-12 h-12 sm:w-14 sm:h-14 rounded-full bg-slate-50 border border-slate-200 flex items-center justify-center font-display font-semibold text-sm text-navy-800 shrink-0"
               >
-                {{ lagaAktif.away_team.short_name }}
+                {{ lagaAktif.away_team?.short_name || 'A' }}
               </div>
               <div class="min-w-0">
                 <h3
                   class="text-xs sm:text-base font-semibold text-ink-900 truncate"
                 >
-                  {{ lagaAktif.away_team.name }}
+                  {{ lagaAktif.away_team?.name || 'Away Team' }}
                 </h3>
                 <span class="text-[11px] text-slate-400 hidden sm:inline"
                   >Tim Tamu</span
@@ -303,6 +343,7 @@ function bukaBeritaLaga(berita) {
                 ({{ lagaAktif.mvp.team_short }})
               </span>
             </div>
+            <div v-else></div>
 
             <button
               @click="bukaModalLaga(lagaAktif)"
@@ -317,7 +358,7 @@ function bukaBeritaLaga(berita) {
     </section>
 
     <!-- Kabar & Liputan -->
-    <section class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-5">
+    <section v-if="daftarBerita.length > 0" class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-5">
       <div class="flex items-end justify-between gap-4">
         <div>
           <span
@@ -341,7 +382,7 @@ function bukaBeritaLaga(berita) {
 
       <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <article
-          v-for="(berita, idx) in mockBerita"
+          v-for="(berita, idx) in daftarBerita"
           :key="berita.id"
           @click="bukaBeritaLaga(berita)"
           class="anim-muncul flex flex-col justify-between p-4 rounded-xl bg-white border border-slate-200 shadow-card hover:shadow-lift transition-shadow group cursor-pointer space-y-3"
@@ -384,6 +425,7 @@ function bukaBeritaLaga(berita) {
 
     <!-- Modal -->
     <ModalDetailPertandingan
+      v-if="lagaAktif"
       :terbuka="modalLagaTerbuka"
       :laga="lagaAktif"
       :events="lagaAktif.events || []"

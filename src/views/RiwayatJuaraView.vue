@@ -1,6 +1,7 @@
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
+import { supabase } from '../lib/supabase.js'
 import {
   Trophy,
   Crown,
@@ -14,14 +15,56 @@ import {
   Star,
   MapPin
 } from 'lucide-vue-next'
-import { mockRiwayatJuara, mockTim } from '../lib/mockData.js'
 import pialaPcl from '@/assets/img/piala-pcl.webp'
 
 const router = useRouter()
 const cariTeks = ref('')
 const tabTampilan = ref('musim') // 'musim' | 'klub'
+const sedangMemuat = ref(false)
 
-const daftarRiwayat = ref(mockRiwayatJuara)
+const daftarRiwayat = ref([])
+
+onMounted(async () => {
+  sedangMemuat.value = true
+
+  try {
+    const { data } = await supabase
+      .from('pcl_season_champions')
+      .select(`
+        *,
+        juara:pcl_teams!pcl_season_champions_juara_team_id_fkey(*),
+        runner_up:pcl_teams!pcl_season_champions_runner_up_team_id_fkey(*)
+      `)
+      .order('musim', { ascending: false })
+
+    if (data && data.length > 0) {
+      daftarRiwayat.value = data.map(d => ({
+        id: d.id,
+        musim: d.musim,
+        label_musim: d.label_musim,
+        skor_final: d.skor_final,
+        juara: d.juara || { name: 'Klub Juara', short_name: 'JUR' },
+        runner_up: d.runner_up || { name: 'Runner-up', short_name: 'RUN' },
+        top_scorer: {
+          nama: d.top_scorer_nama || '-',
+          klub: d.juara?.short_name || 'PCL',
+          total: d.top_scorer_total || 0
+        },
+        mvp_turnamen: {
+          nama: d.mvp_nama || '-',
+          klub: d.juara?.short_name || 'PCL',
+          rating: d.mvp_rating || 9.0
+        }
+      }))
+    } else {
+      daftarRiwayat.value = []
+    }
+  } catch (err) {
+    daftarRiwayat.value = []
+  } finally {
+    sedangMemuat.value = false
+  }
+})
 
 // Rekap Hall of Fame (Total Gelar Juara per Klub)
 const rekapTrofiKlub = computed(() => {
@@ -90,17 +133,6 @@ const klubTerfilter = computed(() => {
 function bukaDetailTim(timId) {
   if (timId) {
     router.push(`/tim/${timId}`)
-  } else {
-    router.push('/tim')
-  }
-}
-
-function bukaDetailTimByNama(namaTim) {
-  const tim = mockTim.find(
-    t => t.name.toLowerCase() === namaTim.toLowerCase() || t.short_name.toLowerCase() === namaTim.toLowerCase()
-  )
-  if (tim) {
-    router.push(`/tim/${tim.id}`)
   } else {
     router.push('/tim')
   }

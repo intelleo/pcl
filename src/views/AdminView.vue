@@ -1,5 +1,6 @@
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
+import { supabase } from '../lib/supabase.js'
 import { useAdmin } from '../composables/useAdmin.js'
 import FormInputSkor from '../components/admin/FormInputSkor.vue'
 import FormEventPertandingan from '../components/admin/FormEventPertandingan.vue'
@@ -20,7 +21,6 @@ import {
   CheckCircle2
 } from 'lucide-vue-next'
 import TombolDasar from '../components/umum/TombolDasar.vue'
-import { mockPertandingan, mockTim, mockPendaftaranTim, mockRiwayatJuara } from '../lib/mockData.js'
 
 const pinAdmin = ref('')
 const terotentikasi = ref(false)
@@ -30,43 +30,119 @@ const tabAktif = ref('skor') // 'skor' | 'pendaftaran' | 'drawing' | 'klub' | 'j
 const { sedangMemuat, pesanSukses, pesanKesalahan, perbaruiSkorPertandingan, tambahEventPertandingan } = useAdmin()
 
 // State Data Turnamen
-const daftarLaga = ref([...mockPertandingan])
-const daftarTim = ref([...mockTim])
-const daftarPendaftaran = ref([...mockPendaftaranTim])
-const daftarRiwayat = ref([...mockRiwayatJuara])
+const daftarLaga = ref([])
+const daftarTim = ref([])
+const daftarPendaftaran = ref([])
+const daftarRiwayat = ref([])
+const daftarPemainLaga = ref([])
 
 // Match Selector State
-const selectedMatchId = ref(daftarLaga.value[0]?.id || 'm1')
+const selectedMatchId = ref('')
+
+async function muatSemuaDataAdmin() {
+  try {
+    const [resLaga, resTim, resPendaftaran, resRiwayat] = await Promise.all([
+      supabase
+        .from('pcl_matches')
+        .select(`
+          *,
+          home_team:pcl_teams!pcl_matches_home_team_id_fkey(*),
+          away_team:pcl_teams!pcl_matches_away_team_id_fkey(*),
+          group:pcl_tournament_groups(*)
+        `)
+        .order('matchday', { ascending: true }),
+      supabase
+        .from('pcl_teams')
+        .select('*')
+        .order('name', { ascending: true }),
+      supabase
+        .from('pcl_team_registrations')
+        .select('*')
+        .order('didaftarkan_pada', { ascending: false }),
+      supabase
+        .from('pcl_season_champions')
+        .select(`
+          *,
+          juara:pcl_teams!pcl_season_champions_juara_team_id_fkey(*),
+          runner_up:pcl_teams!pcl_season_champions_runner_up_team_id_fkey(*)
+        `)
+        .order('musim', { ascending: false })
+    ])
+
+    daftarLaga.value = resLaga.data || []
+    daftarTim.value = resTim.data || []
+    daftarPendaftaran.value = resPendaftaran.data || []
+    daftarRiwayat.value = (resRiwayat.data || []).map(d => ({
+      id: d.id,
+      musim: d.musim,
+      label_musim: d.label_musim,
+      status: 'Selesai',
+      skor_final: d.skor_final,
+      juara: d.juara || { name: 'Klub Juara', short_name: 'JUR' },
+      runner_up: d.runner_up || { name: 'Runner-up', short_name: 'RUN' },
+      top_scorer: {
+        nama: d.top_scorer_nama || '-',
+        klub: d.juara?.short_name || 'PCL',
+        total: d.top_scorer_total || 0
+      },
+      mvp_turnamen: {
+        nama: d.mvp_nama || '-',
+        klub: d.juara?.short_name || 'PCL',
+        rating: d.mvp_rating || 9.0
+      }
+    }))
+
+    if (daftarLaga.value.length > 0 && !selectedMatchId.value) {
+      selectedMatchId.value = daftarLaga.value[0].id
+    }
+  } catch (err) {
+    console.error(err)
+  }
+}
+
+onMounted(muatSemuaDataAdmin)
 
 const lagaAktif = computed(() => {
-  return daftarLaga.value.find(m => m.id === selectedMatchId.value) || daftarLaga.value[0]
+  return daftarLaga.value.find(m => m.id === selectedMatchId.value) || daftarLaga.value[0] || null
 })
 
-// Daftar Pemain Dinamis berdasarkan kedua tim yang bertanding di laga aktif
-const daftarPemainLaga = computed(() => {
-  if (!lagaAktif.value) return []
-  const ratings = lagaAktif.value.player_ratings || []
-  if (ratings.length > 0) {
-    return ratings.map((p, idx) => ({
-      id: p.id || `p-${idx}`,
-      name: p.name,
-      squad_number: p.pos === 'FW' ? 9 : p.pos === 'MF' ? 8 : 4,
-      position: p.pos || 'MF',
-      team: p.team
-    }))
+// Ambil Pemain untuk laga aktif dari Supabase
+watch(selectedMatchId, async (newId) => {
+  if (!newId || !lagaAktif.value) {
+    daftarPemainLaga.value = []
+    return
   }
-  return [
-    { id: 'p1', name: `Pemain 1 (${lagaAktif.value.home_team?.short_name})`, squad_number: 10, position: 'FW', team: lagaAktif.value.home_team?.short_name },
-    { id: 'p2', name: `Pemain 2 (${lagaAktif.value.home_team?.short_name})`, squad_number: 8, position: 'MF', team: lagaAktif.value.home_team?.short_name },
-    { id: 'p3', name: `Pemain 3 (${lagaAktif.value.away_team?.short_name})`, squad_number: 7, position: 'FW', team: lagaAktif.value.away_team?.short_name },
-    { id: 'p4', name: `Pemain 4 (${lagaAktif.value.away_team?.short_name})`, squad_number: 11, position: 'MF', team: lagaAktif.value.away_team?.short_name }
-  ]
-})
+  const teamIds = [lagaAktif.value.home_team_id, lagaAktif.value.away_team_id].filter(Boolean)
+  if (teamIds.length === 0) {
+    daftarPemainLaga.value = []
+    return
+  }
+
+  const { data: players } = await supabase
+    .from('pcl_players')
+    .select(`*, team:pcl_teams(*)`)
+    .in('team_id', teamIds)
+    .order('squad_number')
+
+  if (players && players.length > 0) {
+    daftarPemainLaga.value = players.map(p => ({
+      id: p.id,
+      name: p.name,
+      squad_number: p.squad_number,
+      position: p.position,
+      team_id: p.team_id,
+      team: p.team?.short_name || 'TIM'
+    }))
+  } else {
+    daftarPemainLaga.value = []
+  }
+}, { immediate: true })
 
 function verifikasiPin() {
   if (pinAdmin.value === '1234' || pinAdmin.value === 'pcl2026') {
     terotentikasi.value = true
     pesanErrorAuth.value = ''
+    muatSemuaDataAdmin()
   } else {
     pesanErrorAuth.value = 'PIN Admin salah. Coba: 1234'
   }
@@ -100,63 +176,126 @@ async function simpanEvent(payload) {
   await tambahEventPertandingan(payload.matchId, payload.teamId, payload.playerId, payload.eventType, payload.minute)
 }
 
-function handleSetujuiPendaftaran(pendaftaranId) {
+async function handleSetujuiPendaftaran(pendaftaranId) {
   const item = daftarPendaftaran.value.find(p => p.id === pendaftaranId)
   if (item) {
     item.status = 'diterima'
-    // Otomatis masukkan ke daftar klub turnamen jika belum ada
+    await supabase
+      .from('pcl_team_registrations')
+      .update({ status: 'diterima' })
+      .eq('id', pendaftaranId)
+
     const sudahAda = daftarTim.value.some(t => t.name.toLowerCase() === item.nama_tim.toLowerCase())
     if (!sudahAda) {
-      daftarTim.value.push({
-        id: `t-${Date.now()}`,
-        name: item.nama_tim,
-        short_name: item.short_name,
-        manager_name: item.manager_name,
-        group_name: 'Grup Pending',
-        rating: 88,
-        stadium: 'Stadion Utama PCL'
-      })
+      const { data: newTeam } = await supabase
+        .from('pcl_teams')
+        .insert({
+          name: item.nama_tim,
+          short_name: item.short_name,
+          manager_name: item.manager_name,
+          group_name: 'Grup A',
+          rating: 88
+        })
+        .select()
+        .single()
+
+      if (newTeam) {
+        daftarTim.value.push(newTeam)
+      }
     }
   }
 }
 
-function handleTolakPendaftaran(pendaftaranId) {
+async function handleTolakPendaftaran(pendaftaranId) {
   const item = daftarPendaftaran.value.find(p => p.id === pendaftaranId)
   if (item) {
     item.status = 'ditolak'
+    await supabase
+      .from('pcl_team_registrations')
+      .update({ status: 'ditolak' })
+      .eq('id', pendaftaranId)
   }
 }
 
-function handleTerapkanDrawing(hasilGrup) {
-  // Update group_name di daftar klub turnamen
-  Object.keys(hasilGrup).forEach(grupName => {
+async function handleTerapkanDrawing(hasilGrup) {
+  // Update group_name di database dan lokal
+  for (const grupName of Object.keys(hasilGrup)) {
     const timDiGrup = hasilGrup[grupName]
-    timDiGrup.forEach(tim => {
+    for (const tim of timDiGrup) {
       const idx = daftarTim.value.findIndex(t => t.id === tim.id || t.name === tim.name)
       if (idx !== -1) {
         daftarTim.value[idx].group_name = grupName
+        if (daftarTim.value[idx].id) {
+          await supabase
+            .from('pcl_teams')
+            .update({ group_name: grupName })
+            .eq('id', daftarTim.value[idx].id)
+        }
       }
+    }
+  }
+}
+
+async function handleTambahTimBaru(timBaru) {
+  const { data: createdTeam } = await supabase
+    .from('pcl_teams')
+    .insert({
+      name: timBaru.name,
+      short_name: timBaru.short_name,
+      manager_name: timBaru.manager_name || 'Coach',
+      group_name: 'Grup A',
+      rating: 89
     })
-  })
+    .select()
+    .single()
+
+  if (createdTeam) {
+    daftarTim.value.push(createdTeam)
+  }
 }
 
-function handleTambahTimBaru(timBaru) {
-  daftarTim.value.push({
-    id: `t-${Date.now()}`,
-    name: timBaru.name,
-    short_name: timBaru.short_name,
-    manager_name: timBaru.manager_name || 'Coach',
-    group_name: 'Grup A',
-    rating: 89,
-    stadium: 'Stadion PCL Arena'
-  })
+async function handleTambahRiwayat(itemBaru) {
+  const payload = {
+    musim: itemBaru.musim,
+    label_musim: itemBaru.label_musim,
+    juara_team_id: itemBaru.juara?.id || null,
+    runner_up_team_id: itemBaru.runner_up?.id || null,
+    skor_final: itemBaru.skor_final,
+    top_scorer_nama: itemBaru.top_scorer?.nama || null,
+    top_scorer_total: itemBaru.top_scorer?.total || 0,
+    mvp_nama: itemBaru.mvp_turnamen?.nama || null,
+    mvp_rating: itemBaru.mvp_turnamen?.rating || 9.0
+  }
+
+  const { data: created } = await supabase
+    .from('pcl_season_champions')
+    .insert(payload)
+    .select(`
+      *,
+      juara:pcl_teams!pcl_season_champions_juara_team_id_fkey(*),
+      runner_up:pcl_teams!pcl_season_champions_runner_up_team_id_fkey(*)
+    `)
+    .single()
+
+  if (created) {
+    daftarRiwayat.value.unshift({
+      id: created.id,
+      musim: created.musim,
+      label_musim: created.label_musim,
+      status: 'Selesai',
+      skor_final: created.skor_final,
+      juara: created.juara || itemBaru.juara,
+      runner_up: created.runner_up || itemBaru.runner_up,
+      top_scorer: itemBaru.top_scorer,
+      mvp_turnamen: itemBaru.mvp_turnamen
+    })
+  } else {
+    daftarRiwayat.value.unshift(itemBaru)
+  }
 }
 
-function handleTambahRiwayat(itemBaru) {
-  daftarRiwayat.value.unshift(itemBaru)
-}
-
-function handleHapusRiwayat(riwayatId) {
+async function handleHapusRiwayat(riwayatId) {
+  await supabase.from('pcl_season_champions').delete().eq('id', riwayatId)
   daftarRiwayat.value = daftarRiwayat.value.filter(r => r.id !== riwayatId)
 }
 </script>

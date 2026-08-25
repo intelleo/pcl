@@ -1,6 +1,5 @@
 import { ref } from 'vue'
 import { supabase } from '../lib/supabase.js'
-import { mockTim, mockPertandingan } from '../lib/mockData.js'
 
 /**
  * Menghitung klasemen tim berdasarkan daftar pertandingan yang berstatus finished.
@@ -101,81 +100,47 @@ export function useKlasemen() {
     sedangMemuat.value = true
     pesanKesalahan.value = null
 
-    // Mode Mock: bypass network request
-    if (import.meta.env.VITE_USE_MOCK === 'true') {
-      const timGrupA = mockTim.filter(t => t.group_name === 'Grup A')
-      const timGrupB = mockTim.filter(t => t.group_name === 'Grup B')
-      const timGrupC = mockTim.filter(t => t.group_name === 'Grup C')
-      const timGrupD = mockTim.filter(t => t.group_name === 'Grup D')
-
-      const lagaGrupA = mockPertandingan.filter(m => m.group_id === 'g1' && m.stage === 'group')
-      const lagaGrupB = mockPertandingan.filter(m => m.group_id === 'g2' && m.stage === 'group')
-      const lagaGrupC = mockPertandingan.filter(m => m.group_id === 'g3' && m.stage === 'group')
-      const lagaGrupD = mockPertandingan.filter(m => m.group_id === 'g4' && m.stage === 'group')
-
-      klasemenPerGrup.value = {
-        g1: {
-          id: 'g1',
-          nama: 'Grup A',
-          klasemen: hitungKlasemen(lagaGrupA, timGrupA)
-        },
-        g2: {
-          id: 'g2',
-          nama: 'Grup B',
-          klasemen: hitungKlasemen(lagaGrupB, timGrupB)
-        },
-        g3: {
-          id: 'g3',
-          nama: 'Grup C',
-          klasemen: hitungKlasemen(lagaGrupC, timGrupC)
-        },
-        g4: {
-          id: 'g4',
-          nama: 'Grup D',
-          klasemen: hitungKlasemen(lagaGrupD, timGrupD)
-        }
-      }
-      sedangMemuat.value = false
-      return
-    }
-
     try {
       // Ambil grup, tim, dan laga
-      const { data: grupList, error: errGrup } = await supabase
-        .from('tournament_groups')
-        .select('*')
-        .eq('tournament_id', tournamentId)
+      let qGrup = supabase.from('pcl_tournament_groups').select('*')
+      let qTim = supabase.from('pcl_teams').select('*')
+      let qLaga = supabase.from('pcl_matches').select('*').eq('stage', 'group')
 
-      if (errGrup) throw errGrup
+      if (tournamentId) {
+        qGrup = qGrup.eq('tournament_id', tournamentId)
+        qTim = qTim.eq('tournament_id', tournamentId)
+        qLaga = qLaga.eq('tournament_id', tournamentId)
+      }
 
-      const { data: timList, error: errTim } = await supabase
-        .from('teams')
-        .select('*')
-        .eq('tournament_id', tournamentId)
+      const [resGrup, resTim, resLaga] = await Promise.all([
+        qGrup,
+        qTim,
+        qLaga
+      ])
 
-      if (errTim) throw errTim
+      if (resGrup.error) throw resGrup.error
+      if (resTim.error) throw resTim.error
+      if (resLaga.error) throw resLaga.error
 
-      const { data: lagaList, error: errLaga } = await supabase
-        .from('matches')
-        .select('*')
-        .eq('tournament_id', tournamentId)
-        .eq('stage', 'group')
-
-      if (errLaga) throw errLaga
+      const grupList = resGrup.data || []
+      const timList = resTim.data || []
+      const lagaList = resLaga.data || []
 
       const hasil = {}
-      ;(grupList || []).forEach(grup => {
-        const lagaGrup = (lagaList || []).filter(m => m.group_id === grup.id)
+      grupList.forEach(grup => {
+        const lagaGrup = lagaList.filter(m => m.group_id === grup.id)
+        const timDiGrup = timList.filter(t => t.group_name === grup.name || !t.group_name)
         hasil[grup.id] = {
           id: grup.id,
           nama: grup.name,
-          klasemen: hitungKlasemen(lagaGrup, timList || [])
+          klasemen: hitungKlasemen(lagaGrup, timDiGrup.length > 0 ? timDiGrup : timList)
         }
       })
 
       klasemenPerGrup.value = hasil
     } catch (err) {
       pesanKesalahan.value = err.message
+      klasemenPerGrup.value = {}
     } finally {
       sedangMemuat.value = false
     }

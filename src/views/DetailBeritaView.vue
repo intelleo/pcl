@@ -1,6 +1,7 @@
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
+import { supabase } from '../lib/supabase.js'
 import {
   Calendar,
   User,
@@ -16,26 +17,80 @@ import {
 } from 'lucide-vue-next'
 import ModalDetailPertandingan from '../components/turnamen/ModalDetailPertandingan.vue'
 import TombolDasar from '../components/umum/TombolDasar.vue'
-import { mockBerita, mockPertandingan } from '../lib/mockData.js'
 
 const route = useRoute()
 const router = useRouter()
 
 const sudahDisalin = ref(false)
 const modalLagaTerbuka = ref(false)
+const sedangMemuat = ref(false)
+const artikel = ref(null)
+const lagaTerkait = ref(null)
+const eventLagaTerkait = ref([])
+const beritaTerkaitList = ref([])
 
-const artikel = computed(() => {
-  return mockBerita.find(b => b.id === route.params.id) || mockBerita[0]
-})
+async function muatArtikel() {
+  sedangMemuat.value = true
 
-const lagaTerkait = computed(() => {
-  if (!artikel.value.terkait_match_id) return null
-  return mockPertandingan.find(m => m.id === artikel.value.terkait_match_id)
-})
+  try {
+    const { data: newsData } = await supabase
+      .from('pcl_news')
+      .select('*')
+      .eq('id', route.params.id)
+      .single()
 
-const beritaTerkaitList = computed(() => {
-  return mockBerita.filter(b => b.id !== artikel.value.id).slice(0, 3)
-})
+    artikel.value = newsData || null
+
+    if (newsData?.terkait_match_id) {
+      const [resMatch, resEvents] = await Promise.all([
+        supabase
+          .from('pcl_matches')
+          .select(`
+            *,
+            home_team:pcl_teams!pcl_matches_home_team_id_fkey(*),
+            away_team:pcl_teams!pcl_matches_away_team_id_fkey(*),
+            group:pcl_tournament_groups(*)
+          `)
+          .eq('id', newsData.terkait_match_id)
+          .single(),
+        supabase
+          .from('pcl_match_events')
+          .select(`
+            *,
+            player:pcl_players!pcl_match_events_player_id_fkey(*),
+            assist_player:pcl_players!pcl_match_events_assist_player_id_fkey(*),
+            team:pcl_teams(*)
+          `)
+          .eq('match_id', newsData.terkait_match_id)
+          .order('minute', { ascending: true })
+      ])
+
+      lagaTerkait.value = resMatch.data || null
+      eventLagaTerkait.value = resEvents.data || []
+    } else {
+      lagaTerkait.value = null
+      eventLagaTerkait.value = []
+    }
+
+    const { data: relatedNews } = await supabase
+      .from('pcl_news')
+      .select('*')
+      .neq('id', route.params.id)
+      .limit(3)
+
+    beritaTerkaitList.value = relatedNews || []
+  } catch (err) {
+    artikel.value = null
+    lagaTerkait.value = null
+    eventLagaTerkait.value = []
+    beritaTerkaitList.value = []
+  } finally {
+    sedangMemuat.value = false
+  }
+}
+
+onMounted(muatArtikel)
+watch(() => route.params.id, muatArtikel)
 
 function salinTautan() {
   if (navigator.clipboard) {
@@ -70,7 +125,13 @@ function salinTautan() {
     </div>
 
     <!-- Layout: 2 col article, 1 col sidebar -->
-    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
+    <div v-if="sedangMemuat" class="h-96 rounded-xl bg-white border border-slate-200 animate-pulse"></div>
+
+    <div v-else-if="!artikel" class="text-center py-14 rounded-xl bg-white border border-slate-200 shadow-card space-y-2">
+      <p class="text-sm font-semibold text-ink-900">Artikel tidak ditemukan.</p>
+    </div>
+
+    <div v-else class="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
       <!-- Article Body -->
       <article class="anim-muncul lg:col-span-2 rounded-xl bg-white border border-slate-200 shadow-card p-6 sm:p-8 space-y-6">
         <div class="space-y-3">
@@ -104,7 +165,7 @@ function salinTautan() {
 
         <!-- Paragraphs -->
         <div class="space-y-4 text-sm sm:text-base text-ink-600 leading-relaxed">
-          <p v-for="(paragraf, pIdx) in artikel.isi" :key="pIdx">
+          <p v-for="(paragraf, pIdx) in (Array.isArray(artikel.isi) ? artikel.isi : [artikel.isi])" :key="pIdx">
             {{ paragraf }}
           </p>
         </div>
@@ -138,23 +199,23 @@ function salinTautan() {
           <div class="flex items-center justify-between py-1">
             <div class="text-center min-w-0">
               <div class="w-10 h-10 mx-auto rounded-full bg-slate-50 border border-slate-200 flex items-center justify-center font-display font-semibold text-navy-800 text-xs">
-                {{ lagaTerkait.home_team.short_name }}
+                {{ lagaTerkait.home_team?.short_name || 'H' }}
               </div>
               <div class="text-[11px] font-medium text-ink-600 mt-1 truncate max-w-[70px]">
-                {{ lagaAktif?.home_team?.name || lagaTerkait.home_team.name }}
+                {{ lagaTerkait.home_team?.name || 'Home' }}
               </div>
             </div>
 
             <div class="font-display text-lg font-semibold text-navy-800 tabular-nums px-3 py-1 rounded-lg bg-slate-50 border border-slate-200">
-              {{ lagaTerkait.home_score }} – {{ lagaTerkait.away_score }}
+              {{ lagaTerkait.home_score ?? 0 }} – {{ lagaTerkait.away_score ?? 0 }}
             </div>
 
             <div class="text-center min-w-0">
               <div class="w-10 h-10 mx-auto rounded-full bg-slate-50 border border-slate-200 flex items-center justify-center font-display font-semibold text-navy-800 text-xs">
-                {{ lagaTerkait.away_team.short_name }}
+                {{ lagaTerkait.away_team?.short_name || 'A' }}
               </div>
               <div class="text-[11px] font-medium text-ink-600 mt-1 truncate max-w-[70px]">
-                {{ lagaTerkait.away_team.name }}
+                {{ lagaTerkait.away_team?.name || 'Away' }}
               </div>
             </div>
           </div>
@@ -174,7 +235,7 @@ function salinTautan() {
         </div>
 
         <!-- Related News -->
-        <div class="rounded-xl bg-white border border-slate-200 shadow-card p-5 space-y-3">
+        <div v-if="beritaTerkaitList.length > 0" class="rounded-xl bg-white border border-slate-200 shadow-card p-5 space-y-3">
           <div class="flex items-center justify-between border-b border-slate-100 pb-2">
             <h3 class="text-[11px] font-semibold uppercase tracking-wider text-slate-500 flex items-center gap-1.5">
               <BookOpen class="w-3.5 h-3.5 text-ucl-600" />
@@ -213,7 +274,7 @@ function salinTautan() {
       v-if="lagaTerkait"
       :terbuka="modalLagaTerbuka"
       :laga="lagaTerkait"
-      :events="lagaTerkait.events || []"
+      :events="eventLagaTerkait"
       @tutup="modalLagaTerbuka = false"
     />
   </div>
