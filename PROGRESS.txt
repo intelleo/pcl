@@ -20,6 +20,9 @@ Membangun web turnamen Peak Champions League (PCL) berbasis Vue 3 + Express.js +
 ---
 
 ## Catatan Log & Keputusan
+- [2026-10-04]: Perbaikan Pencatatan & Format Tanggal Pendaftaran Tim (`src/components/admin/PanelPendaftaranTim.vue`):
+  1. Memperbaiki pemetaan kolom `created_at` dari database MySQL (`item.created_at || item.tanggal_daftar`) agar kolom 'Tgl Daftar' tidak kosong/blank saat tim mendaftar.
+  2. Menambahkan helper `formatTanggalDaftar()` dengan format tanggal terstandarisasi bahasa Indonesia (`dd MMM yyyy`) baik pada tabel utama pendaftaran maupun modal detail kapten & skuad tim.
 - [2026-10-04]: Pembersihan Banner AI Slop di TurnamenView (`src/views/TurnamenView.vue`): Menghapus banner format informasi redundan di atas tabel klasemen fase grup demi UI yang lebih bersih dan minimalis.
 - [2026-10-04]: Peningkatan UI/UX Detail Berita Mode Mobile (`src/views/DetailBeritaView.vue`):
   1. Header/Topbar: Tombol kembali adaptif (label "Kembali" di mobile, "Kembali ke Berita" di desktop) serta perataan tombol Suka dan Bagikan agar tidak berdesakan.
