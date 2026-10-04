@@ -11,8 +11,6 @@ import {
   Trophy,
   LayoutGrid,
   ShieldAlert,
-  Sparkles,
-  CheckCircle2,
   Calendar,
   ChevronDown,
 } from "lucide-vue-next";
@@ -195,7 +193,7 @@ const dataBaganDinamic = computed(() => bentukDataBagan(lagaKnockout.value));
                 : 'text-slate-600 hover:text-ink-900'
             "
           >
-            Fase Grup (4 Grup)
+            Fase Grup
           </button>
 
           <button
@@ -215,25 +213,6 @@ const dataBaganDinamic = computed(() => bentukDataBagan(lagaKnockout.value));
 
     <!-- TAB 1: KLASEMEN FASE GRUP -->
     <div v-if="tabAktif === 'grup'" class="space-y-6">
-      <!-- Info Format Banner -->
-      <div
-        class="p-4 rounded-xl bg-gradient-to-r from-ucl-50 via-white to-gold-50/40 border border-ucl-100 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs"
-      >
-        <div class="flex items-center gap-2.5 text-ink-900 font-medium">
-          <Sparkles class="w-4 h-4 text-gold-600 shrink-0" />
-          <span
-            >Format: <strong class="text-ucl-700">4 Grup x 4 Klub</strong>.
-            Setiap tim bertanding 3 laga (Round Robin).</span
-          >
-        </div>
-        <div
-          class="inline-flex items-center gap-1.5 text-ucl-700 font-semibold px-2.5 py-1 rounded-lg bg-ucl-100/70 border border-ucl-200 shrink-0"
-        >
-          <CheckCircle2 class="w-3.5 h-3.5 text-emerald-600" />
-          <span>Top 2 Tiap Grup Maju ke Babak 8 Besar</span>
-        </div>
-      </div>
-
       <!-- Loading State -->
       <div
         v-if="sedangMemuatKlasemen"
