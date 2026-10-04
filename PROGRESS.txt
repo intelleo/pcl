@@ -154,3 +154,10 @@ Membangun web turnamen Peak Champions League (PCL) berbasis Vue 3 + Express.js +
   3. Fitur Salin Tim Lintas Musim (`POST /api/teams/copy-from-season`): Memungkinkan admin mengkloning 16 klub dan skuad 5 pemain dari musim sebelumnya ke musim baru secara instan dengan otomatis mereset seluruh statistik (gol, assist, pass, defense, mvp) menjadi 0.
   4. Modularisasi Komponen (< 500 Baris): Mengekstrak `SorotanMatchday.vue` dari `BerandaView.vue` untuk mematuhi batas baris kode standar CLAUDE.md.
   5. Pengujian: 9/9 unit tests Vitest lolos 100%.
+- [2026-10-04]: Form Pendaftaran Auto-Save Draft (LocalStorage) & Dekomposisi Komponen:
+  1. Pemecahan komponen `PendaftaranView.vue` (< 500 baris) menjadi modul terpisah: `KotakPembayaranWa.vue` dan `FormSkuadDaftar.vue` di `src/components/pendaftaran/`.
+  2. Implementasi auto-save draft otomatis ke `localStorage` (`pcl_pendaftaran_draft`) dengan watcher reaktif saat form diisi.
+  3. Implementasi auto-restore draft saat halaman dimuat (`onMounted`), indikator visual waktu tersimpan, dan tombol "Kosongkan Form / Reset Draft".
+  4. Pembersihan otomatis `localStorage.removeItem('pcl_pendaftaran_draft')` saat pendaftaran berhasil dikirim.
+  5. Unit tests: 9/9 lulus.
+
