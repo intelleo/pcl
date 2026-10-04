@@ -52,6 +52,63 @@ app.use('/api/champions', championRoutes)
 app.use('/api/news', newsRoutes)
 app.use('/api/settings', settingRoutes)
 
+// Open Graph SSR Pre-renderer untuk Bot & Social Media Crawlers (WhatsApp, Telegram, Twitter, Facebook)
+app.get('/berita/:id', async (req, res, next) => {
+  const userAgent = req.headers['user-agent'] || ''
+  const isCrawler = /whatsapp|facebookexternalhit|twitterbot|telegrambot|slackbot|discordbot|linkedinbot|googlebot|bingbot/i.test(userAgent)
+
+  // Hanya proses jika request datang dari crawler preview social media
+  if (!isCrawler) {
+    return next()
+  }
+
+  try {
+    const { id } = req.params
+    const { query } = await import('./config/db.js')
+    const [news] = await query('SELECT * FROM pcl_news WHERE id = ?', [id])
+    if (!news) return next()
+
+    const title = news.judul || 'Peak Champions League (PCL)'
+    const desc = news.ringkasan || 'Ulasan dan kabar turnamen Peak Champions League.'
+    const img = news.gambar_url || 'https://i.ibb.co.com/84KqD1p0/pcl-og.jpg'
+    const fullUrl = `${req.protocol}://${req.get('host')}/berita/${id}`
+
+    res.setHeader('Content-Type', 'text/html; charset=utf-8')
+    res.send(`<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <title>${title} - PCL 2026</title>
+  <meta name="description" content="${desc}">
+
+  <!-- Open Graph / WhatsApp / Facebook Preview -->
+  <meta property="og:type" content="article">
+  <meta property="og:site_name" content="Peak Champions League">
+  <meta property="og:title" content="${title}">
+  <meta property="og:description" content="${desc}">
+  <meta property="og:image" content="${img}">
+  <meta property="og:image:secure_url" content="${img}">
+  <meta property="og:url" content="${fullUrl}">
+
+  <!-- Twitter Card -->
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="${title}">
+  <meta name="twitter:description" content="${desc}">
+  <meta name="twitter:image" content="${img}">
+
+  <meta http-equiv="refresh" content="0;url=/berita/${id}">
+</head>
+<body>
+  <h1>${title}</h1>
+  <p>${desc}</p>
+  <img src="${img}" alt="${title}">
+</body>
+</html>`)
+  } catch {
+    next()
+  }
+})
+
 // 404 Handler untuk API routes
 app.use('/api', (req, res) => {
   res.status(404).json({ error: `Endpoint API "${req.originalUrl}" tidak ditemukan.` })

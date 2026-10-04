@@ -160,4 +160,15 @@ Membangun web turnamen Peak Champions League (PCL) berbasis Vue 3 + Express.js +
   3. Implementasi auto-restore draft saat halaman dimuat (`onMounted`), indikator visual waktu tersimpan, dan tombol "Kosongkan Form / Reset Draft".
   4. Pembersihan otomatis `localStorage.removeItem('pcl_pendaftaran_draft')` saat pendaftaran berhasil dikirim.
   5. Unit tests: 9/9 lulus.
+- [2026-10-04]: Optimasi Tampilan Kartu Berita Mode Mobile (`src/views/BeritaView.vue`):
+  1. Refactor tata letak featured article card (2-kolom desktop, proporsional aspect ratio di mobile, overlay gradient halus).
+  2. Peningkatan card grid artikel berita (aspect-ratio media 16:9/16:10, category tag float pill, typography heading terukur, footer metadata anti-overflow).
+  3. Skeleton loader responsif saat data sedang dimuat dan filter horizontal swipe ramah mobile.
+- [2026-10-04]: Fitur Open Graph Preview Berita (WhatsApp, Telegram, Twitter, Facebook):
+  1. Penambahan tag Open Graph & Twitter Cards standar di `index.html` dan utilitas reaktif `src/lib/meta.js` (`perbaruiMetaHalaman`).
+  2. `DetailBeritaView.vue`: Auto-update `<meta property="og:image">`, `<meta property="og:title">`, dan `<meta property="og:description">` dari cover berita & ringkasan artikel.
+  3. Integrasi Web Share API dan tombol direct share "Kirim ke WhatsApp" di header serta share box di bawah artikel.
+  4. Backend Express `server/index.js`: Endpoint SSR Open Graph handler untuk merespons crawler / bot WhatsApp scraper dengan metadata lengkap & gambar cover.
+
+
 

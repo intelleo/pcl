@@ -14,10 +14,12 @@ import {
   Check,
   BookOpen,
   Clock,
-  ArrowRight
+  ArrowRight,
+  MessageCircle
 } from 'lucide-vue-next'
 import ModalDetailPertandingan from '../components/turnamen/ModalDetailPertandingan.vue'
 import TombolDasar from '../components/umum/TombolDasar.vue'
+import { perbaruiMetaHalaman } from '../lib/meta.js'
 
 const route = useRoute()
 const router = useRouter()
@@ -95,6 +97,16 @@ async function muatArtikel() {
       eventLagaTerkait: eventLagaTerkait.value,
       beritaTerkaitList: beritaTerkaitList.value
     }, 60000)
+
+    // Perbarui Open Graph Meta Tags & Title
+    if (artikel.value) {
+      perbaruiMetaHalaman({
+        judul: artikel.value.judul,
+        deskripsi: artikel.value.ringkasan || artikel.value.judul,
+        gambar: artikel.value.gambar_url || '',
+        tipe: 'article'
+      })
+    }
   } catch (err) {
     artikel.value = null
     lagaTerkait.value = null
@@ -107,6 +119,30 @@ async function muatArtikel() {
 
 onMounted(muatArtikel)
 watch(() => route.params.id, muatArtikel)
+
+function bagikanKeWhatsApp() {
+  if (!artikel.value) return
+  const urlSekarang = window.location.href
+  const teks = `*${artikel.value.judul}*\n\n${artikel.value.ringkasan || ''}\n\nBaca selengkapnya di Peak Champions League:\n${urlSekarang}`
+  window.open(`https://wa.me/?text=${encodeURIComponent(teks)}`, '_blank')
+}
+
+async function handleBagikan() {
+  if (!artikel.value) return
+  if (navigator.share) {
+    try {
+      await navigator.share({
+        title: artikel.value.judul,
+        text: artikel.value.ringkasan || artikel.value.judul,
+        url: window.location.href
+      })
+      return
+    } catch {
+      // User batal atau fallback
+    }
+  }
+  salinTautan()
+}
 
 function salinTautan() {
   if (navigator.clipboard) {
@@ -131,13 +167,24 @@ function salinTautan() {
         Kembali ke Berita
       </TombolDasar>
 
-      <TombolDasar
-        varian="sekunder"
-        @click="salinTautan"
-      >
-        <component :is="sudahDisalin ? Check : Share2" class="w-4 h-4 mr-1.5" :class="sudahDisalin ? 'text-emerald-600' : ''" />
-        {{ sudahDisalin ? 'Tersalin!' : 'Bagikan' }}
-      </TombolDasar>
+      <div class="flex items-center gap-2">
+        <button
+          type="button"
+          @click="bagikanKeWhatsApp"
+          class="px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold transition-colors flex items-center gap-1.5 shadow-sm cursor-pointer"
+        >
+          <MessageCircle class="w-4 h-4" />
+          <span class="hidden sm:inline">Kirim ke</span> WhatsApp
+        </button>
+
+        <TombolDasar
+          varian="sekunder"
+          @click="handleBagikan"
+        >
+          <component :is="sudahDisalin ? Check : Share2" class="w-4 h-4 mr-1.5" :class="sudahDisalin ? 'text-emerald-600' : ''" />
+          {{ sudahDisalin ? 'Tersalin!' : 'Bagikan' }}
+        </TombolDasar>
+      </div>
     </div>
 
     <!-- Loading Skeleton -->
@@ -214,6 +261,32 @@ function salinTautan() {
             </p>
             <div class="text-xs font-semibold text-ucl-600">
               — {{ artikel.narasumber }}
+            </div>
+          </div>
+
+          <!-- Bottom Share Box -->
+          <div class="p-4 sm:p-5 rounded-2xl bg-slate-50 border border-slate-200 flex flex-col sm:flex-row items-center justify-between gap-4">
+            <div class="space-y-0.5 text-center sm:text-left">
+              <h4 class="text-xs font-bold text-ink-900">Suka artikel liputan ini?</h4>
+              <p class="text-xs text-slate-500">Bagikan kabar pertandingan ini ke teman skuad atau grup WhatsApp tim.</p>
+            </div>
+            <div class="flex items-center gap-2 shrink-0 w-full sm:w-auto">
+              <button
+                type="button"
+                @click="bagikanKeWhatsApp"
+                class="flex-1 sm:flex-none px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold transition-colors flex items-center justify-center gap-1.5 shadow-sm cursor-pointer"
+              >
+                <MessageCircle class="w-4 h-4" />
+                <span>Bagikan WhatsApp</span>
+              </button>
+              <button
+                type="button"
+                @click="salinTautan"
+                class="px-3.5 py-2 rounded-xl bg-white border border-slate-200 hover:bg-slate-100 text-slate-700 text-xs font-semibold transition-colors flex items-center gap-1.5 shadow-sm cursor-pointer"
+              >
+                <component :is="sudahDisalin ? Check : Share2" class="w-4 h-4" :class="sudahDisalin ? 'text-emerald-600' : ''" />
+                <span>{{ sudahDisalin ? 'Tersalin' : 'Salin' }}</span>
+              </button>
             </div>
           </div>
         </div>
