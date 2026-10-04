@@ -322,6 +322,8 @@ async function simpanKeTurnamen() {
                   :src="match.home.logo_url"
                   :alt="match.home.name"
                   class="w-6 h-6 rounded-md object-contain bg-white border border-slate-200 shrink-0 p-0.5"
+                  loading="lazy"
+                  decoding="async"
                 />
                 <div
                   v-else
@@ -344,6 +346,8 @@ async function simpanKeTurnamen() {
                   :src="match.away.logo_url"
                   :alt="match.away.name"
                   class="w-6 h-6 rounded-md object-contain bg-white border border-slate-200 shrink-0 p-0.5"
+                  loading="lazy"
+                  decoding="async"
                 />
                 <div
                   v-else

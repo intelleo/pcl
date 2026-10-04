@@ -117,6 +117,7 @@ export const api = {
   createNews: (payload) => request('/news', { method: 'POST', body: payload }),
   updateNews: (id, payload) => request(`/news/${id}`, { method: 'PUT', body: payload }),
   deleteNews: (id) => request(`/news/${id}`, { method: 'DELETE' }),
+  likeNews: (id, delta = 1) => request(`/news/${id}/like`, { method: 'POST', body: { delta } }),
 
   // === SETTINGS ===
   getSettings: () => request('/settings'),

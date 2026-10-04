@@ -168,6 +168,7 @@ function bukaBeritaLaga(berita) {
           alt="Peak Champions League Banner"
           class="absolute inset-0 w-full h-full object-cover object-center opacity-30 scale-105"
           loading="eager"
+          decoding="async"
         />
         <div
           aria-hidden="true"
@@ -184,7 +185,7 @@ function bukaBeritaLaga(berita) {
           aria-hidden="true"
           class="absolute -right-12 top-1/2 -translate-y-1/2 w-64 sm:w-96 lg:w-[440px] opacity-10 pointer-events-none select-none"
         >
-          <img :src="logoPcl" alt="" class="w-full h-auto object-contain" />
+          <img :src="logoPcl" alt="" class="w-full h-auto object-contain" decoding="async" />
         </div>
 
         <div

@@ -368,6 +368,8 @@ function eksekusiResetTotal() {
                   :src="t.logo_url"
                   :alt="t.name"
                   class="w-7 h-7 rounded-md object-contain bg-white border border-slate-200 shrink-0 p-0.5"
+                  loading="lazy"
+                  decoding="async"
                 />
                 <span
                   v-else

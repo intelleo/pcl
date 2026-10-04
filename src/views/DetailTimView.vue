@@ -66,7 +66,7 @@ const skuadTerfilter = computed(() => {
       <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-6">
         <div class="flex items-center gap-4 sm:gap-5 min-w-0">
           <div class="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl bg-slate-50 border border-slate-200 flex items-center justify-center font-display font-semibold text-xl sm:text-2xl text-navy-800 shrink-0 overflow-hidden p-1">
-            <img v-if="timData.logo_url" :src="timData.logo_url" :alt="timData.name" class="w-full h-full object-contain" />
+            <img v-if="timData.logo_url" :src="timData.logo_url" :alt="timData.name" class="w-full h-full object-contain" loading="lazy" decoding="async" />
             <span v-else>{{ timData.short_name }}</span>
           </div>
 

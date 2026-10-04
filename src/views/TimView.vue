@@ -139,7 +139,7 @@ function bukaDetailTim(tim) {
               <td class="py-3.5 px-4 sm:px-6">
                 <div class="flex items-center gap-3 min-w-0">
                   <div class="w-9 h-9 rounded-lg bg-slate-50 border border-slate-200 group-hover:border-ucl-500/40 flex items-center justify-center font-display font-semibold text-xs text-navy-800 shrink-0 transition-colors overflow-hidden p-0.5">
-                    <img v-if="tim.logo_url" :src="tim.logo_url" :alt="tim.name" class="w-full h-full object-contain" />
+                    <img v-if="tim.logo_url" :src="tim.logo_url" :alt="tim.name" class="w-full h-full object-contain" loading="lazy" decoding="async" />
                     <span v-else>{{ tim.short_name || 'TIM' }}</span>
                   </div>
                   <div class="min-w-0">

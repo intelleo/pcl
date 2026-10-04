@@ -1,28 +1,20 @@
 import { createRouter, createWebHistory } from 'vue-router'
+
+// Beranda dimuat langsung (above-the-fold), sisanya lazy-loaded code splitting
 import BerandaView from '../views/BerandaView.vue'
-import TurnamenView from '../views/TurnamenView.vue'
-import JadwalView from '../views/JadwalView.vue'
-import StatistikView from '../views/StatistikView.vue'
-import TimView from '../views/TimView.vue'
-import DetailTimView from '../views/DetailTimView.vue'
-import RiwayatJuaraView from '../views/RiwayatJuaraView.vue'
-import BeritaView from '../views/BeritaView.vue'
-import DetailBeritaView from '../views/DetailBeritaView.vue'
-import PendaftaranView from '../views/PendaftaranView.vue'
-import AdminView from '../views/AdminView.vue'
 
 const routes = [
   { path: '/', name: 'beranda', component: BerandaView },
-  { path: '/turnamen', name: 'turnamen', component: TurnamenView },
-  { path: '/jadwal', name: 'jadwal', component: JadwalView },
-  { path: '/statistik', name: 'statistik', component: StatistikView },
+  { path: '/turnamen', name: 'turnamen', component: () => import('../views/TurnamenView.vue') },
+  { path: '/jadwal', name: 'jadwal', component: () => import('../views/JadwalView.vue') },
+  { path: '/statistik', name: 'statistik', component: () => import('../views/StatistikView.vue') },
   { path: '/tim', redirect: '/jadwal?tab=tim' },
-  { path: '/tim/:id', name: 'detail-tim', component: DetailTimView },
-  { path: '/riwayat-juara', name: 'riwayat-juara', component: RiwayatJuaraView },
-  { path: '/berita', name: 'berita', component: BeritaView },
-  { path: '/berita/:id', name: 'detail-berita', component: DetailBeritaView },
-  { path: '/pendaftaran', name: 'pendaftaran', component: PendaftaranView },
-  { path: '/admin', name: 'admin', component: AdminView }
+  { path: '/tim/:id', name: 'detail-tim', component: () => import('../views/DetailTimView.vue') },
+  { path: '/riwayat-juara', name: 'riwayat-juara', component: () => import('../views/RiwayatJuaraView.vue') },
+  { path: '/berita', name: 'berita', component: () => import('../views/BeritaView.vue') },
+  { path: '/berita/:id', name: 'detail-berita', component: () => import('../views/DetailBeritaView.vue') },
+  { path: '/pendaftaran', name: 'pendaftaran', component: () => import('../views/PendaftaranView.vue') },
+  { path: '/admin', name: 'admin', component: () => import('../views/AdminView.vue') }
 ]
 
 const router = createRouter({

@@ -20,6 +20,14 @@ Membangun web turnamen Peak Champions League (PCL) berbasis Vue 3 + Express.js +
 ---
 
 ## Catatan Log & Keputusan
+- [2026-10-04]: Peningkatan UI/UX Detail Berita Mode Mobile (`src/views/DetailBeritaView.vue`):
+  1. Header/Topbar: Tombol kembali adaptif (label "Kembali" di mobile, "Kembali ke Berita" di desktop) serta perataan tombol Suka dan Bagikan agar tidak berdesakan.
+  2. Hero Cover & Header Artikel: Padding artikel responsif (`p-4 sm:p-7 md:p-8`), proporsi gambar cover (`h-48 sm:h-72`), judul dinamis (`text-lg sm:text-2xl`), dan metadata rapi.
+  3. Tipografi Konten: Line-height & ukuran paragraf yang proporsional (`text-xs sm:text-base leading-relaxed`), quote block responsif, serta kotak Reaksi Suka penuh (`w-full sm:w-auto`) yang nyaman disentuh di ponsel.
+  4. Sidebar Mobile: Kartu Laga Terkait & Berita Terkait dirapikan dengan pembagian grid fleksibel dan teks responsif.
+- [2026-10-04]: Optimasi UI Tab Turnamen Mode Mobile (`src/views/TurnamenView.vue`):
+  1. Menghapus ikon (`LayoutGrid` dan `GitBranch`) dari tombol switcher tab ("Fase Grup (4 Grup)" dan "Bagan Fase Gugur") agar tampilan bersih dan tidak berdesakan di layar ponsel.
+  2. Menyesuaikan kontainer tab menjadi `w-full sm:w-auto` dengan pembagian lebar proporsional 50/50 (`flex-1 sm:flex-initial text-center`) sehingga simetris dan responsif pada perangkat mobile.
 - [2026-08-24]: Inisialisasi proyek. Tech stack: Vue 3 + Supabase Local + Tailwind CSS.
 - [2026-08-24]: Implementasi skema DDL 7 tabel di `supabase/schema.sql` dan sample seed di `supabase/seed.sql`.
 - [2026-08-24]: Implementasi modul logika klasemen, pertandingan, statistik pemain, dan admin panel dengan bahasa fungsi Indonesia murni & batas file di bawah 500 baris.
@@ -169,6 +177,18 @@ Membangun web turnamen Peak Champions League (PCL) berbasis Vue 3 + Express.js +
   2. `DetailBeritaView.vue`: Auto-update `<meta property="og:image">`, `<meta property="og:title">`, dan `<meta property="og:description">` dari cover berita & ringkasan artikel. Jika artikel tidak memiliki gambar, otomatis fallback ke banner pattern default PCL (`hero-banner.webp`).
   3. UI `DetailBeritaView.vue` tetap bersih dengan tombol standar "Bagikan" / salin link tanpa tombol WhatsApp berlebihan.
   4. Backend Express `server/index.js`: Endpoint SSR Open Graph handler untuk merespons crawler / bot WhatsApp scraper dengan metadata lengkap & gambar cover (atau banner pattern PCL default).
+- [2026-10-04]: Fitur Tombol Suka / Reaction Like Artikel Berita:
+  1. Skema Database & REST Endpoint: Kolom `likes_count INT DEFAULT 0` di tabel `pcl_news` (`server/database/schema_mysql.sql`) dan endpoint `POST /api/news/:id/like` di `server/routes/news.js` dengan atomic SQL update `GREATEST(0, COALESCE(likes_count, 0) + ?)`.
+  2. Frontend REST Client: Metode `api.likeNews(id, delta)` di `src/lib/api.js`.
+  3. Detail Berita (`src/views/DetailBeritaView.vue`): Tombol Suka di top action bar (samping tombol Bagikan) dan Kotak Reaksi Interaktif di footer artikel dengan Optimistic UI update, live counter, animasi active state, dan persistensi status like per perangkat via `localStorage` (`pcl_news_liked_${id}`).
+  4. Daftar Berita (`src/views/BeritaView.vue`): Indikator badge jumlah like pada kartu sorotan utama dan kartu grid berita jika artikel memiliki apresiasi like.
+- [2026-10-04]: Optimasi Performa, Gambar, & Route Code Splitting:
+  1. Route-Level Code Splitting (`src/router/index.js`): Dynamic import `() => import(...)` untuk semua views non-beranda sehingga initial bundle JS jauh lebih kecil dan halaman hanya dimuat saat diakses.
+  2. Utilitas Kompresi Client-Side (`src/lib/gambar.js`): Kompresi otomatis gambar upload (WebP/JPEG 75% quality & auto-resize canvas) pada Form Pendaftaran Logo (`PendaftaranView.vue`), Upload Cover Berita Admin (`PanelManajemenBerita.vue`), dan QR Code Pembayaran Admin (`PanelPendaftaranTim.vue`) untuk membatasi ukuran base64 di database.
+  3. Lazy Loading Konsisten: Penambahan atribut `loading="lazy"` dan `decoding="async"` di seluruh 23 komponen/views untuk gambar non-above-the-fold (logo klub di klasemen, bagan, kartu tim, riwayat juara, daftar laga, dan foto berita).
+  4. Unit Tests: 9/9 lulus.
+
+
 
 
 

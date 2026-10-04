@@ -309,6 +309,8 @@ function geserKeFase(faseId) {
                         :src="match.home.logo_url"
                         :alt="match.home.nama"
                         class="w-4 h-4 rounded-full object-contain bg-white border border-slate-200 shrink-0"
+                        loading="lazy"
+                        decoding="async"
                       />
                       <span
                         v-else
@@ -353,6 +355,8 @@ function geserKeFase(faseId) {
                         :src="match.away.logo_url"
                         :alt="match.away.nama"
                         class="w-4 h-4 rounded-full object-contain bg-white border border-slate-200 shrink-0"
+                        loading="lazy"
+                        decoding="async"
                       />
                       <span
                         v-else
@@ -567,6 +571,8 @@ function geserKeFase(faseId) {
                         :src="baganData.final.home.logo_url"
                         :alt="baganData.final.home.nama"
                         class="w-6 h-6 rounded-md object-contain bg-white border border-slate-200 shrink-0"
+                        loading="lazy"
+                        decoding="async"
                       />
                       <span
                         v-else
@@ -624,6 +630,8 @@ function geserKeFase(faseId) {
                         :src="baganData.final.away.logo_url"
                         :alt="baganData.final.away.nama"
                         class="w-6 h-6 rounded-md object-contain bg-white border border-slate-200 shrink-0"
+                        loading="lazy"
+                        decoding="async"
                       />
                       <span
                         v-else
@@ -727,6 +735,8 @@ function geserKeFase(faseId) {
                       :src="pialaPcl"
                       alt="Piala PCL"
                       class="w-full h-full object-contain drop-shadow-md"
+                      loading="lazy"
+                      decoding="async"
                     />
                   </div>
 

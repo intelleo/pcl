@@ -73,6 +73,8 @@ const linkWhatsApp = computed(() => {
             :src="qrPembayaranUrl"
             alt="QR Code Pembayaran"
             class="w-full h-full object-contain"
+            loading="lazy"
+            decoding="async"
           />
           <div v-else class="text-center p-3 text-slate-400 text-xs">
             <QrCode class="w-10 h-10 mx-auto mb-1 opacity-25 text-slate-600" />

@@ -11,7 +11,8 @@ import {
   User,
   ArrowRight,
   Clock,
-  Sparkles
+  Sparkles,
+  Heart
 } from 'lucide-vue-next'
 
 const router = useRouter()
@@ -25,6 +26,13 @@ onMounted(async () => {
   const cached = getCache('news_list')
   if (cached) {
     daftarBerita.value = cached
+    // SWR background refresh agar sinkron dengan live likes & artikel baru
+    api.getNews().then(data => {
+      if (data) {
+        daftarBerita.value = data
+        setCache('news_list', data, 60000)
+      }
+    }).catch(() => {})
     return
   }
 
@@ -120,6 +128,7 @@ function navigasiKeDetail(id) {
               :src="beritaUtama.gambar_url"
               :alt="beritaUtama.judul"
               class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+              decoding="async"
             />
             <div v-else class="w-full h-full bg-gradient-to-br from-navy-900 via-ucl-900 to-ucl-700 flex items-center justify-center min-h-[220px]">
               <span class="font-display text-white/30 text-4xl sm:text-5xl font-bold tracking-tight">PCL NEWS</span>
@@ -165,6 +174,9 @@ function navigasiKeDetail(id) {
                 </span>
                 <span class="flex items-center gap-1 text-slate-400 shrink-0">
                   <Clock class="w-3.5 h-3.5 text-slate-400" /> 3 mnt baca
+                </span>
+                <span v-if="Number(beritaUtama.likes_count || 0) > 0" class="flex items-center gap-1 text-rose-500 font-semibold shrink-0">
+                  <Heart class="w-3.5 h-3.5 fill-rose-500" /> {{ beritaUtama.likes_count }}
                 </span>
               </div>
               <span class="text-xs sm:text-sm font-bold text-ucl-600 flex items-center gap-1 group-hover:translate-x-1 transition-transform shrink-0">
@@ -233,6 +245,7 @@ function navigasiKeDetail(id) {
               :alt="berita.judul"
               class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
               loading="lazy"
+              decoding="async"
             />
             <div v-else class="w-full h-full bg-gradient-to-br from-navy-900 to-ucl-700 flex items-center justify-center">
               <span class="font-display text-white/30 text-2xl font-bold tracking-tight">PCL</span>
@@ -271,10 +284,15 @@ function navigasiKeDetail(id) {
 
             <!-- Footer Card Meta -->
             <div class="pt-3 border-t border-slate-100 flex items-center justify-between text-xs">
-              <span class="text-slate-500 flex items-center gap-1 truncate max-w-[140px] text-[11px]">
-                <User class="w-3.5 h-3.5 text-slate-400 shrink-0" />
-                <span class="truncate">{{ berita.penulis }}</span>
-              </span>
+              <div class="flex items-center gap-2.5 text-slate-500 text-[11px] min-w-0">
+                <span class="flex items-center gap-1 truncate max-w-[110px]">
+                  <User class="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                  <span class="truncate">{{ berita.penulis }}</span>
+                </span>
+                <span v-if="Number(berita.likes_count || 0) > 0" class="flex items-center gap-1 text-rose-500 font-semibold shrink-0">
+                  <Heart class="w-3.5 h-3.5 fill-rose-500" /> {{ berita.likes_count }}
+                </span>
+              </div>
               <span class="font-semibold text-xs text-ucl-600 flex items-center gap-1 group-hover:translate-x-1 transition-transform shrink-0">
                 <span>Baca</span>
                 <ArrowRight class="w-3.5 h-3.5" />

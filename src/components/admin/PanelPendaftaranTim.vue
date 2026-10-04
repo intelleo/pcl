@@ -2,6 +2,7 @@
 import { ref, onMounted } from 'vue'
 import { Check, X, User, Phone, Lock, Unlock, QrCode, Upload, CheckCircle2, MessageCircle } from 'lucide-vue-next'
 import { api } from '../../lib/api.js'
+import { kompresGambar, validasiUkuranGambar } from '../../lib/gambar.js'
 import TombolDasar from '../umum/TombolDasar.vue'
 
 const props = defineProps({
@@ -42,18 +43,19 @@ async function muatStatusPendaftaran() {
   } catch (e) {}
 }
 
-function handleUnggahQR(event) {
+async function handleUnggahQR(event) {
   const file = event.target.files?.[0]
   if (!file) return
-  if (file.size > 2 * 1024 * 1024) {
-    alert('Ukuran gambar QR maksimal 2MB.')
+  const cek = validasiUkuranGambar(file)
+  if (!cek.valid) {
+    alert(cek.pesan)
     return
   }
-  const reader = new FileReader()
-  reader.onload = (e) => {
-    qrPembayaranUrl.value = e.target.result
+  try {
+    qrPembayaranUrl.value = await kompresGambar(file, { maksLebar: 600, maksTinggi: 600 })
+  } catch (err) {
+    alert('Gagal memproses gambar QR: ' + err.message)
   }
-  reader.readAsDataURL(file)
 }
 
 async function simpanPengaturanQR() {
@@ -174,6 +176,8 @@ onMounted(() => {
               :src="qrPembayaranUrl"
               alt="QRIS Pembayaran"
               class="w-full h-full object-contain"
+              loading="lazy"
+              decoding="async"
             />
             <div v-else class="text-center p-4 text-slate-400 text-xs">
               <QrCode class="w-10 h-10 mx-auto mb-1 opacity-30 text-slate-600" />
@@ -327,6 +331,8 @@ onMounted(() => {
                     :src="parseCatatan(item.catatan)?.logo_url"
                     :alt="item.nama_tim"
                     class="w-8 h-8 rounded-lg object-contain bg-slate-50 border border-slate-200 shrink-0"
+                    loading="lazy"
+                    decoding="async"
                   />
                   <div v-else class="w-8 h-8 rounded-lg bg-slate-100 border border-slate-200 flex items-center justify-center font-display font-semibold text-xs text-navy-800 shrink-0">
                     {{ item.short_name }}

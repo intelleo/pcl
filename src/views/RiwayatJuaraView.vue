@@ -209,7 +209,7 @@ function bukaDetailTim(timId) {
             class="flex items-center justify-between p-2.5 rounded-lg bg-gold-50/40 cursor-pointer hover:bg-gold-50 transition-colors"
           >
             <div class="flex items-center gap-2.5 min-w-0">
-              <img v-if="item.juara.logo_url" :src="item.juara.logo_url" :alt="item.juara.name" class="w-8 h-8 rounded-lg object-contain bg-white border border-slate-200 p-0.5 shrink-0" />
+              <img v-if="item.juara.logo_url" :src="item.juara.logo_url" :alt="item.juara.name" class="w-8 h-8 rounded-lg object-contain bg-white border border-slate-200 p-0.5 shrink-0" loading="lazy" decoding="async" />
               <div v-else class="w-8 h-8 rounded-lg bg-gold-50 border border-gold-200/80 font-bold text-[10px] text-gold-800 flex items-center justify-center shrink-0 tracking-wider">
                 {{ item.juara.short_name }}
               </div>
@@ -230,7 +230,7 @@ function bukaDetailTim(timId) {
             class="flex items-center justify-between px-2.5 py-1.5 rounded-lg cursor-pointer hover:bg-slate-50 transition-colors"
           >
             <div class="flex items-center gap-2.5 min-w-0">
-              <img v-if="item.runner_up.logo_url" :src="item.runner_up.logo_url" :alt="item.runner_up.name" class="w-7 h-7 rounded-lg object-contain bg-white border border-slate-200 p-0.5 shrink-0" />
+              <img v-if="item.runner_up.logo_url" :src="item.runner_up.logo_url" :alt="item.runner_up.name" class="w-7 h-7 rounded-lg object-contain bg-white border border-slate-200 p-0.5 shrink-0" loading="lazy" decoding="async" />
               <div v-else class="w-7 h-7 rounded-lg bg-slate-100 border border-slate-200 font-bold text-[10px] text-navy-800 flex items-center justify-center shrink-0 tracking-wider">
                 {{ item.runner_up.short_name }}
               </div>
@@ -296,7 +296,7 @@ function bukaDetailTim(timId) {
                   @click="bukaDetailTim(item.juara.id)"
                   class="flex items-center gap-3 cursor-pointer group/team"
                 >
-                  <img v-if="item.juara.logo_url" :src="item.juara.logo_url" :alt="item.juara.name" class="w-9 h-9 rounded-lg object-contain bg-white shrink-0" />
+                  <img v-if="item.juara.logo_url" :src="item.juara.logo_url" :alt="item.juara.name" class="w-9 h-9 rounded-lg object-contain bg-white shrink-0" loading="lazy" decoding="async" />
                   <div v-else class="w-9 h-9 rounded-lg bg-gold-50 font-bold text-xs text-gold-800 flex items-center justify-center shrink-0">
                     {{ item.juara.short_name }}
                   </div>
@@ -323,7 +323,7 @@ function bukaDetailTim(timId) {
                   @click="bukaDetailTim(item.runner_up.id)"
                   class="flex items-center gap-3 cursor-pointer group/runner"
                 >
-                  <img v-if="item.runner_up.logo_url" :src="item.runner_up.logo_url" :alt="item.runner_up.name" class="w-8 h-8 rounded-lg object-contain bg-white shrink-0" />
+                  <img v-if="item.runner_up.logo_url" :src="item.runner_up.logo_url" :alt="item.runner_up.name" class="w-8 h-8 rounded-lg object-contain bg-white shrink-0" loading="lazy" decoding="async" />
                   <div v-else class="w-8 h-8 rounded-lg bg-slate-100 font-semibold text-xs text-slate-600 flex items-center justify-center shrink-0">
                     {{ item.runner_up.short_name }}
                   </div>
@@ -391,7 +391,7 @@ function bukaDetailTim(timId) {
         >
           <div class="flex items-center gap-3 min-w-0">
             <span class="text-xs font-bold text-slate-400 w-4 text-center">{{ idx + 1 }}</span>
-            <img v-if="klub.logo_url" :src="klub.logo_url" :alt="klub.name" class="w-8 h-8 rounded-lg object-contain bg-white border border-slate-200 p-0.5 shrink-0" />
+            <img v-if="klub.logo_url" :src="klub.logo_url" :alt="klub.name" class="w-8 h-8 rounded-lg object-contain bg-white border border-slate-200 p-0.5 shrink-0" loading="lazy" decoding="async" />
             <div v-else class="w-8 h-8 rounded-lg bg-slate-100 border border-slate-200 font-bold text-[10px] text-navy-800 flex items-center justify-center shrink-0 tracking-wider">
               {{ klub.short_name }}
             </div>
@@ -433,7 +433,7 @@ function bukaDetailTim(timId) {
               </td>
               <td class="py-3.5 px-5 align-middle">
                 <div class="flex items-center gap-3">
-                  <img v-if="klub.logo_url" :src="klub.logo_url" :alt="klub.name" class="w-8 h-8 rounded-lg object-contain bg-white border border-slate-200 p-0.5 shrink-0" />
+                  <img v-if="klub.logo_url" :src="klub.logo_url" :alt="klub.name" class="w-8 h-8 rounded-lg object-contain bg-white border border-slate-200 p-0.5 shrink-0" loading="lazy" decoding="async" />
                   <div v-else class="w-8 h-8 rounded-lg bg-slate-100 border border-slate-200 font-bold text-[10px] text-navy-800 flex items-center justify-center shrink-0 tracking-wider">
                     {{ klub.short_name }}
                   </div>

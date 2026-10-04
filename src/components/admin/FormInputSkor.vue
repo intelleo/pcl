@@ -237,6 +237,8 @@ function simpanPerubahanSkor(tutup = false) {
               :src="laga.home_team.logo_url"
               :alt="laga.home_team.name"
               class="w-11 h-11 sm:w-12 sm:h-12 rounded-xl object-contain bg-white/10 border border-white/15 p-1 shrink-0"
+              loading="lazy"
+              decoding="async"
             />
             <div
               v-else
@@ -318,6 +320,8 @@ function simpanPerubahanSkor(tutup = false) {
               :src="laga.away_team.logo_url"
               :alt="laga.away_team.name"
               class="w-11 h-11 sm:w-12 sm:h-12 rounded-xl object-contain bg-white/10 border border-white/15 p-1 shrink-0"
+              loading="lazy"
+              decoding="async"
             />
             <div
               v-else

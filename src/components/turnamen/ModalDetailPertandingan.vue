@@ -126,6 +126,8 @@ const labelBabak = computed(() => {
               :src="laga.home_team.logo_url"
               :alt="laga.home_team.name"
               class="w-12 h-12 mx-auto rounded-xl object-contain bg-white border border-slate-200 p-1.5 shrink-0"
+              loading="lazy"
+              decoding="async"
             />
             <div
               v-else
@@ -162,6 +164,8 @@ const labelBabak = computed(() => {
               :src="laga.away_team.logo_url"
               :alt="laga.away_team.name"
               class="w-12 h-12 mx-auto rounded-xl object-contain bg-white border border-slate-200 p-1.5 shrink-0"
+              loading="lazy"
+              decoding="async"
             />
             <div
               v-else

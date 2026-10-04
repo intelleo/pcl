@@ -23,6 +23,8 @@ const emit = defineEmits(['klikDetail'])
           :src="tim.logo_url"
           :alt="tim.name"
           class="w-12 h-12 rounded-xl object-contain bg-slate-50 border border-slate-200 group-hover:border-ucl-500/40 p-1.5 transition-colors shrink-0"
+          loading="lazy"
+          decoding="async"
         />
         <div
           v-else

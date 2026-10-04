@@ -3,12 +3,24 @@ import { query, generateUUID } from '../config/db.js'
 
 const router = express.Router()
 
+let kolomLikeTersedia = false
+async function pastikanKolomLikesCount() {
+  if (kolomLikeTersedia) return
+  try {
+    await query('ALTER TABLE pcl_news ADD COLUMN likes_count INT DEFAULT 0')
+  } catch {
+    // Kolom sudah ada
+  }
+  kolomLikeTersedia = true
+}
+
 /**
  * GET /api/news
  * Ambil semua daftar berita
  */
 router.get('/', async (req, res) => {
   try {
+    await pastikanKolomLikesCount()
     const rows = await query('SELECT * FROM pcl_news ORDER BY diterbitkan_pada DESC, created_at DESC')
     res.json(rows)
   } catch (err) {
@@ -22,6 +34,7 @@ router.get('/', async (req, res) => {
  */
 router.get('/:id', async (req, res) => {
   try {
+    await pastikanKolomLikesCount()
     const { id } = req.params
     const [news] = await query('SELECT * FROM pcl_news WHERE id = ?', [id])
     if (!news) {
@@ -96,6 +109,39 @@ router.put('/:id', async (req, res) => {
 
     const [updated] = await query('SELECT * FROM pcl_news WHERE id = ?', [id])
     res.json(updated)
+  } catch (err) {
+    res.status(500).json({ error: err.message })
+  }
+})
+
+/**
+ * POST /api/news/:id/like
+ * Toggle like artikel berita (increment / decrement)
+ */
+router.post('/:id/like', async (req, res) => {
+  try {
+    const { id } = req.params
+    const { delta = 1 } = req.body // +1 untuk like, -1 untuk unlike
+
+    // Pastikan kolom likes_count tersedia (self-healing migration)
+    try {
+      await query('ALTER TABLE pcl_news ADD COLUMN likes_count INT DEFAULT 0')
+    } catch {
+      // Kolom sudah ada
+    }
+
+    const perubahan = Number(delta) >= 0 ? 1 : -1
+    await query(
+      'UPDATE pcl_news SET likes_count = GREATEST(0, COALESCE(likes_count, 0) + ?) WHERE id = ?',
+      [perubahan, id]
+    )
+
+    const [news] = await query('SELECT id, likes_count FROM pcl_news WHERE id = ?', [id])
+    if (!news) {
+      return res.status(404).json({ error: 'Berita tidak ditemukan.' })
+    }
+
+    res.json({ success: true, likes_count: Number(news.likes_count || 0) })
   } catch (err) {
     res.status(500).json({ error: err.message })
   }

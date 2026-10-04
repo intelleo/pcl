@@ -64,6 +64,8 @@ defineProps({
                   :src="row.logo_url"
                   :alt="row.team_name"
                   class="w-7 h-7 rounded-lg object-contain bg-white border border-slate-200 p-0.5 shrink-0"
+                  loading="lazy"
+                  decoding="async"
                 />
                 <span
                   v-else

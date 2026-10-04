@@ -59,6 +59,8 @@ function handleLogout() {
               :src="logoPcl"
               alt="PCL Logo"
               class="w-full h-full object-contain p-0.5"
+              loading="eager"
+              decoding="async"
             />
           </div>
           <div class="leading-tight">

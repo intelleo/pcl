@@ -1,6 +1,7 @@
 <script setup>
 import { ref, computed, watch, onMounted } from 'vue'
 import { api } from '../lib/api.js'
+import { kompresGambar, validasiUkuranGambar } from '../lib/gambar.js'
 import {
   Shield,
   CheckCircle2,
@@ -147,19 +148,21 @@ function handleInputTagTim(e) {
   tagTim.value = e.target.value.toUpperCase().slice(0, 3)
 }
 
-function handleUnggahLogo(event) {
+async function handleUnggahLogo(event) {
   const file = event.target.files?.[0]
   if (!file) return
-  if (file.size > 2 * 1024 * 1024) {
-    alert('Ukuran gambar logo maksimal 2MB.')
+  const cek = validasiUkuranGambar(file)
+  if (!cek.valid) {
+    alert(cek.pesan)
     return
   }
-  const reader = new FileReader()
-  reader.onload = (e) => {
-    logoUrl.value = e.target.result
-    previewLogo.value = e.target.result
+  try {
+    const hasil = await kompresGambar(file, { maksLebar: 400, maksTinggi: 400 })
+    logoUrl.value = hasil
+    previewLogo.value = hasil
+  } catch (err) {
+    alert('Gagal memproses gambar: ' + err.message)
   }
-  reader.readAsDataURL(file)
 }
 
 function tambahAnggota() {
@@ -265,6 +268,7 @@ onMounted(() => {
         :src="bgPattern"
         alt=""
         class="absolute inset-0 w-full h-full object-cover object-center opacity-20 mix-blend-luminosity pointer-events-none select-none"
+        decoding="async"
       />
       <div aria-hidden="true" class="absolute inset-0 pola-bintang opacity-50 pointer-events-none"></div>
       <div class="absolute inset-0 bg-gradient-to-t from-navy-950/80 via-transparent to-transparent pointer-events-none"></div>
@@ -274,7 +278,7 @@ onMounted(() => {
         aria-hidden="true"
         class="absolute -right-6 -bottom-6 w-44 sm:w-64 opacity-10 pointer-events-none select-none"
       >
-        <img :src="logoo" alt="" class="w-full h-auto object-contain" />
+        <img :src="logoo" alt="" class="w-full h-auto object-contain" decoding="async" />
       </div>
 
       <!-- Content -->

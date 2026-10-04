@@ -85,6 +85,8 @@ function bukaDetailTim(tim) {
               :src="tim.logo_url"
               :alt="tim.name"
               class="w-10 h-10 rounded-xl object-contain bg-slate-50 border border-slate-200 p-1 shrink-0"
+              loading="lazy"
+              decoding="async"
             />
             <div
               v-else
@@ -137,6 +139,8 @@ function bukaDetailTim(tim) {
                     :src="tim.logo_url"
                     :alt="tim.name"
                     class="w-8 h-8 rounded-lg object-contain bg-slate-50 border border-slate-200 p-0.5 shrink-0"
+                    loading="lazy"
+                    decoding="async"
                   />
                   <div
                     v-else

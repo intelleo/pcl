@@ -226,6 +226,8 @@ function pilihLaga(id) {
                       :src="laga.home_team.logo_url"
                       :alt="laga.home_team.name"
                       class="w-6 h-6 rounded-md object-contain bg-white border border-slate-200 shrink-0 p-0.5"
+                      loading="lazy"
+                      decoding="async"
                     />
                     <span
                       v-else
@@ -244,6 +246,8 @@ function pilihLaga(id) {
                       :src="laga.away_team.logo_url"
                       :alt="laga.away_team.name"
                       class="w-6 h-6 rounded-md object-contain bg-white border border-slate-200 shrink-0 p-0.5"
+                      loading="lazy"
+                      decoding="async"
                     />
                     <span
                       v-else

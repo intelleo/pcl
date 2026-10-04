@@ -153,6 +153,8 @@ function formatWaktu(isoStr) {
             :src="laga.home_team.logo_url"
             :alt="laga.home_team.name"
             class="w-7 h-7 rounded-lg object-contain bg-white border border-slate-200 shrink-0 p-0.5"
+            loading="lazy"
+            decoding="async"
           />
           <div
             v-else
@@ -190,6 +192,8 @@ function formatWaktu(isoStr) {
             :src="laga.away_team.logo_url"
             :alt="laga.away_team.name"
             class="w-7 h-7 rounded-lg object-contain bg-white border border-slate-200 shrink-0 p-0.5"
+            loading="lazy"
+            decoding="async"
           />
           <div
             v-else

@@ -18,6 +18,7 @@ import {
   X
 } from 'lucide-vue-next'
 import TombolDasar from '../umum/TombolDasar.vue'
+import { kompresGambar, validasiUkuranGambar } from '../../lib/gambar.js'
 
 const props = defineProps({
   daftarBerita: {
@@ -56,20 +57,19 @@ const form = ref({
   terkait_match_id: ''
 })
 
-function handleUploadGambar(event) {
+async function handleUploadGambar(event) {
   const file = event.target.files?.[0]
   if (!file) return
-
-  if (file.size > 2 * 1024 * 1024) {
-    alert('Ukuran file gambar maksimal 2MB.')
+  const cek = validasiUkuranGambar(file)
+  if (!cek.valid) {
+    alert(cek.pesan)
     return
   }
-
-  const reader = new FileReader()
-  reader.onload = (e) => {
-    form.value.gambar_url = e.target.result
+  try {
+    form.value.gambar_url = await kompresGambar(file, { maksLebar: 1200, maksTinggi: 800 })
+  } catch (err) {
+    alert('Gagal memproses gambar: ' + err.message)
   }
-  reader.readAsDataURL(file)
 }
 
 function hapusGambar() {
@@ -323,7 +323,7 @@ const beritaTersaring = computed(() => {
 
             <!-- Preview Mini Gambar -->
             <div v-if="form.gambar_url" class="relative w-full h-24 rounded-lg border border-slate-200 overflow-hidden bg-slate-50">
-              <img :src="form.gambar_url" alt="Preview Cover" class="w-full h-full object-cover" />
+              <img :src="form.gambar_url" alt="Preview Cover" class="w-full h-full object-cover" loading="lazy" decoding="async" />
             </div>
           </div>
 

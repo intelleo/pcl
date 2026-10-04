@@ -126,6 +126,8 @@ function formatWaktuLaga(dateStr) {
               :src="lagaAktif.home_team.logo_url"
               :alt="lagaAktif.home_team.name"
               class="w-12 h-12 sm:w-14 sm:h-14 rounded-2xl object-contain bg-white border border-slate-200 p-1.5 shrink-0"
+              loading="lazy"
+              decoding="async"
             />
             <div
               v-else
@@ -191,6 +193,8 @@ function formatWaktuLaga(dateStr) {
               :src="lagaAktif.away_team.logo_url"
               :alt="lagaAktif.away_team.name"
               class="w-12 h-12 sm:w-14 sm:h-14 rounded-2xl object-contain bg-white border border-slate-200 p-1.5 shrink-0"
+              loading="lazy"
+              decoding="async"
             />
             <div
               v-else

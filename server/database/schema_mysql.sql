@@ -167,6 +167,7 @@ CREATE TABLE IF NOT EXISTS `pcl_news` (
     `gambar_url` TEXT NULL,
     `waktu_baca` VARCHAR(50) DEFAULT '3 min read',
     `terkait_match_id` VARCHAR(36) NULL,
+    `likes_count` INT DEFAULT 0,
     `diterbitkan_pada` DATETIME DEFAULT CURRENT_TIMESTAMP,
     `created_at` DATETIME DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT `fk_news_match` FOREIGN KEY (`terkait_match_id`) REFERENCES `pcl_matches`(`id`) ON DELETE SET NULL
