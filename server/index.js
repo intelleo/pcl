@@ -70,7 +70,11 @@ app.get('/berita/:id', async (req, res, next) => {
 
     const title = news.judul || 'Peak Champions League (PCL)'
     const desc = news.ringkasan || 'Ulasan dan kabar turnamen Peak Champions League.'
-    const img = news.gambar_url || 'https://i.ibb.co.com/84KqD1p0/pcl-og.jpg'
+    const defaultBanner = `${req.protocol}://${req.get('host')}/img/hero-banner.webp`
+    let img = news.gambar_url || defaultBanner
+    if (img && img.startsWith('/')) {
+      img = `${req.protocol}://${req.get('host')}${img}`
+    }
     const fullUrl = `${req.protocol}://${req.get('host')}/berita/${id}`
 
     res.setHeader('Content-Type', 'text/html; charset=utf-8')

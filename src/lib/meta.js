@@ -34,12 +34,15 @@ export function perbaruiMetaHalaman({
   setMeta('property', 'og:url', targetUrl)
   setMeta('property', 'og:site_name', 'Peak Champions League')
 
-  if (gambar) {
-    // Pastikan gambar memiliki absolute URL jika memungkinkan
-    let fullImageUrl = gambar
-    if (gambar.startsWith('/') && typeof window !== 'undefined') {
-      fullImageUrl = `${window.location.origin}${gambar}`
-    }
+  // Gambar Open Graph (Cover Artikel atau Fallback Banner PCL)
+  let fullImageUrl = gambar
+  if (!fullImageUrl && typeof window !== 'undefined') {
+    fullImageUrl = `${window.location.origin}/img/hero-banner.webp`
+  } else if (fullImageUrl && fullImageUrl.startsWith('/') && typeof window !== 'undefined') {
+    fullImageUrl = `${window.location.origin}${fullImageUrl}`
+  }
+
+  if (fullImageUrl) {
     setMeta('property', 'og:image', fullImageUrl)
     setMeta('property', 'og:image:secure_url', fullImageUrl)
     setMeta('property', 'og:image:alt', judul)
