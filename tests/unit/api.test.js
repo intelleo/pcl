@@ -1,0 +1,31 @@
+import { describe, it, expect } from 'vitest'
+import { api } from '../../src/lib/api.js'
+
+describe('API Client Module', () => {
+  it('berhasil mengekspor objek api dengan metode yang lengkap', () => {
+    expect(api).toBeDefined()
+    expect(typeof api.getTournaments).toBe('function')
+    expect(typeof api.getTeams).toBe('function')
+    expect(typeof api.getTeamDetail).toBe('function')
+    expect(typeof api.getMatches).toBe('function')
+    expect(typeof api.getMatchDetail).toBe('function')
+    expect(typeof api.updateMatchScore).toBe('function')
+    expect(typeof api.addMatchEvent).toBe('function')
+    expect(typeof api.deleteMatchEvent).toBe('function')
+    expect(typeof api.getStandings).toBe('function')
+    expect(typeof api.getStatistics).toBe('function')
+    expect(typeof api.getNews).toBe('function')
+    expect(typeof api.getNewsDetail).toBe('function')
+    expect(typeof api.getChampions).toBe('function')
+    expect(typeof api.createRegistration).toBe('function')
+    expect(typeof api.getRegistrations).toBe('function')
+    expect(typeof api.updateRegistrationStatus).toBe('function')
+    expect(typeof api.drawGroups).toBe('function')
+    expect(typeof api.resetDrawing).toBe('function')
+    expect(typeof api.generateKnockout).toBe('function')
+    expect(typeof api.advanceKnockout).toBe('function')
+    expect(typeof api.getSetting).toBe('function')
+    expect(typeof api.updateSetting).toBe('function')
+    expect(typeof api.login).toBe('function')
+  })
+})

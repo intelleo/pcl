@@ -1,8 +1,9 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
-import { supabase } from '../lib/supabase.js'
-import { Shield, User, Star, ChevronRight, Search, MapPin } from 'lucide-vue-next'
+import { api } from '../lib/api.js'
+import { getCache, setCache } from '../lib/cache.js'
+import { Shield, User, ChevronRight, Search } from 'lucide-vue-next'
 
 const router = useRouter()
 const sedangMemuat = ref(false)
@@ -11,10 +12,17 @@ const cariKlub = ref('')
 const filterGrup = ref('semua')
 
 onMounted(async () => {
+  const cached = getCache('teams_list')
+  if (cached) {
+    daftarTim.value = cached
+    return
+  }
+
   sedangMemuat.value = true
   try {
-    const { data } = await supabase.from('pcl_teams').select('*').order('name')
+    const data = await api.getTeams()
     daftarTim.value = data || []
+    setCache('teams_list', daftarTim.value, 45000)
   } catch (err) {
     daftarTim.value = []
   } finally {
@@ -65,7 +73,7 @@ function bukaDetailTim(tim) {
         <input
           v-model="cariKlub"
           type="text"
-          placeholder="Cari klub, kode, atau pelatih..."
+          placeholder="Cari klub, kode, atau manager..."
           class="w-full pl-10 pr-4 py-2 rounded-xl bg-white border border-slate-200 text-sm text-ink-900 placeholder:text-slate-400 focus:outline-none focus:border-ucl-500 focus:ring-1 focus:ring-ucl-500 transition-colors shadow-sm"
         />
       </div>
@@ -105,15 +113,13 @@ function bukaDetailTim(tim) {
               <th class="py-3 px-4 sm:px-6 w-16 text-center">No</th>
               <th class="py-3 px-4 sm:px-6">Klub</th>
               <th class="py-3 px-4 sm:px-6 hidden md:table-cell">Grup</th>
-              <th class="py-3 px-4 sm:px-6 hidden sm:table-cell">Pelatih</th>
-              <th class="py-3 px-4 sm:px-6 hidden lg:table-cell">Stadion</th>
-              <th class="py-3 px-4 sm:px-6 text-center w-24">Rating</th>
+              <th class="py-3 px-4 sm:px-6 hidden sm:table-cell">Manager / Kapten</th>
               <th class="py-3 px-4 sm:px-6 text-right w-20">Aksi</th>
             </tr>
           </thead>
           <tbody class="divide-y divide-slate-100 text-sm">
             <tr v-if="timTerfilter.length === 0">
-              <td colspan="7" class="py-12 text-center text-sm text-ink-400">
+              <td colspan="5" class="py-12 text-center text-sm text-ink-400">
                 Tidak ada klub yang sesuai pencarian "{{ cariKlub }}".
               </td>
             </tr>
@@ -132,15 +138,16 @@ function bukaDetailTim(tim) {
               <!-- Klub & Short Name -->
               <td class="py-3.5 px-4 sm:px-6">
                 <div class="flex items-center gap-3 min-w-0">
-                  <div class="w-9 h-9 rounded-lg bg-slate-50 border border-slate-200 group-hover:border-ucl-500/40 flex items-center justify-center font-display font-semibold text-xs text-navy-800 shrink-0 transition-colors">
-                    {{ tim.short_name || 'TIM' }}
+                  <div class="w-9 h-9 rounded-lg bg-slate-50 border border-slate-200 group-hover:border-ucl-500/40 flex items-center justify-center font-display font-semibold text-xs text-navy-800 shrink-0 transition-colors overflow-hidden p-0.5">
+                    <img v-if="tim.logo_url" :src="tim.logo_url" :alt="tim.name" class="w-full h-full object-contain" />
+                    <span v-else>{{ tim.short_name || 'TIM' }}</span>
                   </div>
                   <div class="min-w-0">
                     <div class="font-semibold text-ink-900 group-hover:text-ucl-600 transition-colors truncate">
                       {{ tim.name }}
                     </div>
                     <div class="text-xs text-slate-400 md:hidden mt-0.5">
-                      {{ tim.group_name || '-' }} · {{ tim.manager_name || 'Pelatih' }}
+                      {{ tim.group_name || 'Belum Ditentukan' }} · {{ tim.manager_name || '-' }}
                     </div>
                   </div>
                 </div>
@@ -148,34 +155,21 @@ function bukaDetailTim(tim) {
 
               <!-- Grup -->
               <td class="py-3.5 px-4 sm:px-6 hidden md:table-cell">
-                <span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-slate-100 text-slate-600 text-xs font-semibold">
-                  <Shield class="w-3 h-3 text-ucl-600" />
-                  {{ tim.group_name || '-' }}
+                <span
+                  class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold"
+                  :class="tim.group_name ? 'bg-slate-100 text-slate-600' : 'bg-amber-50 border border-amber-200 text-amber-700'"
+                >
+                  <Shield class="w-3 h-3" :class="tim.group_name ? 'text-ucl-600' : 'text-amber-500'" />
+                  {{ tim.group_name || 'Belum Ditentukan' }}
                 </span>
               </td>
 
-              <!-- Pelatih -->
+              <!-- Manager / Kapten -->
               <td class="py-3.5 px-4 sm:px-6 hidden sm:table-cell text-xs text-slate-600">
                 <div class="flex items-center gap-1.5">
                   <User class="w-3.5 h-3.5 text-slate-400" />
                   <span>{{ tim.manager_name || '-' }}</span>
                 </div>
-              </td>
-
-              <!-- Stadion -->
-              <td class="py-3.5 px-4 sm:px-6 hidden lg:table-cell text-xs text-slate-500">
-                <div class="flex items-center gap-1.5">
-                  <MapPin class="w-3.5 h-3.5 text-slate-400 shrink-0" />
-                  <span class="truncate max-w-[180px]">{{ tim.stadium || '-' }}</span>
-                </div>
-              </td>
-
-              <!-- Rating OVR -->
-              <td class="py-3.5 px-4 sm:px-6 text-center">
-                <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-ucl-50 border border-ucl-100 text-xs font-semibold text-ucl-600 tabular-nums">
-                  <Star class="w-3 h-3 fill-ucl-100 text-ucl-500" />
-                  {{ tim.rating || 90 }}
-                </span>
               </td>
 
               <!-- Aksi Detail -->

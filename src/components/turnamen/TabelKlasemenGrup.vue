@@ -58,8 +58,17 @@ defineProps({
             </td>
 
             <td class="py-2.5 px-3">
-              <div class="flex items-center gap-2">
-                <span class="w-6 h-6 rounded-full bg-slate-50 border border-slate-200 text-[10px] flex items-center justify-center font-semibold text-navy-800 shrink-0">
+              <div class="flex items-center gap-2.5">
+                <img
+                  v-if="row.logo_url"
+                  :src="row.logo_url"
+                  :alt="row.team_name"
+                  class="w-7 h-7 rounded-lg object-contain bg-white border border-slate-200 p-0.5 shrink-0"
+                />
+                <span
+                  v-else
+                  class="w-7 h-7 rounded-lg bg-slate-100 border border-slate-200 text-[9px] font-bold text-navy-800 tracking-wider flex items-center justify-center shrink-0"
+                >
                   {{ row.team_short_name || 'TIM' }}
                 </span>
                 <span class="truncate max-w-[100px] sm:max-w-none text-xs sm:text-sm font-medium text-ink-900">{{ row.team_name }}</span>

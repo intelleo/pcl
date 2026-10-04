@@ -1,7 +1,8 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
-import { supabase } from '../lib/supabase.js'
+import { api } from '../lib/api.js'
+import { getCache, setCache } from '../lib/cache.js'
 import {
   Newspaper,
   Search,
@@ -21,14 +22,18 @@ const sedangMemuat = ref(false)
 const daftarBerita = ref([])
 
 onMounted(async () => {
+  const cached = getCache('news_list')
+  if (cached) {
+    daftarBerita.value = cached
+    return
+  }
+
   sedangMemuat.value = true
   try {
-    const { data } = await supabase
-      .from('pcl_news')
-      .select('*')
-      .order('diterbitkan_pada', { ascending: false })
+    const data = await api.getNews()
 
     daftarBerita.value = data || []
+    setCache('news_list', daftarBerita.value, 60000)
   } catch (err) {
     daftarBerita.value = []
   } finally {
@@ -88,9 +93,19 @@ function navigasiKeDetail(id) {
     <div
       v-if="beritaUtama && tagTerpilih === 'semua' && !kataKunci"
       @click="navigasiKeDetail(beritaUtama.id)"
-      class="anim-muncul group relative overflow-hidden rounded-xl bg-white border border-ucl-500/40 ring-1 ring-ucl-500/20 shadow-lift p-6 sm:p-8 transition-shadow cursor-pointer space-y-4"
+      class="anim-muncul group relative overflow-hidden rounded-xl bg-white border border-ucl-500/40 ring-1 ring-ucl-500/20 shadow-lift transition-shadow cursor-pointer"
       style="animation-delay: 60ms"
     >
+      <!-- Featured Cover Image -->
+      <div v-if="beritaUtama.gambar_url" class="w-full h-48 sm:h-64 overflow-hidden bg-slate-100">
+        <img
+          :src="beritaUtama.gambar_url"
+          :alt="beritaUtama.judul"
+          class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+        />
+      </div>
+
+      <div class="p-6 sm:p-8 space-y-4">
       <div class="flex items-center justify-between gap-2 flex-wrap">
         <div class="flex items-center gap-2">
           <span class="inline-flex items-center px-2.5 py-0.5 rounded-full bg-ucl-600 text-white text-[11px] font-semibold uppercase tracking-wide">
@@ -126,6 +141,7 @@ function navigasiKeDetail(id) {
         <span class="text-sm font-semibold text-ucl-600 flex items-center gap-1 group-hover:translate-x-0.5 transition-transform">
           Baca Selengkapnya <ArrowRight class="w-4 h-4" />
         </span>
+      </div>
       </div>
     </div>
 
@@ -173,33 +189,48 @@ function navigasiKeDetail(id) {
         v-for="(berita, idx) in beritaLainnya"
         :key="berita.id"
         @click="navigasiKeDetail(berita.id)"
-        class="anim-muncul flex flex-col justify-between p-5 rounded-xl bg-white border border-slate-200 shadow-card hover:shadow-lift transition-shadow group cursor-pointer space-y-3"
+        class="anim-muncul flex flex-col justify-between rounded-xl bg-white border border-slate-200 shadow-card hover:shadow-lift transition-shadow group cursor-pointer overflow-hidden"
         :style="{ animationDelay: `${Math.min(idx, 6) * 60}ms` }"
       >
-        <div class="space-y-2">
-          <div class="flex items-center justify-between">
-            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full bg-ucl-50 border border-ucl-100 text-ucl-600 text-[10px] font-semibold uppercase tracking-wide">
-              {{ berita.tag }}
-            </span>
-            <span class="font-mono text-[11px] text-slate-400">{{ berita.tanggal }}</span>
-          </div>
-
-          <h3 class="font-display text-sm font-semibold text-ink-900 group-hover:text-ucl-600 transition-colors line-clamp-2 leading-snug">
-            {{ berita.judul }}
-          </h3>
-
-          <p class="text-xs text-slate-500 line-clamp-2 leading-relaxed">
-            {{ berita.ringkasan }}
-          </p>
+        <!-- Cover Image -->
+        <div v-if="berita.gambar_url" class="w-full h-40 overflow-hidden bg-slate-100">
+          <img
+            :src="berita.gambar_url"
+            :alt="berita.judul"
+            class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+            loading="lazy"
+          />
+        </div>
+        <div v-else class="w-full h-40 bg-gradient-to-br from-navy-800 to-ucl-600 flex items-center justify-center">
+          <span class="font-display text-white/30 text-3xl font-bold tracking-tight">PCL</span>
         </div>
 
-        <div class="pt-3 border-t border-slate-100 flex items-center justify-between text-xs">
-          <span class="text-slate-500 flex items-center gap-1">
-            <User class="w-3 h-3" /> {{ berita.penulis }}
-          </span>
-          <span class="font-semibold text-ucl-600 flex items-center gap-1 group-hover:translate-x-0.5 transition-transform">
-            Baca <ArrowRight class="w-3.5 h-3.5" />
-          </span>
+        <div class="p-5 space-y-3 flex flex-col flex-1 justify-between">
+          <div class="space-y-2">
+            <div class="flex items-center justify-between">
+              <span class="inline-flex items-center px-2.5 py-0.5 rounded-full bg-ucl-50 border border-ucl-100 text-ucl-600 text-[10px] font-semibold uppercase tracking-wide">
+                {{ berita.tag }}
+              </span>
+              <span class="font-mono text-[11px] text-slate-400">{{ berita.tanggal }}</span>
+            </div>
+
+            <h3 class="font-display text-sm font-semibold text-ink-900 group-hover:text-ucl-600 transition-colors line-clamp-2 leading-snug">
+              {{ berita.judul }}
+            </h3>
+
+            <p class="text-xs text-slate-500 line-clamp-2 leading-relaxed">
+              {{ berita.ringkasan }}
+            </p>
+          </div>
+
+          <div class="pt-3 border-t border-slate-100 flex items-center justify-between text-xs">
+            <span class="text-slate-500 flex items-center gap-1">
+              <User class="w-3 h-3" /> {{ berita.penulis }}
+            </span>
+            <span class="font-semibold text-ucl-600 flex items-center gap-1 group-hover:translate-x-0.5 transition-transform">
+              Baca <ArrowRight class="w-3.5 h-3.5" />
+            </span>
+          </div>
         </div>
       </article>
     </div>

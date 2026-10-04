@@ -1,5 +1,6 @@
 import { ref } from 'vue'
-import { supabase } from '../lib/supabase.js'
+import { api } from '../lib/api.js'
+import { getCache, setCache } from '../lib/cache.js'
 
 /**
  * Filter daftar laga berdasarkan kriteria stage, matchday, atau groupId.
@@ -23,29 +24,26 @@ export function usePertandingan() {
   const lagaTerpilih = ref(null)
   const eventLagaTerpilih = ref([])
 
-  async function ambilSemuaPertandingan(tournamentId) {
+  async function ambilSemuaPertandingan(tournamentId, forceFresh = false) {
+    const cacheKey = `matches_${tournamentId || 'all'}`
+    if (!forceFresh) {
+      const cached = getCache(cacheKey)
+      if (cached) {
+        daftarPertandingan.value = cached
+        return
+      }
+    }
+
     sedangMemuat.value = true
     pesanKesalahan.value = null
 
     try {
-      let query = supabase
-        .from('pcl_matches')
-        .select(`
-          *,
-          home_team:pcl_teams!pcl_matches_home_team_id_fkey(*),
-          away_team:pcl_teams!pcl_matches_away_team_id_fkey(*),
-          group:pcl_tournament_groups(*)
-        `)
-        .order('matchday', { ascending: true })
+      const params = {}
+      if (tournamentId) params.tournament_id = tournamentId
 
-      if (tournamentId) {
-        query = query.eq('tournament_id', tournamentId)
-      }
-
-      const { data, error } = await query
-
-      if (error) throw error
+      const data = await api.getMatches(params)
       daftarPertandingan.value = data || []
+      setCache(cacheKey, daftarPertandingan.value, 30000) // TTL 30s
     } catch (err) {
       pesanKesalahan.value = err.message
       daftarPertandingan.value = []
@@ -54,38 +52,25 @@ export function usePertandingan() {
     }
   }
 
-  async function ambilDetailPertandingan(matchId) {
+  async function ambilDetailPertandingan(matchId, forceFresh = false) {
+    const cacheKey = `match_detail_${matchId}`
+    if (!forceFresh) {
+      const cached = getCache(cacheKey)
+      if (cached) {
+        lagaTerpilih.value = cached.match
+        eventLagaTerpilih.value = cached.events
+        return
+      }
+    }
+
     sedangMemuat.value = true
     pesanKesalahan.value = null
 
     try {
-      const { data: match, error: errMatch } = await supabase
-        .from('pcl_matches')
-        .select(`
-          *,
-          home_team:pcl_teams!pcl_matches_home_team_id_fkey(*),
-          away_team:pcl_teams!pcl_matches_away_team_id_fkey(*),
-          group:pcl_tournament_groups(*)
-        `)
-        .eq('id', matchId)
-        .single()
-
-      if (errMatch) throw errMatch
-      lagaTerpilih.value = match
-
-      const { data: events, error: errEvents } = await supabase
-        .from('pcl_match_events')
-        .select(`
-          *,
-          player:pcl_players!pcl_match_events_player_id_fkey(*),
-          assist_player:pcl_players!pcl_match_events_assist_player_id_fkey(*),
-          team:pcl_teams(*)
-        `)
-        .eq('match_id', matchId)
-        .order('minute', { ascending: true })
-
-      if (errEvents) throw errEvents
-      eventLagaTerpilih.value = events || []
+      const res = await api.getMatchDetail(matchId)
+      lagaTerpilih.value = res.match || null
+      eventLagaTerpilih.value = res.events || []
+      setCache(cacheKey, { match: lagaTerpilih.value, events: eventLagaTerpilih.value }, 45000)
     } catch (err) {
       pesanKesalahan.value = err.message
       lagaTerpilih.value = null

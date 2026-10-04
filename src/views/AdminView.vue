@@ -1,100 +1,66 @@
 <script setup>
 import { ref, computed, onMounted, watch } from 'vue'
-import { supabase } from '../lib/supabase.js'
-import { useAdmin } from '../composables/useAdmin.js'
+import { api } from '../lib/api.js'
+import { invalidateCache } from '../lib/cache.js'
+import { useAdmin, ambilDataLengkapAdmin, tambahBeritaSupabase, perbaruiBeritaSupabase, hapusBeritaSupabase, buatTimBaruSupabase, perbaruiTimSupabase, hapusTimSupabase, perbaruiStatusPendaftaranSupabase } from '../composables/useAdmin.js'
+import { generateJadwalKnockoutSupabase } from '../composables/useKnockout.js'
 import { useAuth } from '../composables/useAuth.js'
 import FormInputSkor from '../components/admin/FormInputSkor.vue'
-import FormEventPertandingan from '../components/admin/FormEventPertandingan.vue'
 import ManajemenTim from '../components/admin/ManajemenTim.vue'
 import PanelPendaftaranTim from '../components/admin/PanelPendaftaranTim.vue'
 import PanelDrawingGrup from '../components/admin/PanelDrawingGrup.vue'
+import PanelDrawingBagan from '../components/admin/PanelDrawingBagan.vue'
 import PanelManajemenJuara from '../components/admin/PanelManajemenJuara.vue'
-import {
-  ShieldCheck,
-  Lock,
-  User,
-  LogOut,
-  Calendar,
-  Users,
-  Dices,
-  Trophy,
-  Activity,
-  PlusCircle,
-  Clock,
-  CheckCircle2
-} from 'lucide-vue-next'
+import PanelManajemenBerita from '../components/admin/PanelManajemenBerita.vue'
+import PanelPemilihLagaSkor from '../components/admin/PanelPemilihLagaSkor.vue'
+import PanelManajemenSeason from '../components/admin/PanelManajemenSeason.vue'
+import ModalDialog from '../components/umum/ModalDialog.vue'
 import TombolDasar from '../components/umum/TombolDasar.vue'
+import { ShieldCheck, Lock, User, Users, Dices, Trophy, Activity, PlusCircle, CheckCircle2, Newspaper, Calendar, LayoutGrid, GitBranch } from 'lucide-vue-next'
 
-const { adminAktif, terotentikasi, sedangMasuk, pesanKesalahan: pesanErrorAuth, masukAdmin, keluarAdmin } = useAuth()
+const { terotentikasi, sedangMasuk, pesanKesalahan: pesanErrorAuth, masukAdmin } = useAuth()
 const inputUsername = ref('')
 const inputPassword = ref('')
-const tabAktif = ref('skor') // 'skor' | 'pendaftaran' | 'drawing' | 'klub' | 'juara'
+const tabAktif = ref('skor') // 'skor' | 'season' | 'berita' | 'pendaftaran' | 'drawing' | 'klub' | 'juara'
+const subTabDrawing = ref('grup') // 'grup' | 'bagan'
 
-const { sedangMemuat, pesanSukses, pesanKesalahan, perbaruiSkorPertandingan, tambahEventPertandingan } = useAdmin()
+const {
+  sedangMemuat,
+  pesanSukses,
+  pesanKesalahan,
+  perbaruiSkorPertandingan,
+  tambahEventPertandingan,
+  hapusEventPertandingan
+} = useAdmin()
 
-// State Data Turnamen
 const daftarLaga = ref([])
 const daftarTim = ref([])
 const daftarPendaftaran = ref([])
 const daftarRiwayat = ref([])
+const daftarBerita = ref([])
 const daftarPemainLaga = ref([])
-
-// Match Selector State
+const daftarEventLaga = ref([])
 const selectedMatchId = ref('')
+const modalSkorTerbuka = ref(false)
+
+const daftarNavTabs = computed(() => [
+  { id: 'skor', label: 'Input Skor', icon: Activity },
+  { id: 'season', label: 'Season Turnamen', icon: Calendar },
+  { id: 'berita', label: 'Berita', icon: Newspaper, count: daftarBerita.value.length, countBg: 'bg-ucl-500' },
+  { id: 'pendaftaran', label: 'Pendaftaran', icon: Users, count: daftarPendaftaran.value.filter(p => p.status === 'pending').length, countBg: 'bg-amber-500' },
+  { id: 'drawing', label: 'Drawing Bagan', icon: Dices },
+  { id: 'klub', label: 'Klub Peserta', icon: PlusCircle },
+  { id: 'juara', label: 'Riwayat Juara', icon: Trophy }
+])
 
 async function muatSemuaDataAdmin() {
   try {
-    const [resLaga, resTim, resPendaftaran, resRiwayat] = await Promise.all([
-      supabase
-        .from('pcl_matches')
-        .select(`
-          *,
-          home_team:pcl_teams!pcl_matches_home_team_id_fkey(*),
-          away_team:pcl_teams!pcl_matches_away_team_id_fkey(*),
-          group:pcl_tournament_groups(*)
-        `)
-        .order('matchday', { ascending: true }),
-      supabase
-        .from('pcl_teams')
-        .select('*')
-        .order('name', { ascending: true }),
-      supabase
-        .from('pcl_team_registrations')
-        .select('*')
-        .order('didaftarkan_pada', { ascending: false }),
-      supabase
-        .from('pcl_season_champions')
-        .select(`
-          *,
-          juara:pcl_teams!pcl_season_champions_juara_team_id_fkey(*),
-          runner_up:pcl_teams!pcl_season_champions_runner_up_team_id_fkey(*)
-        `)
-        .order('musim', { ascending: false })
-    ])
-
-    daftarLaga.value = resLaga.data || []
-    daftarTim.value = resTim.data || []
-    daftarPendaftaran.value = resPendaftaran.data || []
-    daftarRiwayat.value = (resRiwayat.data || []).map(d => ({
-      id: d.id,
-      musim: d.musim,
-      label_musim: d.label_musim,
-      status: 'Selesai',
-      skor_final: d.skor_final,
-      juara: d.juara || { name: 'Klub Juara', short_name: 'JUR' },
-      runner_up: d.runner_up || { name: 'Runner-up', short_name: 'RUN' },
-      top_scorer: {
-        nama: d.top_scorer_nama || '-',
-        klub: d.juara?.short_name || 'PCL',
-        total: d.top_scorer_total || 0
-      },
-      mvp_turnamen: {
-        nama: d.mvp_nama || '-',
-        klub: d.juara?.short_name || 'PCL',
-        rating: d.mvp_rating || 9.0
-      }
-    }))
-
+    const res = await ambilDataLengkapAdmin()
+    daftarLaga.value = res.daftarLaga
+    daftarTim.value = res.daftarTim
+    daftarPendaftaran.value = res.daftarPendaftaran
+    daftarBerita.value = res.daftarBerita
+    daftarRiwayat.value = res.daftarRiwayat
     if (daftarLaga.value.length > 0 && !selectedMatchId.value) {
       selectedMatchId.value = daftarLaga.value[0].id
     }
@@ -109,35 +75,39 @@ const lagaAktif = computed(() => {
   return daftarLaga.value.find(m => m.id === selectedMatchId.value) || daftarLaga.value[0] || null
 })
 
-// Ambil Pemain untuk laga aktif dari Supabase
 watch(selectedMatchId, async (newId) => {
   if (!newId || !lagaAktif.value) {
     daftarPemainLaga.value = []
+    daftarEventLaga.value = []
     return
   }
   const teamIds = [lagaAktif.value.home_team_id, lagaAktif.value.away_team_id].filter(Boolean)
   if (teamIds.length === 0) {
     daftarPemainLaga.value = []
+    daftarEventLaga.value = []
     return
   }
 
-  const { data: players } = await supabase
-    .from('pcl_players')
-    .select(`*, team:pcl_teams(*)`)
-    .in('team_id', teamIds)
-    .order('squad_number')
+  try {
+    const [playersHome, playersAway, matchDetail] = await Promise.all([
+      lagaAktif.value.home_team_id ? api.getPlayers({ team_id: lagaAktif.value.home_team_id }) : Promise.resolve([]),
+      lagaAktif.value.away_team_id ? api.getPlayers({ team_id: lagaAktif.value.away_team_id }) : Promise.resolve([]),
+      api.getMatchDetail(newId)
+    ])
 
-  if (players && players.length > 0) {
-    daftarPemainLaga.value = players.map(p => ({
+    const allPlayers = [...(playersHome || []), ...(playersAway || [])]
+    daftarPemainLaga.value = allPlayers.map(p => ({
       id: p.id,
       name: p.name,
       squad_number: p.squad_number,
       position: p.position,
       team_id: p.team_id,
-      team: p.team?.short_name || 'TIM'
+      team: p.team_short || 'TIM'
     }))
-  } else {
+    daftarEventLaga.value = matchDetail?.events || []
+  } catch (err) {
     daftarPemainLaga.value = []
+    daftarEventLaga.value = []
   }
 }, { immediate: true })
 
@@ -149,159 +119,172 @@ async function handleLogin() {
   }
 }
 
-function handleLogout() {
-  keluarAdmin()
-}
-
 async function simpanSkor(payload) {
   const matchIndex = daftarLaga.value.findIndex(m => m.id === payload.matchId)
   if (matchIndex !== -1) {
     daftarLaga.value[matchIndex].home_score = payload.homeScore
     daftarLaga.value[matchIndex].away_score = payload.awayScore
     daftarLaga.value[matchIndex].status = payload.status
+    if (payload.scheduledAt) daftarLaga.value[matchIndex].scheduled_at = payload.scheduledAt
   }
-  await perbaruiSkorPertandingan(payload.matchId, payload.homeScore, payload.awayScore, payload.status)
+  const sukses = await perbaruiSkorPertandingan(payload.matchId, payload.homeScore, payload.awayScore, payload.status, payload.scheduledAt)
+  if (sukses) {
+    await muatSemuaDataAdmin()
+    if (payload.tutup) {
+      modalSkorTerbuka.value = false
+      window.scrollTo({ top: 0, behavior: 'smooth' })
+    }
+  }
 }
 
 async function simpanEvent(payload) {
   const matchIndex = daftarLaga.value.findIndex(m => m.id === payload.matchId)
+  const pemainObj = daftarPemainLaga.value.find(p => p.id === payload.playerId)
+  const timShort = payload.teamId === lagaAktif.value?.home_team_id ? lagaAktif.value?.home_team?.short_name : lagaAktif.value?.away_team?.short_name
+  const eventTempId = `ev-${Date.now()}`
+
   if (matchIndex !== -1) {
-    const pemainObj = daftarPemainLaga.value.find(p => p.id === payload.playerId)
-    if (!daftarLaga.value[matchIndex].events) {
-      daftarLaga.value[matchIndex].events = []
-    }
+    if (!daftarLaga.value[matchIndex].events) daftarLaga.value[matchIndex].events = []
     daftarLaga.value[matchIndex].events.push({
-      id: `ev-${Date.now()}`,
-      minute: payload.minute,
-      event_type: payload.eventType,
-      player: { name: pemainObj?.name || 'Pemain' },
-      team: { short_name: payload.teamId === lagaAktif.value.home_team_id ? lagaAktif.value.home_team?.short_name : lagaAktif.value.away_team?.short_name }
+      id: eventTempId, minute: payload.minute, event_type: payload.eventType, player: { name: pemainObj?.name || 'Pemain' }, team: { short_name: timShort }
     })
   }
+  daftarEventLaga.value.push({
+    id: eventTempId, event_type: payload.eventType, minute: payload.minute, player: { name: pemainObj?.name || 'Pemain' }, team: { short_name: timShort }
+  })
   await tambahEventPertandingan(payload.matchId, payload.teamId, payload.playerId, payload.eventType, payload.minute)
+  if (lagaAktif.value?.id) {
+    try {
+      const detail = await api.getMatchDetail(lagaAktif.value.id)
+      if (detail && detail.events) daftarEventLaga.value = detail.events
+    } catch (e) {}
+  }
 }
 
-async function handleSetujuiPendaftaran(pendaftaranId) {
-  const item = daftarPendaftaran.value.find(p => p.id === pendaftaranId)
-  if (item) {
-    item.status = 'diterima'
-    await supabase
-      .from('pcl_team_registrations')
-      .update({ status: 'diterima' })
-      .eq('id', pendaftaranId)
+async function handleHapusEvent(eventId) {
+  daftarEventLaga.value = daftarEventLaga.value.filter(e => e.id !== eventId)
+  if (lagaAktif.value?.events) {
+    lagaAktif.value.events = lagaAktif.value.events.filter(e => e.id !== eventId)
+  }
+  await hapusEventPertandingan(eventId)
+}
 
-    const sudahAda = daftarTim.value.some(t => t.name.toLowerCase() === item.nama_tim.toLowerCase())
-    if (!sudahAda) {
-      const { data: newTeam } = await supabase
-        .from('pcl_teams')
-        .insert({
-          name: item.nama_tim,
-          short_name: item.short_name,
-          manager_name: item.manager_name,
-          group_name: 'Grup A',
-          rating: 88
-        })
-        .select()
-        .single()
+function simpanOverrideStatus(id, status) {
+  try {
+    const local = JSON.parse(localStorage.getItem('pcl_reg_status_overrides') || '{}')
+    local[id] = status
+    localStorage.setItem('pcl_reg_status_overrides', JSON.stringify(local))
+  } catch (e) {}
+}
 
-      if (newTeam) {
-        daftarTim.value.push(newTeam)
-      }
+async function handleSetujuiPendaftaran(id) {
+  const item = daftarPendaftaran.value.find(p => p.id === id)
+  if (item) item.status = 'diterima'
+  simpanOverrideStatus(id, 'diterima')
+  await perbaruiStatusPendaftaranSupabase(id, 'diterima')
+  await muatSemuaDataAdmin()
+}
+
+async function handleTolakPendaftaran(id) {
+  const item = daftarPendaftaran.value.find(p => p.id === id)
+  if (item) item.status = 'ditolak'
+  simpanOverrideStatus(id, 'ditolak')
+  await perbaruiStatusPendaftaranSupabase(id, 'ditolak')
+}
+
+async function handleTerapkanDrawing(payload) {
+  const timTerpilih = payload.timTerpilih || payload
+  const kapasitas = payload.kapasitas || 8
+  const customTournamentId = payload.customTournamentId || null
+  await generateJadwalKnockoutSupabase(timTerpilih, kapasitas, customTournamentId)
+  await muatSemuaDataAdmin()
+}
+
+const refDrawingGrup = ref(null)
+
+async function handleTerapkanDrawingGrup(payload) {
+  const panel = refDrawingGrup.value
+  try {
+    if (panel) panel.pesanError = null
+    const reqBody = payload?.pembagianGrup ? payload : { pembagianGrup: payload }
+    await api.drawGroups(reqBody)
+    invalidateCache()
+    await muatSemuaDataAdmin()
+    if (panel) {
+      panel.sedangMenyimpan = false
+      panel.pesanSukses = 'Pembagian grup & jadwal laga berhasil diterapkan!'
+      setTimeout(() => { panel.pesanSukses = null }, 4000)
+    }
+  } catch (err) {
+    console.error('Gagal menerapkan drawing grup:', err)
+    if (panel) {
+      panel.sedangMenyimpan = false
+      panel.pesanError = `Gagal: ${err.message}`
+      setTimeout(() => { panel.pesanError = null }, 6000)
     }
   }
 }
 
-async function handleTolakPendaftaran(pendaftaranId) {
-  const item = daftarPendaftaran.value.find(p => p.id === pendaftaranId)
-  if (item) {
-    item.status = 'ditolak'
-    await supabase
-      .from('pcl_team_registrations')
-      .update({ status: 'ditolak' })
-      .eq('id', pendaftaranId)
-  }
-}
-
-async function handleTerapkanDrawing(hasilGrup) {
-  // Update group_name di database dan lokal
-  for (const grupName of Object.keys(hasilGrup)) {
-    const timDiGrup = hasilGrup[grupName]
-    for (const tim of timDiGrup) {
-      const idx = daftarTim.value.findIndex(t => t.id === tim.id || t.name === tim.name)
-      if (idx !== -1) {
-        daftarTim.value[idx].group_name = grupName
-        if (daftarTim.value[idx].id) {
-          await supabase
-            .from('pcl_teams')
-            .update({ group_name: grupName })
-            .eq('id', daftarTim.value[idx].id)
-        }
-      }
+async function handleResetDrawingTotal() {
+  const panelGrup = refDrawingGrup.value
+  try {
+    pesanSukses.value = null
+    pesanKesalahan.value = null
+    await api.resetDrawing()
+    invalidateCache()
+    await muatSemuaDataAdmin()
+    pesanSukses.value = 'Semua hasil drawing dan jadwal pertandingan berhasil direset!'
+    if (panelGrup) {
+      panelGrup.resetDrawing()
+      panelGrup.pesanSukses = 'Drawing berhasil direset total!'
+      setTimeout(() => { panelGrup.pesanSukses = null }, 4000)
     }
+  } catch (err) {
+    pesanKesalahan.value = `Gagal reset drawing: ${err.message}`
   }
 }
 
-async function handleTambahTimBaru(timBaru) {
-  const { data: createdTeam } = await supabase
-    .from('pcl_teams')
-    .insert({
-      name: timBaru.name,
-      short_name: timBaru.short_name,
-      manager_name: timBaru.manager_name || 'Coach',
-      group_name: 'Grup A',
-      rating: 89
-    })
-    .select()
-    .single()
-
-  if (createdTeam) {
-    daftarTim.value.push(createdTeam)
+async function handleTambahTimBaru(tim) {
+  const created = await buatTimBaruSupabase({ ...tim, rating: 89, group_name: null })
+  if (created) daftarTim.value.push(created)
+}
+async function handleUpdateTimBaru(tim) {
+  const updated = await perbaruiTimSupabase(tim)
+  if (updated) {
+    const idx = daftarTim.value.findIndex(t => t.id === tim.id)
+    if (idx !== -1) daftarTim.value[idx] = { ...daftarTim.value[idx], ...updated }
   }
 }
-
-async function handleTambahRiwayat(itemBaru) {
-  const payload = {
-    musim: itemBaru.musim,
-    label_musim: itemBaru.label_musim,
-    juara_team_id: itemBaru.juara?.id || null,
-    runner_up_team_id: itemBaru.runner_up?.id || null,
-    skor_final: itemBaru.skor_final,
-    top_scorer_nama: itemBaru.top_scorer?.nama || null,
-    top_scorer_total: itemBaru.top_scorer?.total || 0,
-    mvp_nama: itemBaru.mvp_turnamen?.nama || null,
-    mvp_rating: itemBaru.mvp_turnamen?.rating || 9.0
-  }
-
-  const { data: created } = await supabase
-    .from('pcl_season_champions')
-    .insert(payload)
-    .select(`
-      *,
-      juara:pcl_teams!pcl_season_champions_juara_team_id_fkey(*),
-      runner_up:pcl_teams!pcl_season_champions_runner_up_team_id_fkey(*)
-    `)
-    .single()
-
-  if (created) {
-    daftarRiwayat.value.unshift({
-      id: created.id,
-      musim: created.musim,
-      label_musim: created.label_musim,
-      status: 'Selesai',
-      skor_final: created.skor_final,
-      juara: created.juara || itemBaru.juara,
-      runner_up: created.runner_up || itemBaru.runner_up,
-      top_scorer: itemBaru.top_scorer,
-      mvp_turnamen: itemBaru.mvp_turnamen
-    })
-  } else {
-    daftarRiwayat.value.unshift(itemBaru)
+async function handleHapusTimBaru(id) {
+  await hapusTimSupabase(id)
+  daftarTim.value = daftarTim.value.filter(t => t.id !== id)
+}
+async function handleTambahRiwayat(item) {
+  const created = await api.createChampion({
+    musim: item.musim, label_musim: item.label_musim, juara_team_id: item.juara?.id || null, runner_up_team_id: item.runner_up?.id || null,
+    skor_final: item.skor_final, top_scorer_nama: item.top_scorer?.nama || null, top_scorer_total: item.top_scorer?.total || 0,
+    mvp_nama: item.mvp_turnamen?.nama || null, mvp_rating: item.mvp_turnamen?.rating || 9.0
+  })
+  if (created) daftarRiwayat.value.unshift(created)
+}
+async function handleHapusRiwayat(id) {
+  await api.deleteChampion(id)
+  daftarRiwayat.value = daftarRiwayat.value.filter(r => r.id !== id)
+}
+async function handleTambahBerita(b) {
+  const created = await tambahBeritaSupabase(b)
+  if (created) daftarBerita.value.unshift(created)
+}
+async function handleUpdateBerita(b) {
+  const updated = await perbaruiBeritaSupabase(b)
+  if (updated) {
+    const idx = daftarBerita.value.findIndex(item => item.id === b.id)
+    if (idx !== -1) daftarBerita.value[idx] = updated
   }
 }
-
-async function handleHapusRiwayat(riwayatId) {
-  await supabase.from('pcl_season_champions').delete().eq('id', riwayatId)
-  daftarRiwayat.value = daftarRiwayat.value.filter(r => r.id !== riwayatId)
+async function handleHapusBerita(id) {
+  await hapusBeritaSupabase(id)
+  daftarBerita.value = daftarBerita.value.filter(b => b.id !== id)
 }
 </script>
 
@@ -364,90 +347,30 @@ async function handleHapusRiwayat(riwayatId) {
 
     <!-- Admin Dashboard -->
     <div v-else class="space-y-6">
-      <!-- Top Control Bar -->
-      <div class="anim-muncul flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6 border-b border-slate-200">
-        <div>
-          <div class="flex items-center gap-2">
-            <span class="text-xs font-semibold uppercase tracking-[0.14em] text-gold-600">Control Room</span>
-            <span class="text-slate-300">•</span>
-            <span class="text-xs text-slate-500">{{ adminAktif?.nama || 'Admin PCL' }} ({{ adminAktif?.role || 'panitia' }})</span>
-          </div>
-          <h1 class="font-display text-2xl sm:text-3xl font-semibold tracking-tight text-ink-900 mt-1 flex items-center gap-2.5">
-            <ShieldCheck class="w-7 h-7 text-emerald-600 shrink-0" />
-            Panel Panitia Turnamen
-          </h1>
-        </div>
-
-        <button
-          @click="handleLogout"
-          class="shrink-0 inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-white border border-slate-300 text-xs font-semibold text-ink-600 transition-colors hover:border-red-500 hover:text-red-600 cursor-pointer shadow-sm"
-        >
-          <LogOut class="w-3.5 h-3.5 text-slate-400 group-hover:text-red-500" />
-          Keluar Admin
-        </button>
+      <!-- Admin Header -->
+      <div class="anim-muncul pb-5 border-b border-slate-200">
+        <span class="text-xs font-semibold uppercase tracking-[0.14em] text-gold-600">Control Room</span>
+        <h1 class="font-display text-2xl sm:text-3xl font-semibold tracking-tight text-ink-900 mt-1 flex items-center gap-2.5">
+          <ShieldCheck class="w-7 h-7 text-emerald-600 shrink-0" />
+          Panel Panitia Turnamen
+        </h1>
+        <p class="text-sm text-ink-400 mt-1">Kelola season, jadwal, skor, berita, tim, dan turnamen PCL.</p>
       </div>
 
       <!-- Navigation Tabs Module -->
       <div class="inline-flex p-1.5 rounded-2xl bg-slate-100 border border-slate-200/70 overflow-x-auto max-w-full gap-1.5 shadow-inner">
         <button
-          @click="tabAktif = 'skor'"
-          class="flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold whitespace-nowrap transition-all cursor-pointer"
-          :class="tabAktif === 'skor'
-            ? 'bg-white text-ink-900 shadow-card border border-slate-200/80'
-            : 'text-slate-600 hover:text-ink-900 hover:bg-slate-200/60'"
+          v-for="tab in daftarNavTabs"
+          :key="tab.id"
+          @click="tabAktif = tab.id"
+          class="flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-semibold whitespace-nowrap transition-all cursor-pointer"
+          :class="tabAktif === tab.id ? 'bg-white text-ink-900 shadow-card border border-slate-200/80' : 'text-slate-600 hover:text-ink-900'"
         >
-          <Activity class="w-4 h-4" :class="tabAktif === 'skor' ? 'text-ucl-600' : 'text-slate-400'" />
-          Input Skor &amp; Event
-        </button>
-
-        <button
-          @click="tabAktif = 'pendaftaran'"
-          class="flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold whitespace-nowrap transition-all cursor-pointer"
-          :class="tabAktif === 'pendaftaran'
-            ? 'bg-white text-ink-900 shadow-card border border-slate-200/80'
-            : 'text-slate-600 hover:text-ink-900 hover:bg-slate-200/60'"
-        >
-          <Users class="w-4 h-4" :class="tabAktif === 'pendaftaran' ? 'text-ucl-600' : 'text-slate-400'" />
-          Pendaftaran Klub
-          <span
-            v-if="daftarPendaftaran.filter(p => p.status === 'pending').length > 0"
-            class="px-1.5 py-0.2 rounded-full text-[10px] font-bold bg-amber-500 text-white"
-          >
-            {{ daftarPendaftaran.filter(p => p.status === 'pending').length }}
+          <component :is="tab.icon" class="w-4 h-4" :class="tabAktif === tab.id ? (tab.id === 'juara' ? 'text-gold-600' : 'text-ucl-600') : 'text-slate-400'" />
+          {{ tab.label }}
+          <span v-if="tab.count > 0" class="px-1.5 py-0.2 rounded-full text-[10px] font-bold text-white" :class="tab.countBg">
+            {{ tab.count }}
           </span>
-        </button>
-
-        <button
-          @click="tabAktif = 'drawing'"
-          class="flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold whitespace-nowrap transition-all cursor-pointer"
-          :class="tabAktif === 'drawing'
-            ? 'bg-white text-ink-900 shadow-card border border-slate-200/80'
-            : 'text-slate-600 hover:text-ink-900 hover:bg-slate-200/60'"
-        >
-          <Dices class="w-4 h-4" :class="tabAktif === 'drawing' ? 'text-ucl-600' : 'text-slate-400'" />
-          Drawing Grup
-        </button>
-
-        <button
-          @click="tabAktif = 'klub'"
-          class="flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold whitespace-nowrap transition-all cursor-pointer"
-          :class="tabAktif === 'klub'
-            ? 'bg-white text-ink-900 shadow-card border border-slate-200/80'
-            : 'text-slate-600 hover:text-ink-900 hover:bg-slate-200/60'"
-        >
-          <PlusCircle class="w-4 h-4" :class="tabAktif === 'klub' ? 'text-ucl-600' : 'text-slate-400'" />
-          Manajemen Klub
-        </button>
-
-        <button
-          @click="tabAktif = 'juara'"
-          class="flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold whitespace-nowrap transition-all cursor-pointer"
-          :class="tabAktif === 'juara'
-            ? 'bg-white text-ink-900 shadow-card border border-slate-200/80'
-            : 'text-slate-600 hover:text-ink-900 hover:bg-slate-200/60'"
-        >
-          <Trophy class="w-4 h-4" :class="tabAktif === 'juara' ? 'text-gold-600' : 'text-slate-400'" />
-          Arsip Juara Musim
         </button>
       </div>
 
@@ -460,50 +383,53 @@ async function handleHapusRiwayat(riwayatId) {
         {{ pesanKesalahan }}
       </div>
 
-      <!-- TAB 1: Input Skor & Event Pertandingan -->
+      <!-- TAB: Input Skor & Event Pertandingan -->
       <div v-if="tabAktif === 'skor'" class="space-y-6">
-        <!-- Match Selector Bar -->
-        <div class="bg-white rounded-xl border border-slate-200 p-4 sm:p-5 shadow-card space-y-3">
-          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-            <div>
-              <label class="block text-xs font-semibold text-ink-900 mb-0.5">Pilih Pertandingan yang Ingin Diupdate</label>
-              <p class="text-[11px] text-slate-500">Pilih dari jadwal babak grup atau fase knockout turnamen.</p>
-            </div>
-            <span class="text-xs px-2.5 py-1 rounded-lg bg-slate-100 font-mono font-semibold text-slate-600 shrink-0 self-start sm:self-auto">
-              ID Laga: {{ selectedMatchId }}
-            </span>
-          </div>
+        <PanelPemilihLagaSkor
+          :daftarLaga="daftarLaga"
+          v-model="selectedMatchId"
+          @bukaModalSkor="modalSkorTerbuka = true"
+        />
 
-          <select
-            v-model="selectedMatchId"
-            class="w-full bg-slate-50 border border-slate-300 rounded-lg px-3 py-2 text-xs font-medium text-ink-900 focus:outline-none focus:border-ucl-500 focus:bg-white transition cursor-pointer"
-          >
-            <option v-for="m in daftarLaga" :key="m.id" :value="m.id">
-              [{{ m.group?.name || m.stage.toUpperCase() }}] {{ m.home_team?.name }} vs {{ m.away_team?.name }} (Skor Saat Ini: {{ m.home_score ?? 0 }} - {{ m.away_score ?? 0 }}) · Status: {{ m.status }}
-            </option>
-          </select>
-        </div>
-
-        <!-- 2 Kolom Form -->
-        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <ModalDialog
+          :terbuka="modalSkorTerbuka"
+          @tutup="modalSkorTerbuka = false"
+          :judul="lagaAktif ? `Input Skor: ${lagaAktif.home_team?.name || 'Home'} vs ${lagaAktif.away_team?.name || 'Away'}` : 'Input Skor Laga'"
+          lebarMaksimal="max-w-4xl"
+        >
           <FormInputSkor
             :key="selectedMatchId"
             :laga="lagaAktif"
+            :semuaLaga="daftarLaga"
+            :daftarPemain="daftarPemainLaga"
+            :daftarEvent="daftarEventLaga"
             :sedangMemuat="sedangMemuat"
             @simpan="simpanSkor"
-          />
-
-          <FormEventPertandingan
-            :key="selectedMatchId + '-event'"
-            :laga="lagaAktif"
-            :daftarPemain="daftarPemainLaga"
-            :sedangMemuat="sedangMemuat"
             @tambahEvent="simpanEvent"
+            @hapusEvent="handleHapusEvent"
+            @tutup="modalSkorTerbuka = false"
           />
-        </div>
+        </ModalDialog>
       </div>
 
-      <!-- TAB 2: Pendaftaran Tim Online -->
+      <!-- TAB: Manajemen Season Turnamen -->
+      <div v-else-if="tabAktif === 'season'">
+        <PanelManajemenSeason />
+      </div>
+
+      <!-- TAB: Manajemen Berita Turnamen -->
+      <div v-else-if="tabAktif === 'berita'">
+        <PanelManajemenBerita
+          :daftarBerita="daftarBerita"
+          :daftarLaga="daftarLaga"
+          :sedangMemuat="sedangMemuat"
+          @tambahBerita="handleTambahBerita"
+          @updateBerita="handleUpdateBerita"
+          @hapusBerita="handleHapusBerita"
+        />
+      </div>
+
+      <!-- TAB: Pendaftaran Tim Online -->
       <div v-else-if="tabAktif === 'pendaftaran'">
         <PanelPendaftaranTim
           :daftarPendaftaran="daftarPendaftaran"
@@ -512,24 +438,56 @@ async function handleHapusRiwayat(riwayatId) {
         />
       </div>
 
-      <!-- TAB 3: Drawing Grup Otomatis -->
-      <div v-else-if="tabAktif === 'drawing'">
+      <!-- TAB: Drawing Turnamen (Grup & Knockout) -->
+      <div v-else-if="tabAktif === 'drawing'" class="space-y-6">
+        <div class="flex items-center gap-2 p-1 bg-slate-100 rounded-xl w-fit">
+          <button
+            @click="subTabDrawing = 'grup'"
+            class="px-4 py-2 rounded-lg text-xs font-semibold transition-all cursor-pointer flex items-center gap-1.5"
+            :class="subTabDrawing === 'grup' ? 'bg-white text-ucl-700 shadow-sm' : 'text-slate-500 hover:text-ink-900'"
+          >
+            <LayoutGrid class="w-3.5 h-3.5" />
+            Drawing Fase Grup (16 Tim)
+          </button>
+          <button
+            @click="subTabDrawing = 'bagan'"
+            class="px-4 py-2 rounded-lg text-xs font-semibold transition-all cursor-pointer flex items-center gap-1.5"
+            :class="subTabDrawing === 'bagan' ? 'bg-white text-ucl-700 shadow-sm' : 'text-slate-500 hover:text-ink-900'"
+          >
+            <GitBranch class="w-3.5 h-3.5" />
+            Drawing Bagan Knockout (8 Besar)
+          </button>
+        </div>
+
         <PanelDrawingGrup
+          v-if="subTabDrawing === 'grup'"
+          ref="refDrawingGrup"
+          :daftarTim="daftarTim"
+          @terapkanHasilDrawing="handleTerapkanDrawingGrup"
+          @resetDrawingTotal="handleResetDrawingTotal"
+        />
+
+        <PanelDrawingBagan
+          v-else
           :daftarTim="daftarTim"
           @terapkanHasilDrawing="handleTerapkanDrawing"
+          @resetDrawingTotal="handleResetDrawingTotal"
         />
       </div>
 
-      <!-- TAB 4: Manajemen Klub Peserta -->
+      <!-- TAB: Manajemen Klub Peserta -->
       <div v-else-if="tabAktif === 'klub'">
         <ManajemenTim
           :daftarTim="daftarTim"
           :sedangMemuat="sedangMemuat"
           @tambahTim="handleTambahTimBaru"
+          @updateTim="handleUpdateTimBaru"
+          @hapusTim="handleHapusTimBaru"
+          @dataBerubah="muatSemuaDataAdmin"
         />
       </div>
 
-      <!-- TAB 5: Arsip Juara Musim -->
+      <!-- TAB: Arsip Juara Musim -->
       <div v-else-if="tabAktif === 'juara'">
         <PanelManajemenJuara
           :daftarRiwayat="daftarRiwayat"

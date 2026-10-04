@@ -1,7 +1,7 @@
 # PROGRESS.txt - Log Perkembangan Proyek PCL
 
 ## Target Utama
-Membangun web turnamen Peak Champions League (PCL) berbasis Vue 3 + Supabase dengan format Group Stage ke Knockout, lengkap dengan manajemen skor admin dan statistik pemain.
+Membangun web turnamen Peak Champions League (PCL) berbasis Vue 3 + Express.js + MySQL dengan format Group Stage ke Knockout, lengkap dengan manajemen skor admin dan statistik pemain.
 
 ---
 
@@ -10,12 +10,12 @@ Membangun web turnamen Peak Champions League (PCL) berbasis Vue 3 + Supabase den
 - [x] Inisialisasi aturan proyek & arsitektur (CLAUDE.md & PROGRESS.txt)
 - [x] Fase 1: Perancangan Spesifikasi Dokumen Desain (Design Spec)
 - [x] Fase 2: Scaffolding Project Frontend (Vue 3 + Vite + Tailwind + Pinia + Vue Router + Lucide)
-- [x] Fase 3: Skrip Skema Database SQL Supabase (Tabel, Relasi, Enum, Indeks & Seed Data)
-- [x] Fase 4: Integrasi Client Supabase & Modul Composables / Stores
+- [x] Fase 3: Skrip Skema Database SQL MySQL (Tabel, Relasi, Enum, Indeks & Seed Data)
+- [x] Fase 4: Integrasi Client REST API & Modul Composables / Stores
 - [x] Fase 5: UI/UX Komponen Turnamen (Klasemen Grup, Bracket Fase Gugur, Jadwal & Hasil)
-- [x] Fase 6: UI/UX Komponen Statistik (Top Scorer, Assist, Kartu)
-- [x] Fase 7: Admin Panel (Input Skor, Event Pencetak Gol, Manajemen Tim & Grup)
-- [x] Fase 8: Pengujian & Validasi Alur Pertandingan hingga Final (9/9 Unit Tests Pass & 100% Clean Production Build)
+- [x] Fase 6: UI/UX Komponen Statistik (Top Scorer, Assist, Kartu, MVP, Pass, Defense)
+- [x] Fase 7: Admin Panel (Input Skor, Event Pencetak Gol, Manajemen Tim & Skuad, Drawing Grup & Bagan)
+- [x] Fase 8: Pengujian & Validasi Alur Pertandingan hingga Final (9/9 Unit Tests Pass & Clean Build)
 
 ---
 
@@ -32,4 +32,125 @@ Membangun web turnamen Peak Champions League (PCL) berbasis Vue 3 + Supabase den
 - [2026-08-25]: Menambahkan manajemen sesi admin di localStorage, tombol logout, serta perapihan komponen `AdminView.vue` tetap di bawah 500 baris.
 - [2026-08-25]: Perbaikan null-safety & penanganan reactive props `laga` pada `FormInputSkor.vue` dan `FormEventPertandingan.vue` saat data async masih dimuat.
 - [2026-08-25]: Pembaruan aturan `CLAUDE.md` poin 5 & 6: Kewajiban diskusi ide/rencana sebelum eksekusi kode dan pencatatan riwayat di `PROGRESS.txt`.
+- [2026-08-25]: Implementasi fitur Manajemen Berita Admin (`src/components/admin/PanelManajemenBerita.vue`, CRUD berita di `useAdmin.js`, dan integrasi tab Berita di `AdminView.vue`).
+- [2026-08-25]: Restorasi nama tabel Supabase dengan prefix `pcl_` (`pcl_news`, `pcl_teams`, `pcl_matches`, `pcl_team_registrations`, dll) di schema `public` Supabase live.
 - [2026-08-25]: Validasi build produksi frontend (Vite) & unit tests (9/9) sukses 100%.
+- [2026-08-25]: Penambahan gambar cover (`gambar_url`) di BeritaView.vue (card grid + featured article) dan DetailBeritaView.vue (hero banner atas artikel). Fallback gradient PCL jika tidak ada gambar.
+- [2026-08-25]: Refactor PanelManajemenBerita.vue — form buat/edit berita di-hide default, fokus tampilkan tabel daftar berita. Tombol "+ Buat Berita" toggle form. Edit & submit auto-close form.
+- [2026-08-25]: Refactor BilahNavigasi.vue — menu utama 7 item publik bersih. Admin badge & tombol logout di navbar HANYA muncul saat admin sudah login (`terotentikasi`). Saat mode biasa (pengunjung), tidak ada link/badge admin sama sekali demi keamanan dan kebersihan navbar.
+- [2026-08-25]: Perbaikan status grup tim baru (`group_name` default = null, bukan 'Grup A'). Menampilkan lencana 'Belum Ditentukan' / 'Belum Ada Grup' (warna amber) di TimView.vue & DetailTimView.vue sebelum drawing grup dilakukan oleh admin.
+- [2026-08-25]: Penyederhanaan tampilan data tim di TimView.vue, DetailTimView.vue, ManajemenTim.vue, PanelPendaftaranTim.vue, & KartuTim.vue — menghapus kolom Stadion & Rating OVR, mengubah label 'Pelatih' / 'Manajer' menjadi 'Manager / Kapten'.
+- [2026-08-25]: Penambahan dukungan logo klub (`logo_url`) di form admin ManajemenTim.vue, composable useAdmin.js (`buatTimBaruSupabase`), serta tampilan gambar logo di TimView.vue & DetailTimView.vue (dengan fallback ke short_name jika logo belum diisi).
+- [2026-08-25]: Otomasi pembuatan jadwal laga grup (Round Robin algorithm) di `useAdmin.js` (`generateJadwalLagaGrupSupabase`). Setiap kali admin menekan tombol 'Terapkan Pembagian Grup Ini' pada Drawing Grup, jadwal pertandingan babak grup otomatis di-generate dan tersimpan di database.
+- [2026-08-25]: Perbaikan constraint `tournament_id` (NOT NULL) & enum status (`scheduled`) pada insert `pcl_matches` di `generateJadwalLagaGrupSupabase`. Query insert sekarang selalu mengambil `tournament_id` valid.
+- [2026-08-25]: Menghapus seluruh query ke tabel `pcl_tournaments` & referensi `tournament_id` pada `generateJadwalLagaGrupSupabase` di `useAdmin.js` karena tabel `pcl_tournaments` tidak ada di database PostgREST live Supabase. Insert `pcl_matches` kini murni kolom standard (stage, matchday, home_team_id, away_team_id, home_score, away_score, status).
+- [2026-08-25]: Perbaikan HTTP 400 error pada PostgREST query Supabase — menghapus passing string non-UUID `'sample-tournament-id'` di TurnamenView.vue & StatistikView.vue, serta menambahkan validator regex UUID pada `useKlasemen.js`. Drawing grup siap digunakan tanpa error.
+- [2026-08-25]: Fix root cause HTTP 400 pada insert `pcl_matches` — fungsi `generateJadwalLagaGrupSupabase` sekarang otomatis ambil/buat `tournament_id` dari tabel `pcl_tournaments` (NOT NULL constraint). Jika tabel belum ada, user perlu jalankan SQL CREATE TABLE `pcl_tournaments` di Supabase SQL Editor terlebih dahulu.
+- [2026-08-25]: Simplifikasi `FormEventPertandingan.vue` — Menghapus input "Tipe Event" dan "Menit", menyederhanakan form hanya memilih Klub & Pemain Pencetak Gol demi efisiensi input skor admin.
+- [2026-08-25]: Fix status terima/tolak pendaftaran team persistent via localStorage overrides & instantaneous state update (`AdminView.vue` & `useAdmin.js`). Status tidak akan pernah kembali ke pending saat di-refresh walaupun RLS Supabase aktif.
+- [2026-10-01]: Migrasi total backend & database dari Supabase Cloud ke Express.js 5.x + MySQL 8.x (`mysql2/promise`).
+- [2026-10-01]: Pembuatan struktur server backend modular (`server/`), REST API routes (auth, tournaments, teams, players, matches, match_events, knockout, standings, statistics, registrations, champions, news, settings).
+- [2026-10-01]: Pembuatan skema MySQL DDL `server/database/schema_mysql.sql` dan automated bootstrap runner `server/database/init_db.js` dengan `SET FOREIGN_KEY_CHECKS = 0` handling.
+- [2026-10-01]: Refactoring semua views, components, dan composables frontend ke REST API client `src/lib/api.js`.
+- [2026-10-01]: Perbaikan tombol CTA Hero di `BerandaView.vue` (typo `varian="aks"` diubah ke `varian="gold"`). Tombol "Daftar Turnamen" kini tampil dengan styling varian baku.
+- [2026-10-01]: Peningkatan styling lencana inisial tim & logo fallback di seluruh komponen publik & admin (`BaganFaseGugur.vue`, `KartuPertandingan.vue`, `KartuTim.vue`, `TabelKlasemenGrup.vue`, `ModalDetailPertandingan.vue`, `BerandaView.vue`, `JadwalView.vue`, `PanelDrawingGrup.vue`, `PanelDrawingBagan.vue`, `PanelPemilihLagaSkor.vue`, `ManajemenTim.vue`).
+- [2026-10-01]: Perataan tata letak header & tab selector di `JadwalView.vue` untuk mode mobile (`< sm`) agar judul, tab switcher, dan filter/pencarian sejajar rapi, proporsional, dan responsif.
+- [2026-10-01]: Penyederhanaan halaman `StatistikView.vue` (menghapus kartu spotlight rank 1 & podium 2/3, fokus 1 tabel per tab aktif) dan styling warna emas (`text-gold-600`, badge gold) untuk peringkat 1-3 pada seluruh tabel statistik (`TabelPencetakGol`, `TabelPengumpanGol`, `TabelTopMvp`, `TabelTopPass`, `TabelTopDefense`).
+- [2026-10-01]: Perataan tata letak header & tab selector di `RiwayatJuaraView.vue` untuk mode mobile (`< sm`) dan penghapusan tombol "Segarkan" agar tampilan hero banner lebih bersih dan fokus pada ringkasan trofi.
+- [2026-10-03]: Implementasi penuh format Best of 3 (BO3) untuk Quarter Final (8 Besar), Semi Final, dan Grand Final, agregat seri kemenangan game, pembuatan otomatis Game 3 Decider jika skor seri setelah 2 laga, serta tie-breaker agregat gol.
+- [2026-10-03]: Sinkronisasi independen slot bagan gugur per pemenang seri (QF -> SF -> Final) dan integrasi indikator visual tie-breaker agregat gol `FT (Agg X–Y)` di BaganFaseGugur.vue, KartuPertandingan.vue, ModalDetailPertandingan.vue, FormInputSkor.vue, dan TurnamenView.vue.
+- [2026-10-03]: Perbaikan mutlak advancement bagan gugur BO3: Menghapus premature advancement di Semi Final & Grand Final pada backend `sinkronkanSemuaBaganKnockout`, mengosongkan tim (`NULL`) di babak lanjutan hingga kedua pertandingan babak sebelumnya 100% tuntas, serta pembaruan placeholder UI pada `KartuPertandingan.vue`, `PanelPemilihLagaSkor.vue`, dan `TurnamenView.vue`.
+- [2026-10-03]: Perbaikan bug nama tim QF yang masih muncul mendahului di Semi Final — restrukturisasi deterministik pembentukan bagan knockout di `TurnamenView.vue` dan sinkronisasi backend di `server/routes/knockout.js` (tim QF hanya maju ke slot SF jika seri BO3 QF telah selesai 100%).
+- [2026-10-01]: Pembaruan Modal Input Skor Cepat di Admin (`FormInputSkor.vue` & `AdminView.vue`): Interactive live scoreboard, integrasi daftar skuad 2 kolom Home & Away dengan fitur 1-klik nama pemain untuk otomatis +1 skor & catat gol, tombol manual +/- skor, serta riwayat gol tercatat dengan aksi hapus gol (-1 skor).
+- [2026-10-02]: Penambahan fitur Reset Drawing Database (`POST /api/tournaments/reset-drawing`) di Admin Control Room dengan dialog konfirmasi keamanan (`ModalDialog.vue`).
+- [2026-10-02]: Implementasi pengaturan tanggal, jam kick-off perdana, dan jeda antar Matchday (default 15 menit) pada `PanelDrawingGrup.vue`. Penjadwalan 24 laga babak grup di `server/routes/tournaments.js` diatur serentak per Matchday (Matchday 1: 19:00 WIB semua grup, Matchday 2: 19:15 WIB semua grup, Matchday 3: 19:30 WIB semua grup).
+- [2026-10-03]: Implementasi fitur Manajemen Skuad & Statistik Pemain di Admin (`ModalKelolaPemain.vue` & `ManajemenTim.vue`): Klik klub untuk melihat daftar pemain, tambah pemain baru, edit nama/nomor/posisi, dan atur input statistik individual (Gol, Assist, Pass, Defense, MVP) yang terintegrasi langsung dengan `server/routes/players.js` dan `server/routes/statistics.js`.
+- [2026-10-01]: Alur konfirmasi pembayaran pendaftaran tim via WhatsApp (`kontak_panitia_wa`) dengan pembuatan link otomatis (`wa.me`) di `PendaftaranView.vue` dan pengaturan admin di `PanelPendaftaranTim.vue`.
+- [2026-10-01]: Reset database bersih: Pembersihan riwayat pertandingan dummy, match events, klasemen grup, dan arsip juara; penyiapan seed data 16 klub lengkap dengan 80 pemain (5 pemain per klub: GK, CB, CM, WF, ST) siap untuk proses drawing dan uji coba turnamen di `server/database/schema_mysql.sql`.
+- [2026-10-03]: Fix bug tampilan bagan knockout — semi final terlihat acak karena QF/R16/R32 matches tidak di-sort berdasarkan `knockout_bracket_slot` sebelum di-render. Root cause: `TurnamenView.vue` `dataBaganDinamic` memakai array index mentah (`qfMatches[i]`) sehingga urutan posisi bagan tergantung urutan response API. Fix: sort matches per babak berdasarkan slot number, dan sort SF/Final games berdasarkan matchday.
+- [2026-10-03]: Perbaikan UI/UX tombol: Memperlebar modal kelola pemain (`max-w-4xl` di `ModalKelolaPemain.vue`), serta menghapus karakter teks `+` duplikat pada semua tombol yang sudah memakai ikon `Plus` (`ModalKelolaPemain.vue`, `ManajemenTim.vue`, `PanelManajemenSeason.vue`, `PendaftaranView.vue`).
+- [2026-10-03]: Sinkronisasi Otomatis Database & Bagan Knockout (`sinkronkanSemuaBaganKnockout`):
+  1. Backend Express: Membuat engine sinkronisasi `sinkronkanSemuaBaganKnockout` di `server/routes/knockout.js` yang terhubung langsung ke query `GET /api/matches` dan `PUT /api/matches/:id` di `server/routes/matches.js`.
+  2. Secara otomatis membersihkan data tim sisa di database `pcl_matches` jika seri babak sebelumnya belum berstatus selesai (misal masih unggul 1-0 di QF maka slot Semi Final di DB langsung dikosongkan/NULL).
+  3. Memastikan Game 3 decider otomatis dibuat jika 2 game sudah selesai tanpa pemenang pasti, dan dibersihkan jika seri selesai 2-0.
+  4. Unit tests: 9/9 lulus.
+- [2026-10-03]: Fix Tim Belum Selesai BO3 Muncul di Semi Final / Grand Final:
+  1. Backend `server/routes/knockout.js`: Menambahkan mekanisme reset / clear slot (`UPDATE pcl_matches SET home/away_team_id = NULL`) pada babak lanjutan jika partai sebelumnya belum mencapai syarat selesai BO3.
+  2. Frontend `src/views/TurnamenView.vue`: Menambahkan guard validasi status selesai seri pada `sf1Card`, `sf2Card`, dan `fin` — jika seri babak sebelumnya belum selesai (`!qfList[i].selesai` atau `!sfList[i].selesai`), nama tim di slot semi final / final dijamin tetap menampilkan placeholder ("Pemenang QF X" / "Pemenang SF X") dan tidak akan menampilkan tim yang belum pasti lolos.
+- [2026-10-03]: Implementasi Aturan Tie-Breaker Agregat Total Gol BO3:
+  1. Jika salah satu tim meraih 2 kemenangan game (2-0 atau 2-1) -> tim tersebut langsung lolos.
+  2. Jika setelah 3 game dimainkan skor seri game imbang (misal 1-1 karena ada game draw, atau 0-0 karena 3 game draw) -> pemenang lolos ditentukan berdasarkan Total Agregat Gol dari seluruh 3 game (tim dengan gol lebih banyak lolos).
+  3. Sinkronisasi logika di `server/routes/knockout.js`, `src/views/TurnamenView.vue`, dan `src/composables/useKnockout.js`.
+- [2026-10-03]: Fix Bug Bagan Knockout & Penanganan Skor Seri Game BO3:
+  1. Fix alur `/api/knockout/advance` di `server/routes/knockout.js` di mana pengecekan BO3 diprioritaskan di awal sebelum filter skor imbang, sehingga game yang berakhir seri (misal 1-1 pada Game 1/Game 2) tetap dihitung dalam `totalGameSelesai` dan berhasil men-trigger Game 3 decider otomatis.
+  2. Perbaikan ekstraksi tim semi final dan grand final pada `src/views/TurnamenView.vue` (`formatSeriBO3`): Menelusuri seluruh game di seri (`listGames`) untuk mendeteksi `home_team` (Game 1 home / Game 2 away) dan `away_team` (Game 1 away / Game 2 home), serta menyediakan default label placeholder yang jelas ("Pemenang QF 1", "Pemenang QF 2", dll) jika salah satu pemenang belum selesai.
+  3. Pembaruan `useKnockout.js` untuk resolusi `timA` dan `timB` yang robust lintas game dalam seri.
+  4. Seluruh unit tests (9/9) lulus 100%.
+- [2026-10-03]: Optimasi Logika Game 3 Otomatis (BO3 Decider):
+  1. Awal babak 8 Besar (QF), Semi Final (SF), dan Grand Final hanya men-generate Game 1 & Game 2 (rotasi kandang-tandang).
+  2. Game 3 (Decider) hanya dibuat secara dinamis oleh sistem backend jika skor seri imbang 1–1 setelah Game 2 selesai.
+  3. Jika salah satu tim menang 2–0, Game 3 otomatis tidak dibuat (atau dibersihkan jika ada revisi skor admin) dan pemenang langsung dimajukan ke babak selanjutnya.
+- [2026-10-03]: Penyesuaian Agregat BO3 (Game Wins):
+  1. Istilah dan nilai "Agregat" pada seluruh babak BO3 (8 Besar, Semi Final, Grand Final) difokuskan murni pada kemenangan game seri (misal: `2 – 0`, `2 – 1`, `1 – 1`), bukan agregat total gol.
+  2. Pembaruan komponen UI `FormInputSkor.vue`, `KartuPertandingan.vue`, `ModalDetailPertandingan.vue`, dan composable `useKnockout.js`.
+- [2026-10-03]: Implementasi penampil status seri BO3 & agregat gol pada seluruh antarmuka 8 Besar (Quarter Finals), Semi Final, dan Grand Final:
+  1. Penambahan helper `hitungStatusSeriBO3` dan `ambilBaseSlotKey` di `src/composables/useKnockout.js` serta `server/routes/knockout.js` untuk kalkulasi kemenangan game BO3, agregat total gol, dan pelacakan Game 1/2/3 pada babak `quarter_final`, `semi_final`, dan `final`.
+  2. Otomasi Bracket BO3 8 Besar: Endpoint `POST /api/knockout/generate` kini otomatis meng-generate Game 1 & Game 2 untuk tiap partai 8 Besar (`QF 1`, `QF 2`, `QF 3`, `QF 4`), dan endpoint `POST /api/knockout/advance` memajukan pemenang BO3 QF ke `SF 1` & `SF 2`, serta membuat Game 3 Decider otomatis jika skor seri imbang 1–1.
+  3. Banner Seri BO3 di `FormInputSkor.vue` (Admin): Menampilkan status seri (misal `Skor Seri: 1 – 0`, `Agregat: 3 – 1`), badge game ke berapa, serta mini chip status riwayat Game 1, Game 2, Game 3.
+  4. Perbaikan integrasi props `FormInputSkor.vue` di `AdminView.vue` (`:semuaLaga="daftarLaga"`) agar banner BO3 dan riwayat game muncul akurat saat modal input skor dibuka.
+  5. Badge Seri BO3 & Agregat di `KartuPertandingan.vue`: Sub-header card menampilkan `BO3`, skor seri kemenangan, dan total agregat gol pada 8 Besar, Semi Final, dan Grand Final.
+  6. Panel Informasi Seri BO3 di `ModalDetailPertandingan.vue`: Rincian kemenangan seri, total agregat gol, dan tracker hasil skor tiap game.
+  7. Integrasi di `JadwalView.vue`, `BerandaView.vue`, `PanelPemilihLagaSkor.vue`, dan `BaganFaseGugur.vue` (kolom Perempat Final BO3 & grouping seri BO3 di `TurnamenView.vue`).
+- [2026-10-01]: Pembaruan format kompetisi 16 Tim ala UCL: Babak 1 (Fase Grup: 4 Grup x 4 Klub, 3 Matchday Round Robin) dan Babak 2 (Fase Gugur: Top 2 tiap grup maju ke Perempat Final 8 Besar -> Semi Final BO3 -> Grand Final BO3).
+- [2026-10-01]: Integrasi antarmuka tab "Fase Grup (4 Grup)" & "Bagan Fase Gugur" di `TurnamenView.vue`, endpoint `POST /api/tournaments/draw-groups` untuk otomasi jadwal round-robin babak grup di backend Express, dan dukungan sub-tab drawing grup & bagan otomatis di `AdminView.vue` & `PanelDrawingBagan.vue`.
+- [2026-10-01]: Seluruh unit test (5 test suites, 9 unit tests) lulus 100%.
+- [2026-10-01]: Pengelompokan jadwal fase grup rapi berurutan di `JadwalView.vue`: Laga grup dikelompokkan per Grup (Grup A, B, C, D) lengkap dengan sub-section Matchday 1, 2, 3 dan kartu laga 2 kolom responsif; serta perapihan sorting SQL di `server/routes/matches.js` (`ORDER BY stage, g.name, matchday, scheduled_at`).
+- [2026-10-01]: Fix bug drawing grup: (1) Endpoint `draw-groups` kini membersihkan data grup lama secara total (hapus klasemen, grup, reset group_name tim) sebelum membuat grup baru — mencegah data kotor dari drawing yang gagal sebelumnya. (2) Fix silent failure pada `PanelDrawingGrup.vue` — feedback sukses/error kini dikontrol parent (`AdminView.vue`) via `defineExpose`, bukan dari `await emit()` yang selalu resolve. (3) Fix destructuring Supabase-style (`{ data, error }`) pada handler CRUD tim di `AdminView.vue` agar sesuai pola REST API Express.
+- [2026-08-25]: Refactor Form `ManajemenTim.vue` — Form "Tambah Klub Peserta Baru" di-hide secara default, fokus menampilkan tabel daftar klub aktif. Tombol `+ Tambah Klub Baru` di header tabel digunakan untuk toggle form secara bersih. Setelah simpan, form otomatis tertutup.
+- [2026-08-25]: Fitur CRUD Lengkap Klub (`ManajemenTim.vue` & `useAdmin.js`) — Menambahkan opsi tombol Edit & Hapus pada tabel manajemen klub admin. Admin kini bisa memperbarui data klub (Nama, Singkatan, Kapten, Logo) atau menghapus tim langsung dari database Supabase.
+- [2026-08-25]: Fitur Pendaftaran Tim Publik (`PendaftaranView.vue` di `/pendaftaran` & `PanelPendaftaranTim.vue`):
+  1. Form pendaftaran tim daring: Nama Tim, Auto-generate Singkatan 3 huruf, Logo URL, Data Kapten (No HP, ID Game, Nickname, Role), dan Anggota Skuad Dinamis (ID Game, Nickname, Role).
+  2. Modal "Skuad" di Panel Admin (`PanelPendaftaranTim.vue`) untuk melihat rincian pemain & ID Game tim pendaftar.
+  3. Kontrol Akses Admin: Fitur Toggle **Status: Pendaftaran Buka / Ditutup** oleh admin di `PanelPendaftaranTim.vue` via database settings (`pcl_settings`).
+  4. Tombol CTA Emas **"Daftar Turnamen"** di Navbar Desktop & Mobile (`BilahNavigasi.vue`).
+  5. Upload Logo Klub via `input type="file"` dengan pembacaan Base64 & pratinjau langsung di form pendaftaran (`PendaftaranView.vue`).
+- [2026-08-25]: Fitur Klasemen Halaman Turnamen (`TurnamenView.vue` & `useKlasemen.js`):
+  1. Fallback grouping dinamis dari `group_name` pada tabel `pcl_teams` jika tabel `pcl_tournament_groups` belum diisi.
+  2. Tampilan logo klub di tabel klasemen (`TabelKlasemenGrup.vue`) dengan fallback ke `short_name`.
+- [2026-10-03]: Perbaikan & Integrasi Top Scorer dan MVP Turnamen di Riwayat Juara (Publik & Admin):
+  1. Backend `server/routes/champions.js`: Implementasi kalkulasi dinamis agregasi Top Scorer dan MVP dari perpaduan `pcl_match_events` dan input manual skuad `pcl_players` (goals & mvp), serta normalisasi payload (flat & nested structure).
+  2. Backend `server/routes/knockout.js`: Menggabungkan event gol dan data manual pemain saat pencatatan otomatis juara musim (`catatJuaraOtomatis`).
+  3. Frontend `src/views/RiwayatJuaraView.vue` & `src/components/admin/PanelManajemenJuara.vue`: Penambahan kolom MVP Turnamen, normalisasi null-safe untuk Top Scorer dan MVP, serta sinkronisasi visual statistik.
+  4. Testing: 9/9 unit tests lulus 100%.
+- [2026-10-03]: Optimasi Logika Seleksi Sorotan Laga di Beranda (`src/views/BerandaView.vue`):
+  1. Laga sorotan memprioritaskan: Laga LIVE (`ongoing`/`in_progress`) -> Laga Selesai Terbaru (`finished` urut babak tertinggi Final/SF/QF/Group MD3 & waktu) -> Laga Terjadwal Terdekat (`scheduled`).
+  2. Perbaikan bug enum status MySQL (`finished`/`ongoing`/`scheduled`), pembersihan cache basi, dan penyesuaian scoreboard dinamis (LIVE / Skor Selesai / Jadwal Kick-off WIB).
+  3. Filter tim lengkap (`home_team && away_team`) agar tidak menampilkan placeholder kosong di sorotan beranda.
+- [2026-10-03]: Isolasi Multi-Season & Perlindungan Data Riwayat Season (`server/routes/tournaments.js`):
+  1. Penegasan isolasi `tournament_id` pada seluruh operasi drawing grup dan reset drawing (hanya membersihkan data season aktif, tidak menyentuh season sebelumnya).
+  2. Arsip Juara (`pcl_season_champions`), riwayat pertandingan (`pcl_matches`), dan event gol (`pcl_match_events`) season lampau tetap aman dan tersimpan permanen di database.
+  3. Empty state ramah jika pengundian grup belum dilakukan panitia ("Pembagian Grup Belum Ditentukan").
+- [2026-08-25]: Penggabungan Halaman Jadwal & Tim (`JadwalView.vue`):
+  1. Halaman `/jadwal` kini menjadi pusat **Match & Teams Center** dengan 2 tab switcher: **Jadwal & Hasil** dan **Daftar Klub**.
+  2. Tab terhubung reaktif dengan URL query parameters (`/jadwal?tab=jadwal` & `/jadwal?tab=tim`).
+  3. Akses rute lama `/tim` otomatis di-redirect ke `/jadwal?tab=tim`.
+  4. Menu navigasi (`BilahNavigasi.vue`) disederhanakan menjadi **Jadwal & Tim**.
+  1. Auto-generate `scheduled_at` saat drawing grup (`useAdmin.js`): Tanggal mulai H+1 (setiap Matchday naik 1 hari), slot jam 19:00, 20:00, 21:00 WIB.
+  2. Input Manual Tanggal & Jam Laga di Admin (`FormInputSkor.vue`): Ditambahkan input `datetime-local` sehingga admin bisa mengubah/override waktu pertandingan kapan saja.
+  3. Tampilan Tanggal & Jam Laga di UI (`KartuPertandingan.vue`): Ditampilkan badge tanggal & jam format lokal (contoh: `Kam, 27 Ags · 19:00 WIB`) di footer kartu pertandingan.
+- [2026-08-25]: Optimasi Penuh Arsitektur Backend, Database, & Frontend Caching:
+  1. DDL Indeks Database B-Tree (`supabase/indexes_optimization.sql`) untuk foreign keys & kolom filtering/sorting (`pcl_matches`, `pcl_match_events`, `pcl_players`, `pcl_teams`, `pcl_news`, `pcl_team_registrations`).
+  2. Modul In-Memory Caching SWR (`src/lib/cache.js`) dengan dynamic TTL dan auto-invalidation regex saat mutasi data admin (`useAdmin.js`).
+  3. Eliminasi overfetching `select('*')` di seluruh composables (`usePertandingan`, `useKlasemen`, `useStatistik`) dan views (`BerandaView`, `TimView`, `DetailTimView`, `TurnamenView`) digantikan selective column projection.
+  4. Perbaikan label "Pendaftaran Team", persistence approval status pendaftaran ke localStorage overrides, dan multi-field fallback nickname pemain di `PanelPendaftaranTim.vue`.
+  5. Upgrade Persistent Storage Cache (`src/lib/cache.js`): Menggabungkan LocalStorage + In-Memory Fallback. Data tetap instan (<1ms) saat browser di-refresh (F5).
+  6. Optimasi query views tersisa (`JadwalView.vue`, `RiwayatJuaraView.vue`, `BeritaView.vue`, `DetailBeritaView.vue`) dengan caching persistent dan selective column projections.
+- [2026-08-26]: Penyatuan Seluruh Skrip Database ke Satu File Mandiri & Fix Reaktivitas Skor:
+  1. Dibuat `supabase/setup_database.sql` yang menggabungkan seluruh tabel DDL, indeks B-Tree, RLS Policies, hak akses API anonim/authenticated, dan seed initial data.
+  2. Siap dieksekusi sekali jalan di proyek Supabase Cloud baru.
+- [2026-10-03]: Implementasi Isolasi Multi-Season & Filter Dropdown Musim Publik & Admin:
+  1. Frontend Dropdown Musim: Menambahkan selector season reaktif di `TurnamenView.vue`, `JadwalView.vue`, `StatistikView.vue`, `BerandaView.vue`, `ManajemenTim.vue`, `PanelDrawingGrup.vue`, dan `PanelDrawingBagan.vue`.
+  2. Isolasi Statistik Gol & Event: Memperbaiki SQL query di `server/routes/statistics.js` agar strictly terikat pada `m.tournament_id = ?` dan `t.tournament_id = ?` tanpa bocor ke event laga musim lampau.
+  3. Fitur Salin Tim Lintas Musim (`POST /api/teams/copy-from-season`): Memungkinkan admin mengkloning 16 klub dan skuad 5 pemain dari musim sebelumnya ke musim baru secara instan dengan otomatis mereset seluruh statistik (gol, assist, pass, defense, mvp) menjadi 0.
+  4. Modularisasi Komponen (< 500 Baris): Mengekstrak `SorotanMatchday.vue` dari `BerandaView.vue` untuk mematuhi batas baris kode standar CLAUDE.md.
+  5. Pengujian: 9/9 unit tests Vitest lolos 100%.

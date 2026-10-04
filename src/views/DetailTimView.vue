@@ -1,8 +1,9 @@
 <script setup>
 import { ref, onMounted, computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { supabase } from '../lib/supabase.js'
-import { ArrowLeft, User, Shield, Star, MapPin } from 'lucide-vue-next'
+import { api } from '../lib/api.js'
+import { getCache, setCache } from '../lib/cache.js'
+import { ArrowLeft, User, Shield } from 'lucide-vue-next'
 
 const route = useRoute()
 const router = useRouter()
@@ -12,24 +13,27 @@ const skuadPemain = ref([])
 const filterPosisi = ref('semua')
 
 onMounted(async () => {
+  const teamId = route.params.id
+  if (!teamId || teamId === 'undefined') {
+    return
+  }
+
+  const cacheKey = `team_detail_${teamId}`
+  const cached = getCache(cacheKey)
+  if (cached) {
+    timData.value = cached.team
+    skuadPemain.value = cached.players
+    return
+  }
+
   sedangMemuat.value = true
 
   try {
-    const { data: team } = await supabase
-      .from('pcl_teams')
-      .select('*')
-      .eq('id', route.params.id)
-      .single()
+    const detail = await api.getTeamDetail(teamId)
 
-    timData.value = team || null
-
-    const { data: players } = await supabase
-      .from('pcl_players')
-      .select('*')
-      .eq('team_id', route.params.id)
-      .order('squad_number')
-
-    skuadPemain.value = players || []
+    timData.value = detail.team || null
+    skuadPemain.value = detail.players || []
+    setCache(cacheKey, { team: timData.value, players: skuadPemain.value }, 45000)
   } catch (err) {
     timData.value = null
     skuadPemain.value = []
@@ -61,18 +65,18 @@ const skuadTerfilter = computed(() => {
     <div v-if="timData" class="anim-muncul relative overflow-hidden rounded-xl bg-white border border-slate-200 shadow-card p-6 sm:p-8" style="animation-delay: 60ms">
       <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-6">
         <div class="flex items-center gap-4 sm:gap-5 min-w-0">
-          <div class="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl bg-slate-50 border border-slate-200 flex items-center justify-center font-display font-semibold text-xl sm:text-2xl text-navy-800 shrink-0">
-            {{ timData.short_name }}
+          <div class="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl bg-slate-50 border border-slate-200 flex items-center justify-center font-display font-semibold text-xl sm:text-2xl text-navy-800 shrink-0 overflow-hidden p-1">
+            <img v-if="timData.logo_url" :src="timData.logo_url" :alt="timData.name" class="w-full h-full object-contain" />
+            <span v-else>{{ timData.short_name }}</span>
           </div>
 
           <div class="space-y-1.5 min-w-0">
             <div class="flex flex-wrap items-center gap-2">
-              <span class="inline-flex items-center px-2.5 py-0.5 rounded-full bg-ucl-50 border border-ucl-100 text-ucl-600 text-[11px] font-semibold">
-                {{ timData.group_name || 'Grup A' }}
-              </span>
-              <span class="text-xs text-slate-500 flex items-center gap-1">
-                <MapPin class="w-3.5 h-3.5" />
-                {{ timData.stadium || 'Flash Stadium' }}
+              <span
+                class="inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-semibold"
+                :class="timData.group_name ? 'bg-ucl-50 border border-ucl-100 text-ucl-600' : 'bg-amber-50 border border-amber-200 text-amber-700'"
+              >
+                {{ timData.group_name || 'Belum Ada Grup' }}
               </span>
             </div>
 
@@ -82,17 +86,8 @@ const skuadTerfilter = computed(() => {
 
             <div class="flex items-center gap-1.5 text-sm text-ink-400">
               <User class="w-3.5 h-3.5" />
-              <span>Manajer: <strong class="text-ink-900">{{ timData.manager_name || 'Pelatih Kepala' }}</strong></span>
+              <span>Manager / Kapten: <strong class="text-ink-900">{{ timData.manager_name || '-' }}</strong></span>
             </div>
-          </div>
-        </div>
-
-        <!-- Rating OVR Card -->
-        <div class="flex sm:flex-col items-center justify-between sm:justify-center gap-2 p-3 rounded-lg bg-slate-50 border border-slate-200 sm:min-w-[120px] text-center shrink-0">
-          <span class="text-[10px] font-semibold uppercase tracking-wider text-slate-500">Team OVR</span>
-          <div class="flex items-center gap-1 font-display font-semibold text-2xl text-navy-800 tabular-nums">
-            <Star class="w-4 h-4 text-gold-500 fill-gold-400" />
-            {{ timData.rating || 92 }}
           </div>
         </div>
       </div>
@@ -112,7 +107,7 @@ const skuadTerfilter = computed(() => {
         <!-- Posisi Tabs -->
         <div class="flex items-center gap-1 p-1 rounded-full bg-slate-100 w-fit max-w-full overflow-x-auto scrollbar-none self-start sm:self-auto">
           <button
-            v-for="pos in ['semua', 'GK', 'DF', 'MF', 'FW']"
+            v-for="pos in ['semua', 'GK', 'CB', 'CM', 'WF', 'ST']"
             :key="pos"
             @click="filterPosisi = pos"
             class="px-3 py-1.5 rounded-full text-xs font-semibold transition-all cursor-pointer whitespace-nowrap focus:outline-none focus-visible:ring-2 focus-visible:ring-ucl-500/40"
@@ -124,59 +119,32 @@ const skuadTerfilter = computed(() => {
       </div>
 
       <!-- Player Cards Grid -->
-      <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+      <div v-if="skuadTerfilter.length === 0" class="text-center py-10 rounded-xl bg-slate-50 border border-slate-200 text-slate-400 text-xs">
+        Belum ada pemain terdaftar di posisi ini.
+      </div>
+
+      <div v-else class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
         <div
           v-for="pemain in skuadTerfilter"
           :key="pemain.id"
-          class="p-3.5 rounded-xl bg-slate-50 border border-slate-200 hover:border-ucl-500/40 hover:shadow-card transition-all group space-y-2.5"
+          class="p-3.5 rounded-xl bg-slate-50 border border-slate-200 hover:border-ucl-500/40 hover:shadow-card transition-all group flex items-center justify-between gap-2"
         >
-          <div class="flex items-start justify-between gap-2">
-            <div class="flex items-center gap-2.5 min-w-0">
-              <span class="w-7 h-7 rounded-full bg-white border border-slate-200 flex items-center justify-center font-mono text-[11px] font-semibold text-navy-800 tabular-nums shrink-0">
-                #{{ pemain.squad_number }}
-              </span>
-              <div class="min-w-0">
-                <div class="font-semibold text-xs text-ink-900 group-hover:text-ucl-600 transition-colors truncate">
-                  {{ pemain.name }}
-                </div>
-                <div class="font-mono text-[10px] text-slate-400 tabular-nums">
-                  OVR {{ pemain.overall || 88 }}
-                </div>
-              </div>
-            </div>
-
-            <span
-              class="inline-flex items-center px-2 py-0.5 rounded-full border text-[10px] font-semibold uppercase tracking-wide shrink-0"
-              :class="{
-                'bg-amber-50 text-amber-600 border-amber-200': pemain.position === 'GK',
-                'bg-ucl-50 text-ucl-600 border-ucl-100': pemain.position === 'DF',
-                'bg-emerald-50 text-emerald-700 border-emerald-200': pemain.position === 'MF',
-                'bg-red-50 text-red-600 border-red-200': pemain.position === 'FW'
-              }"
-            >
-              {{ pemain.position }}
-            </span>
+          <div class="font-semibold text-xs text-ink-900 group-hover:text-ucl-600 transition-colors truncate">
+            {{ pemain.name }}
           </div>
 
-          <!-- Player Stats -->
-          <div v-if="pemain.stats" class="grid grid-cols-4 gap-1 pt-2 border-t border-slate-200 text-center">
-            <div class="p-1 rounded-md bg-white border border-slate-200">
-              <div class="text-[9px] text-slate-400 uppercase tracking-wide">Gol</div>
-              <div class="text-sm font-semibold text-ink-900 tabular-nums">{{ pemain.stats.goal || 0 }}</div>
-            </div>
-            <div class="p-1 rounded-md bg-white border border-slate-200">
-              <div class="text-[9px] text-slate-400 uppercase tracking-wide">Ast</div>
-              <div class="text-sm font-semibold text-ink-900 tabular-nums">{{ pemain.stats.assist || 0 }}</div>
-            </div>
-            <div class="p-1 rounded-md bg-white border border-slate-200">
-              <div class="text-[9px] text-slate-400 uppercase tracking-wide">Pass</div>
-              <div class="text-sm font-semibold text-ink-900 tabular-nums">{{ pemain.stats.pass || 0 }}</div>
-            </div>
-            <div class="p-1 rounded-md bg-white border border-slate-200">
-              <div class="text-[9px] text-slate-400 uppercase tracking-wide">Def</div>
-              <div class="text-sm font-semibold text-ink-900 tabular-nums">{{ pemain.stats.def || 0 }}</div>
-            </div>
-          </div>
+          <span
+            class="inline-flex items-center px-2.5 py-0.5 rounded-full border text-[10px] font-bold uppercase tracking-wide shrink-0"
+            :class="{
+              'bg-amber-50 text-amber-600 border-amber-200': pemain.position === 'GK',
+              'bg-blue-50 text-blue-600 border-blue-200': pemain.position === 'CB',
+              'bg-emerald-50 text-emerald-700 border-emerald-200': pemain.position === 'CM',
+              'bg-purple-50 text-purple-600 border-purple-200': pemain.position === 'WF',
+              'bg-red-50 text-red-600 border-red-200': pemain.position === 'ST'
+            }"
+          >
+            {{ pemain.position }}
+          </span>
         </div>
       </div>
     </div>

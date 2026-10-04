@@ -1,5 +1,6 @@
 import { ref } from 'vue'
-import { supabase } from '../lib/supabase.js'
+import { api } from '../lib/api.js'
+import { getCache, setCache } from '../lib/cache.js'
 
 /**
  * Agregasi list match_events & pemain menjadi data Top Scorer, Top Assist, Top Pass, Top Defense, Top MVP, dan Kartu.
@@ -17,8 +18,8 @@ export function hitungStatistikPemain(daftarEvent = [], daftarPemain = [], dafta
       if (!mapGol[pId]) {
         mapGol[pId] = {
           player_id: pId,
-          name: ev.player?.name || 'Pemain',
-          team_short: ev.team?.short_name || 'TIM',
+          name: ev.player?.name || ev.player_name || 'Pemain',
+          team_short: ev.team?.short_name || ev.team_short || 'TIM',
           total: 0
         }
       }
@@ -28,12 +29,12 @@ export function hitungStatistikPemain(daftarEvent = [], daftarPemain = [], dafta
     // Assist
     if (ev.assist_player_id || ev.assist_player || ev.event_type === 'assist') {
       const aId = ev.assist_player_id || ev.assist_player?.id || ev.assist_player?.name || ev.player_id
-      const name = ev.assist_player?.name || ev.player?.name || 'Pemain'
+      const name = ev.assist_player?.name || ev.assist_player_name || ev.player?.name || 'Pemain'
       if (!mapAssist[aId]) {
         mapAssist[aId] = {
           player_id: aId,
           name: name,
-          team_short: ev.team?.short_name || 'TIM',
+          team_short: ev.team?.short_name || ev.team_short || 'TIM',
           total: 0
         }
       }
@@ -46,8 +47,8 @@ export function hitungStatistikPemain(daftarEvent = [], daftarPemain = [], dafta
       if (!mapKartu[pId]) {
         mapKartu[pId] = {
           player_id: pId,
-          name: ev.player?.name || 'Pemain',
-          team_short: ev.team?.short_name || 'TIM',
+          name: ev.player?.name || ev.player_name || 'Pemain',
+          team_short: ev.team?.short_name || ev.team_short || 'TIM',
           kuning: 0,
           merah: 0
         }
@@ -118,44 +119,37 @@ export function useStatistik() {
   const dataTopMvp = ref([])
   const dataDisiplin = ref([])
 
-  async function ambilSemuaStatistik(tournamentId) {
+  async function ambilSemuaStatistik(tournamentId, forceFresh = false) {
+    const cacheKey = `statistics_${tournamentId || 'all'}`
+    if (!forceFresh) {
+      const cached = getCache(cacheKey)
+      if (cached) {
+        dataTopScorer.value = cached.topScorer || []
+        dataTopAssist.value = cached.topAssist || []
+        dataTopPass.value = cached.topPass || []
+        dataTopDefense.value = cached.topDefense || []
+        dataTopMvp.value = cached.topMvp || []
+        dataDisiplin.value = cached.disiplin || []
+        return
+      }
+    }
+
     sedangMemuat.value = true
     pesanKesalahan.value = null
 
     try {
-      const [resEvents, resPlayers, resTeams] = await Promise.all([
-        supabase
-          .from('pcl_match_events')
-          .select(`
-            *,
-            player:pcl_players!pcl_match_events_player_id_fkey(*),
-            assist_player:pcl_players!pcl_match_events_assist_player_id_fkey(*),
-            team:pcl_teams(*)
-          `),
-        supabase
-          .from('pcl_players')
-          .select(`
-            *,
-            team:pcl_teams(*)
-          `),
-        supabase
-          .from('pcl_teams')
-          .select('*')
-      ])
+      const params = {}
+      if (tournamentId) params.tournament_id = tournamentId
+      const stats = await api.getStatistics(params)
 
-      if (resEvents.error) throw resEvents.error
+      dataTopScorer.value = stats.topScorer || []
+      dataTopAssist.value = stats.topAssist || []
+      dataTopPass.value = stats.topPass || []
+      dataTopDefense.value = stats.topDefense || []
+      dataTopMvp.value = stats.topMvp || []
+      dataDisiplin.value = stats.disiplin || []
 
-      const events = resEvents.data || []
-      const players = resPlayers.data || []
-      const teams = resTeams.data || []
-
-      const { topScorer, topAssist, topPass, topDefense, topMvp, disiplin } = hitungStatistikPemain(events, players, teams)
-      dataTopScorer.value = topScorer
-      dataTopAssist.value = topAssist
-      dataTopPass.value = topPass
-      dataTopDefense.value = topDefense
-      dataTopMvp.value = topMvp
-      dataDisiplin.value = disiplin
+      setCache(cacheKey, stats, 45000) // TTL 45s
     } catch (err) {
       pesanKesalahan.value = err.message
       dataTopScorer.value = []

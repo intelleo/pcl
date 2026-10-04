@@ -267,6 +267,7 @@ function submitForm() {
               <th class="py-3 px-4 sm:px-6 text-center">Skor Final</th>
               <th class="py-3 px-4 sm:px-6">Runner-up</th>
               <th class="py-3 px-4 sm:px-6">Top Scorer</th>
+              <th class="py-3 px-4 sm:px-6">MVP Turnamen</th>
               <th class="py-3 px-4 sm:px-6 text-right">Aksi</th>
             </tr>
           </thead>
@@ -276,16 +277,21 @@ function submitForm() {
                 {{ item.musim }}
               </td>
               <td class="py-3 px-4 sm:px-6 font-semibold text-xs text-gold-700">
-                {{ item.juara.name }} ({{ item.juara.short_name }})
+                {{ item.juara?.name || item.juara_name || 'Klub Juara' }} ({{ item.juara?.short_name || item.juara_short || 'JUR' }})
               </td>
               <td class="py-3 px-4 sm:px-6 text-center font-mono font-bold text-xs text-navy-800">
                 {{ item.skor_final }}
               </td>
               <td class="py-3 px-4 sm:px-6 text-xs text-slate-600">
-                {{ item.runner_up.name }} ({{ item.runner_up.short_name }})
+                {{ item.runner_up?.name || item.runner_up_name || 'Runner-up' }} ({{ item.runner_up?.short_name || item.runner_up_short || 'RUN' }})
               </td>
-              <td class="py-3 px-4 sm:px-6 text-xs text-slate-500">
-                {{ item.top_scorer.nama }} ({{ item.top_scorer.total }} gol)
+              <td class="py-3 px-4 sm:px-6 text-xs text-slate-600">
+                <span class="font-medium text-ink-900">{{ item.top_scorer?.nama || item.top_scorer_nama || '-' }}</span>
+                <span class="text-slate-400 ml-1">({{ item.top_scorer?.total ?? item.top_scorer_total ?? 0 }} gol)</span>
+              </td>
+              <td class="py-3 px-4 sm:px-6 text-xs text-slate-600">
+                <span class="font-medium text-ink-900">{{ item.mvp_turnamen?.nama || item.mvp_nama || '-' }}</span>
+                <span class="text-amber-700 font-semibold ml-1">({{ item.mvp_turnamen?.rating ?? item.mvp_rating ?? 9.0 }} Rtg)</span>
               </td>
               <td class="py-3 px-4 sm:px-6 text-right">
                 <button

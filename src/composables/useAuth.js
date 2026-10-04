@@ -1,5 +1,5 @@
 import { ref, computed } from 'vue'
-import { supabase } from '../lib/supabase.js'
+import { api } from '../lib/api.js'
 
 const PENGGUNA_ADMIN_DEFAULT = [
   { username: 'admin', email: 'admin@pcl.com', nama: 'Super Admin PCL', role: 'admin' },
@@ -39,26 +39,17 @@ export function useAuth() {
     }
 
     try {
-      // 1. Coba login via Supabase Auth jika email valid
-      if (idBersih.includes('@')) {
-        const { data, error } = await supabase.auth.signInWithPassword({
-          email: idBersih,
-          password: passBersih
-        })
-
-        if (!error && data?.user) {
-          const userObj = {
-            id: data.user.id,
-            username: data.user.email?.split('@')[0] || 'admin',
-            email: data.user.email,
-            nama: data.user.user_metadata?.full_name || 'Admin PCL',
-            role: 'admin'
-          }
-          adminAktif.value = userObj
+      // 1. Coba login via backend API
+      try {
+        const res = await api.login(idBersih, passBersih)
+        if (res && res.user) {
+          adminAktif.value = res.user
           terotentikasi.value = true
-          localStorage.setItem('pcl_admin_session', JSON.stringify(userObj))
+          localStorage.setItem('pcl_admin_session', JSON.stringify(res.user))
           return true
         }
+      } catch (apiErr) {
+        // Jika API offline atau melempar error, cek fallback lokal
       }
 
       // 2. Fallback kredensial lokal panitia turnamen PCL
@@ -85,9 +76,6 @@ export function useAuth() {
   }
 
   function keluarAdmin() {
-    try {
-      supabase.auth.signOut()
-    } catch (e) {}
     adminAktif.value = null
     terotentikasi.value = false
     localStorage.removeItem('pcl_admin_session')

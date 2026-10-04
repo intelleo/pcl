@@ -1,7 +1,8 @@
 <script setup>
 import { ref, computed, onMounted, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { supabase } from '../lib/supabase.js'
+import { api } from '../lib/api.js'
+import { getCache, setCache } from '../lib/cache.js'
 import {
   Calendar,
   User,
@@ -29,56 +30,71 @@ const lagaTerkait = ref(null)
 const eventLagaTerkait = ref([])
 const beritaTerkaitList = ref([])
 
+function formatTanggalIndo(isoStr) {
+  if (!isoStr) return '-'
+  try {
+    const d = new Date(isoStr)
+    return d.toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })
+  } catch (e) {
+    return '-'
+  }
+}
+
+// Helper untuk mengekstrak paragraf teks dari data konten/isi Supabase
+const daftarParagraf = computed(() => {
+  if (!artikel.value) return []
+  const teks = artikel.value.konten || artikel.value.isi || ''
+
+  if (Array.isArray(teks)) return teks.filter(p => typeof p === 'string' && p.trim())
+  if (typeof teks === 'string' && teks.trim()) {
+    return teks
+      .split(/\n\n+/)
+      .map(p => p.trim())
+      .filter(Boolean)
+  }
+  return []
+})
+
 async function muatArtikel() {
+  const cacheKey = `news_detail_${route.params.id}`
+  const cached = getCache(cacheKey)
+  if (cached) {
+    artikel.value = cached.artikel
+    lagaTerkait.value = cached.lagaTerkait
+    eventLagaTerkait.value = cached.eventLagaTerkait
+    beritaTerkaitList.value = cached.beritaTerkaitList
+    return
+  }
+
   sedangMemuat.value = true
 
   try {
-    const { data: newsData } = await supabase
-      .from('pcl_news')
-      .select('*')
-      .eq('id', route.params.id)
-      .single()
-
+    const newsData = await api.getNewsDetail(route.params.id)
     artikel.value = newsData || null
 
     if (newsData?.terkait_match_id) {
-      const [resMatch, resEvents] = await Promise.all([
-        supabase
-          .from('pcl_matches')
-          .select(`
-            *,
-            home_team:pcl_teams!pcl_matches_home_team_id_fkey(*),
-            away_team:pcl_teams!pcl_matches_away_team_id_fkey(*),
-            group:pcl_tournament_groups(*)
-          `)
-          .eq('id', newsData.terkait_match_id)
-          .single(),
-        supabase
-          .from('pcl_match_events')
-          .select(`
-            *,
-            player:pcl_players!pcl_match_events_player_id_fkey(*),
-            assist_player:pcl_players!pcl_match_events_assist_player_id_fkey(*),
-            team:pcl_teams(*)
-          `)
-          .eq('match_id', newsData.terkait_match_id)
-          .order('minute', { ascending: true })
-      ])
-
-      lagaTerkait.value = resMatch.data || null
-      eventLagaTerkait.value = resEvents.data || []
+      try {
+        const detailMatch = await api.getMatchDetail(newsData.terkait_match_id)
+        lagaTerkait.value = detailMatch.match || null
+        eventLagaTerkait.value = detailMatch.events || []
+      } catch (errMatch) {
+        lagaTerkait.value = null
+        eventLagaTerkait.value = []
+      }
     } else {
       lagaTerkait.value = null
       eventLagaTerkait.value = []
     }
 
-    const { data: relatedNews } = await supabase
-      .from('pcl_news')
-      .select('*')
-      .neq('id', route.params.id)
-      .limit(3)
+    const allNews = await api.getNews()
+    beritaTerkaitList.value = (allNews || []).filter(n => n.id !== route.params.id).slice(0, 3)
 
-    beritaTerkaitList.value = relatedNews || []
+    setCache(cacheKey, {
+      artikel: artikel.value,
+      lagaTerkait: lagaTerkait.value,
+      eventLagaTerkait: eventLagaTerkait.value,
+      beritaTerkaitList: beritaTerkaitList.value
+    }, 60000)
   } catch (err) {
     artikel.value = null
     lagaTerkait.value = null
@@ -107,77 +123,98 @@ function salinTautan() {
   <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-10 pb-16 space-y-6 sm:space-y-8">
     <!-- Back & Share -->
     <div class="anim-muncul flex items-center justify-between gap-3 pb-5 border-b border-slate-200">
-      <button
+      <TombolDasar
+        varian="sekunder"
         @click="router.push('/berita')"
-        class="inline-flex items-center gap-1.5 px-4 py-2 rounded-full bg-white border border-slate-300 text-sm font-semibold text-ink-600 transition-colors hover:border-ucl-500 hover:text-ucl-600 cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-ucl-500/40"
       >
-        <ArrowLeft class="w-4 h-4" />
+        <ArrowLeft class="w-4 h-4 mr-1.5" />
         Kembali ke Berita
-      </button>
+      </TombolDasar>
 
-      <button
+      <TombolDasar
+        varian="sekunder"
         @click="salinTautan"
-        class="inline-flex items-center gap-1.5 px-4 py-2 rounded-full bg-white border border-slate-300 text-sm font-semibold text-ink-600 transition-colors hover:border-ucl-500 hover:text-ucl-600 cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-ucl-500/40"
       >
-        <component :is="sudahDisalin ? Check : Share2" class="w-4 h-4" :class="sudahDisalin ? 'text-emerald-600' : ''" />
+        <component :is="sudahDisalin ? Check : Share2" class="w-4 h-4 mr-1.5" :class="sudahDisalin ? 'text-emerald-600' : ''" />
         {{ sudahDisalin ? 'Tersalin!' : 'Bagikan' }}
-      </button>
+      </TombolDasar>
     </div>
 
-    <!-- Layout: 2 col article, 1 col sidebar -->
+    <!-- Loading Skeleton -->
     <div v-if="sedangMemuat" class="h-96 rounded-xl bg-white border border-slate-200 animate-pulse"></div>
 
     <div v-else-if="!artikel" class="text-center py-14 rounded-xl bg-white border border-slate-200 shadow-card space-y-2">
       <p class="text-sm font-semibold text-ink-900">Artikel tidak ditemukan.</p>
+      <TombolDasar varian="primer" @click="router.push('/berita')">Lihat Semua Berita</TombolDasar>
     </div>
 
     <div v-else class="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
       <!-- Article Body -->
-      <article class="anim-muncul lg:col-span-2 rounded-xl bg-white border border-slate-200 shadow-card p-6 sm:p-8 space-y-6">
-        <div class="space-y-3">
-          <div class="flex flex-wrap items-center gap-2.5 text-xs text-slate-500">
-            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full bg-ucl-50 border border-ucl-100 text-ucl-600 text-[11px] font-semibold">
-              {{ artikel.tag }}
-            </span>
-            <span aria-hidden="true">·</span>
-            <span class="flex items-center gap-1 font-mono">
-              <Calendar class="w-3.5 h-3.5" /> {{ artikel.tanggal }}
-            </span>
-            <span aria-hidden="true">·</span>
-            <span class="flex items-center gap-1">
-              <Clock class="w-3.5 h-3.5" /> 3 mnt baca
-            </span>
-          </div>
-
-          <h1 class="font-display text-xl sm:text-3xl font-semibold tracking-tight text-ink-900 leading-tight">
-            {{ artikel.judul }}
-          </h1>
-
-          <div class="flex items-center gap-2 text-sm text-ink-400 pb-3 border-b border-slate-100">
-            <User class="w-3.5 h-3.5" />
-            <span>Ditulis oleh: <strong class="text-ink-900">{{ artikel.penulis }}</strong></span>
-          </div>
-
-          <p class="text-sm sm:text-base text-ink-900 font-medium bg-ucl-50 border-l-2 border-ucl-500 p-3.5 rounded-r-lg leading-relaxed">
-            {{ artikel.ringkasan }}
-          </p>
+      <article class="anim-muncul lg:col-span-2 rounded-xl bg-white border border-slate-200 shadow-card overflow-hidden">
+        <!-- Hero Cover Image -->
+        <div v-if="artikel.gambar_url" class="w-full h-56 sm:h-72 overflow-hidden bg-slate-100">
+          <img
+            :src="artikel.gambar_url"
+            :alt="artikel.judul"
+            class="w-full h-full object-cover"
+          />
         </div>
 
-        <!-- Paragraphs -->
-        <div class="space-y-4 text-sm sm:text-base text-ink-600 leading-relaxed">
-          <p v-for="(paragraf, pIdx) in (Array.isArray(artikel.isi) ? artikel.isi : [artikel.isi])" :key="pIdx">
-            {{ paragraf }}
-          </p>
-        </div>
+        <div class="p-6 sm:p-8 space-y-6">
+          <div class="space-y-3">
+            <div class="flex flex-wrap items-center gap-2.5 text-xs text-slate-500">
+              <span class="inline-flex items-center px-2.5 py-0.5 rounded-full bg-ucl-50 border border-ucl-100 text-ucl-600 text-[11px] font-semibold">
+                {{ artikel.tag || 'TURNAMEN' }}
+              </span>
+              <span aria-hidden="true">·</span>
+              <span class="flex items-center gap-1 font-mono">
+                <Calendar class="w-3.5 h-3.5" /> {{ formatTanggalIndo(artikel.diterbitkan_pada || artikel.tanggal) }}
+              </span>
+              <span aria-hidden="true">·</span>
+              <span class="flex items-center gap-1">
+                <Clock class="w-3.5 h-3.5" /> {{ artikel.waktu_baca || '3 mnt baca' }}
+              </span>
+            </div>
 
-        <!-- Blockquote -->
-        <div v-if="artikel.kutipan" class="relative p-5 rounded-lg bg-slate-50 border border-slate-200 space-y-1.5">
-          <Quote class="w-6 h-6 text-ucl-500/30 absolute right-3 top-3" />
-          <p class="text-sm italic text-ink-900 leading-relaxed">
-            "{{ artikel.kutipan }}"
-          </p>
-          <div class="text-xs font-semibold text-ucl-600">
-            — {{ artikel.narasumber }}
+            <h1 class="font-display text-xl sm:text-3xl font-semibold tracking-tight text-ink-900 leading-tight">
+              {{ artikel.judul }}
+            </h1>
+
+            <div class="flex items-center gap-2 text-sm text-ink-400 pb-3 border-b border-slate-100">
+              <User class="w-3.5 h-3.5" />
+              <span>Ditulis oleh: <strong class="text-ink-900">{{ artikel.penulis || 'Redaksi PCL' }}</strong></span>
+            </div>
+
+            <p v-if="artikel.ringkasan" class="text-sm sm:text-base text-ink-900 font-medium bg-ucl-50 border-l-2 border-ucl-500 p-3.5 rounded-r-lg leading-relaxed">
+              {{ artikel.ringkasan }}
+            </p>
+          </div>
+
+          <!-- Paragraphs Content -->
+          <div class="space-y-4 text-sm sm:text-base text-ink-700 leading-relaxed">
+            <template v-if="daftarParagraf.length > 0">
+              <p
+                v-for="(paragraf, pIdx) in daftarParagraf"
+                :key="pIdx"
+                class="whitespace-pre-line"
+              >
+                {{ paragraf }}
+              </p>
+            </template>
+            <p v-else class="text-slate-400 italic text-sm">
+              {{ artikel.konten || artikel.isi || 'Belum ada isi konten artikel.' }}
+            </p>
+          </div>
+
+          <!-- Blockquote -->
+          <div v-if="artikel.kutipan" class="relative p-5 rounded-lg bg-slate-50 border border-slate-200 space-y-1.5">
+            <Quote class="w-6 h-6 text-ucl-500/30 absolute right-3 top-3" />
+            <p class="text-sm italic text-ink-900 leading-relaxed">
+              "{{ artikel.kutipan }}"
+            </p>
+            <div class="text-xs font-semibold text-ucl-600">
+              — {{ artikel.narasumber }}
+            </div>
           </div>
         </div>
       </article>
@@ -225,13 +262,14 @@ function salinTautan() {
             <span class="text-ink-600">MVP: <strong class="text-ink-900">{{ lagaTerkait.mvp.name }}</strong></span>
           </div>
 
-          <button
+          <TombolDasar
+            varian="primer"
             @click="modalLagaTerbuka = true"
-            class="w-full inline-flex items-center justify-center px-3 py-2 rounded-full bg-ucl-600 hover:bg-blue-700 active:bg-blue-800 text-white text-sm font-semibold transition-colors cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-ucl-500 focus-visible:ring-offset-2"
+            class="w-full text-sm py-2"
           >
             <Activity class="w-4 h-4 mr-1.5" />
             Lihat Detail Laga
-          </button>
+          </TombolDasar>
         </div>
 
         <!-- Related News -->
@@ -249,27 +287,28 @@ function salinTautan() {
             </button>
           </div>
 
-          <div class="space-y-2.5">
-            <div
+          <div class="space-y-3 divide-y divide-slate-100">
+            <article
               v-for="b in beritaTerkaitList"
               :key="b.id"
+              class="pt-3 first:pt-0 group cursor-pointer"
               @click="router.push(`/berita/${b.id}`)"
-              class="p-3 rounded-lg bg-slate-50 border border-slate-200 hover:border-ucl-500/50 hover:bg-ucl-50/40 transition-colors cursor-pointer group space-y-1"
             >
-              <div class="flex items-center justify-between text-[10px] text-slate-400">
-                <span class="font-semibold uppercase tracking-wide">{{ b.tag }}</span>
-                <span class="font-mono">{{ b.tanggal }}</span>
+              <div class="flex items-center gap-2 text-[10px] text-slate-400 mb-1">
+                <span class="font-semibold text-ucl-600">{{ b.tag || 'BERITA' }}</span>
+                <span>·</span>
+                <span>{{ formatTanggalIndo(b.diterbitkan_pada) }}</span>
               </div>
               <h4 class="text-xs font-semibold text-ink-900 group-hover:text-ucl-600 transition-colors line-clamp-2 leading-snug">
                 {{ b.judul }}
               </h4>
-            </div>
+            </article>
           </div>
         </div>
       </aside>
     </div>
 
-    <!-- Modal -->
+    <!-- Match Modal -->
     <ModalDetailPertandingan
       v-if="lagaTerkait"
       :terbuka="modalLagaTerbuka"

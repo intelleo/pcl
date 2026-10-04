@@ -8,6 +8,7 @@ import DetailTimView from '../views/DetailTimView.vue'
 import RiwayatJuaraView from '../views/RiwayatJuaraView.vue'
 import BeritaView from '../views/BeritaView.vue'
 import DetailBeritaView from '../views/DetailBeritaView.vue'
+import PendaftaranView from '../views/PendaftaranView.vue'
 import AdminView from '../views/AdminView.vue'
 
 const routes = [
@@ -15,11 +16,12 @@ const routes = [
   { path: '/turnamen', name: 'turnamen', component: TurnamenView },
   { path: '/jadwal', name: 'jadwal', component: JadwalView },
   { path: '/statistik', name: 'statistik', component: StatistikView },
-  { path: '/tim', name: 'tim', component: TimView },
+  { path: '/tim', redirect: '/jadwal?tab=tim' },
   { path: '/tim/:id', name: 'detail-tim', component: DetailTimView },
   { path: '/riwayat-juara', name: 'riwayat-juara', component: RiwayatJuaraView },
   { path: '/berita', name: 'berita', component: BeritaView },
   { path: '/berita/:id', name: 'detail-berita', component: DetailBeritaView },
+  { path: '/pendaftaran', name: 'pendaftaran', component: PendaftaranView },
   { path: '/admin', name: 'admin', component: AdminView }
 ]
 

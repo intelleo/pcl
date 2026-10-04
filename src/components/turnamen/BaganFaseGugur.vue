@@ -1,5 +1,5 @@
 <script setup>
-import { ref } from 'vue'
+import { ref, computed } from "vue";
 import {
   Trophy,
   Crown,
@@ -9,165 +9,192 @@ import {
   ZoomOut,
   RotateCcw,
   Maximize2,
-  Move
-} from 'lucide-vue-next'
-import pialaPcl from '@/assets/img/piala-pcl.webp'
+  Move,
+} from "lucide-vue-next";
+import pialaPcl from "@/assets/img/piala-pcl.webp";
 
 const props = defineProps({
   baganData: {
     type: Object,
     default: () => ({
-      perempatFinal: [
-        {
-          id: 'qf1',
-          label: 'QF 1',
-          home: { nama: 'Juara Grup A', short: '1A', skor: 0, pemenang: false },
-          away: { nama: 'Runner-up Grup B', short: '2B', skor: 0, pemenang: false },
-          selesai: false
-        },
-        {
-          id: 'qf2',
-          label: 'QF 2',
-          home: { nama: 'Juara Grup B', short: '1B', skor: 0, pemenang: false },
-          away: { nama: 'Runner-up Grup A', short: '2A', skor: 0, pemenang: false },
-          selesai: false
-        },
-        {
-          id: 'qf3',
-          label: 'QF 3',
-          home: { nama: 'Juara Grup C', short: '1C', skor: 0, pemenang: false },
-          away: { nama: 'Runner-up Grup D', short: '2D', skor: 0, pemenang: false },
-          selesai: false
-        },
-        {
-          id: 'qf4',
-          label: 'QF 4',
-          home: { nama: 'Juara Grup D', short: '1D', skor: 0, pemenang: false },
-          away: { nama: 'Runner-up Grup C', short: '2C', skor: 0, pemenang: false },
-          selesai: false
-        }
-      ],
-      semiFinal: [
-        {
-          id: 'sf1',
-          label: 'Semi Final 1',
-          home: { nama: 'Pemenang QF 1', short: 'W1', skor: 0, pemenang: false },
-          away: { nama: 'Pemenang QF 2', short: 'W2', skor: 0, pemenang: false },
-          selesai: false
-        },
-        {
-          id: 'sf2',
-          label: 'Semi Final 2',
-          home: { nama: 'Pemenang QF 3', short: 'W3', skor: 0, pemenang: false },
-          away: { nama: 'Pemenang QF 4', short: 'W4', skor: 0, pemenang: false },
-          selesai: false
-        }
-      ],
+      r32: [],
+      r16: [],
+      perempatFinal: [],
+      semiFinal: [],
       final: {
-        id: 'fin',
-        label: 'Grand Final PCL 2026',
-        home: { nama: 'Pemenang SF 1', short: 'F1', skor: 0, pemenang: false },
-        away: { nama: 'Pemenang SF 2', short: 'F2', skor: 0, pemenang: false },
+        id: "fin",
+        label: "Grand Final (BO3)",
+        home: { nama: "Pemenang SF 1", short: "F1", skor: 0, pemenang: false },
+        away: { nama: "Pemenang SF 2", short: "F2", skor: 0, pemenang: false },
         selesai: false,
-        juara: null
-      }
-    })
-  }
-})
+        juara: null,
+      },
+    }),
+  },
+});
 
-const tingkatZoom = ref(1)
-const kontainerBagan = ref(null)
+const tingkatZoom = ref(1);
+const kontainerBagan = ref(null);
+
+const adaR32 = computed(
+  () => props.baganData.r32 && props.baganData.r32.length > 0,
+);
+const adaR16 = computed(
+  () => props.baganData.r16 && props.baganData.r16.length > 0,
+);
+const adaQF = computed(
+  () =>
+    props.baganData.perempatFinal && props.baganData.perempatFinal.length > 0,
+);
+
+const daftarKolom = computed(() => {
+  const kolom = [];
+  if (adaR32.value) {
+    kolom.push({
+      id: "r32",
+      label: "32 Besar",
+      icon: Shield,
+      matches: props.baganData.r32,
+    });
+  }
+  if (adaR16.value) {
+    kolom.push({
+      id: "r16",
+      label: "16 Besar",
+      icon: Shield,
+      matches: props.baganData.r16,
+    });
+  }
+  if (adaQF.value) {
+    kolom.push({
+      id: "qf",
+      label: "Perempat Final (BO3)",
+      icon: Flame,
+      matches: props.baganData.perempatFinal,
+    });
+  }
+  kolom.push({
+    id: "sf",
+    label: "Semi Final (BO3)",
+    icon: Flame,
+    matches: props.baganData.semiFinal || [],
+  });
+  return kolom;
+});
+
+const formatKapasitasLabel = computed(() => {
+  if (adaR32.value) return "32 Klub Knockout";
+  if (adaR16.value) return "16 Klub Knockout";
+  if (adaQF.value) return "8 Klub Knockout";
+  return "4 Klub Knockout";
+});
+
+function adalahKolomTerakhir(kolomId) {
+  const kol = daftarKolom.value;
+  return kol.length > 0 && kol[kol.length - 1].id === kolomId;
+}
 
 function perbesar() {
-  if (tingkatZoom.value < 1.3) {
-    tingkatZoom.value = Number((tingkatZoom.value + 0.15).toFixed(2))
+  if (tingkatZoom.value < 1.4) {
+    tingkatZoom.value = Number((tingkatZoom.value + 0.15).toFixed(2));
   }
 }
 
 function perkecil() {
-  if (tingkatZoom.value > 0.6) {
-    tingkatZoom.value = Number((tingkatZoom.value - 0.15).toFixed(2))
+  if (tingkatZoom.value > 0.5) {
+    tingkatZoom.value = Number((tingkatZoom.value - 0.15).toFixed(2));
   }
 }
 
 function aturUlangZoom() {
-  tingkatZoom.value = 1
+  tingkatZoom.value = 1;
 }
 
 function pasUkuranMobile() {
-  tingkatZoom.value = 0.65
+  tingkatZoom.value = 0.6;
 }
 
-function geserKeFase(posisi) {
-  if (!kontainerBagan.value) return
-  const petaPosisi = {
-    qf: 0,
-    sf: 320,
-    final: 650,
-    juara: 950
+function geserKeFase(faseId) {
+  if (!kontainerBagan.value) return;
+  const kolomIndex = daftarKolom.value.findIndex((k) => k.id === faseId);
+  let offset = 0;
+  if (kolomIndex !== -1) {
+    offset = kolomIndex * 280;
+  } else if (faseId === "final") {
+    offset = daftarKolom.value.length * 280;
+  } else if (faseId === "juara") {
+    offset = (daftarKolom.value.length + 1) * 280;
   }
-  kontainerBagan.value.scrollTo({
-    left: (petaPosisi[posisi] || 0) * tingkatZoom.value,
-    behavior: 'smooth'
-  })
+  kontainerBagan.value.scrollTo({ left: offset, behavior: "smooth" });
 }
 </script>
 
 <template>
   <div class="space-y-4">
-    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3 bg-white border border-slate-200 rounded-xl shadow-card">
+    <!-- Controls Header -->
+    <div
+      class="flex items-center justify-between gap-2 sm:gap-3 bg-white border border-slate-200 rounded-xl p-2.5 sm:p-3.5 shadow-sm"
+    >
       <div class="flex items-center gap-2 min-w-0">
-        <Trophy class="w-4 h-4 text-ucl-600 shrink-0" />
-        <span class="text-sm font-semibold tracking-tight text-ink-900 truncate">Bagan Turnamen</span>
-        <span class="text-xs text-slate-400 truncate">· 8 Klub Knockout</span>
+        <span
+          class="px-2.5 py-1 rounded-full bg-ucl-50 border border-ucl-200 text-ucl-700 text-xs font-semibold whitespace-nowrap shrink-0"
+        >
+          {{ formatKapasitasLabel }}
+        </span>
+        <span class="text-xs text-slate-500 hidden sm:inline truncate">
+          SF &amp; Final Sistem Best of 3 (BO3)
+        </span>
       </div>
 
-      <div class="flex flex-wrap items-center gap-2">
-        <div class="inline-flex items-center p-1 rounded-full bg-slate-100 text-xs">
+      <!-- Fase Jumper & Zoom Controls -->
+      <div class="flex items-center gap-1.5 sm:gap-2 shrink-0">
+        <!-- Quick Jump Buttons -->
+        <div
+          class="hidden md:flex items-center gap-1 text-[11px] font-semibold text-slate-600 bg-slate-100 p-1 rounded-lg"
+        >
           <button
-            @click="geserKeFase('qf')"
-            class="px-3 py-1 rounded-full text-[11px] font-semibold text-slate-500 hover:text-ucl-600 hover:bg-white transition-colors cursor-pointer"
+            v-for="k in daftarKolom"
+            :key="k.id"
+            @click="geserKeFase(k.id)"
+            class="px-2 py-1 rounded hover:bg-white transition-colors cursor-pointer"
           >
-            QF
-          </button>
-          <button
-            @click="geserKeFase('sf')"
-            class="px-3 py-1 rounded-full text-[11px] font-semibold text-slate-500 hover:text-ucl-600 hover:bg-white transition-colors cursor-pointer"
-          >
-            SF
+            {{ k.label.replace(" (BO3)", "") }}
           </button>
           <button
             @click="geserKeFase('final')"
-            class="px-3 py-1 rounded-full text-[11px] font-semibold text-ucl-600 hover:bg-white transition-colors cursor-pointer"
+            class="px-2 py-1 rounded hover:bg-white text-gold-700 transition-colors cursor-pointer font-bold"
           >
             Final
           </button>
           <button
             @click="geserKeFase('juara')"
-            class="px-3 py-1 rounded-full text-[11px] font-semibold text-slate-500 hover:text-ucl-600 hover:bg-white transition-colors cursor-pointer"
+            class="px-2 py-1 rounded hover:bg-white text-amber-700 transition-colors cursor-pointer font-bold"
           >
             Juara
           </button>
         </div>
 
-        <div class="inline-flex items-center p-1 rounded-full bg-slate-100 border border-slate-200 text-xs">
+        <!-- Zoom Controls -->
+        <div
+          class="flex items-center gap-0.5 sm:gap-1 bg-slate-100 p-1 rounded-lg border border-slate-200 text-xs"
+        >
           <button
             @click="perkecil"
-            :disabled="tingkatZoom <= 0.6"
-            class="p-1 rounded-full text-slate-500 hover:text-ucl-600 hover:bg-white disabled:opacity-30 disabled:cursor-not-allowed transition-colors cursor-pointer"
+            class="p-1 rounded text-slate-500 hover:text-ink-900 hover:bg-white transition-colors cursor-pointer"
             title="Perkecil"
           >
             <ZoomOut class="w-3.5 h-3.5" />
           </button>
 
-          <span class="px-2 text-[11px] font-semibold text-ink-900 tabular-nums min-w-[42px] text-center">
+          <span
+            class="text-[10px] font-mono px-0.5 sm:px-1 font-semibold text-slate-600 min-w-[28px] sm:min-w-[34px] text-center"
+          >
             {{ Math.round(tingkatZoom * 100) }}%
           </span>
 
           <button
             @click="perbesar"
-            :disabled="tingkatZoom >= 1.3"
-            class="p-1 rounded-full text-slate-500 hover:text-ucl-600 hover:bg-white disabled:opacity-30 disabled:cursor-not-allowed transition-colors cursor-pointer"
+            class="p-1 rounded text-slate-500 hover:text-ink-900 hover:bg-white transition-colors cursor-pointer"
             title="Perbesar"
           >
             <ZoomIn class="w-3.5 h-3.5" />
@@ -175,7 +202,7 @@ function geserKeFase(posisi) {
 
           <button
             @click="aturUlangZoom"
-            class="p-1 ml-0.5 rounded-full text-slate-500 hover:text-ucl-600 hover:bg-white transition-colors cursor-pointer border-l border-slate-300"
+            class="p-1 ml-0.5 rounded text-slate-500 hover:text-ucl-600 hover:bg-white transition-colors cursor-pointer border-l border-slate-300"
             title="Reset (100%)"
           >
             <RotateCcw class="w-3 h-3" />
@@ -183,7 +210,7 @@ function geserKeFase(posisi) {
 
           <button
             @click="pasUkuranMobile"
-            class="p-1 rounded-full text-slate-500 hover:text-ucl-600 hover:bg-white transition-colors cursor-pointer"
+            class="p-1 rounded text-slate-500 hover:text-ucl-600 hover:bg-white transition-colors cursor-pointer"
             title="Fit Mobile"
           >
             <Maximize2 class="w-3 h-3 text-ucl-600" />
@@ -192,200 +219,535 @@ function geserKeFase(posisi) {
       </div>
     </div>
 
-    <div class="sm:hidden flex items-center justify-between px-3 py-2 rounded-xl bg-ucl-50 border border-ucl-100 text-[11px] text-ucl-600">
+    <!-- Mobile Scroll Hint -->
+    <div
+      class="sm:hidden flex items-center justify-between px-3 py-2 rounded-xl bg-ucl-50 border border-ucl-100 text-[11px] text-ucl-600"
+    >
       <span class="flex items-center gap-1.5">
         <Move class="w-3.5 h-3.5" />
-        Geser horizontal untuk melihat bagan
+        Geser horizontal untuk menelusuri bagan
       </span>
       <button @click="pasUkuranMobile" class="font-semibold underline">
-        Fit (65%)
+        Fit (60%)
       </button>
     </div>
 
+    <!-- Interactive Bracket Board Container -->
     <div
       ref="kontainerBagan"
-      class="bg-white border border-slate-200 rounded-xl p-4 sm:p-6 overflow-x-auto shadow-card relative"
+      class="bg-slate-50/50 border border-slate-200 rounded-xl p-4 sm:p-6 overflow-x-auto shadow-card relative"
     >
       <div
         class="origin-top-left transition-transform duration-150"
         :style="{
           transform: `scale(${tingkatZoom})`,
-          width: `${100 / tingkatZoom}%`
+          width: `${100 / tingkatZoom}%`,
         }"
       >
-        <div class="min-w-[1020px] relative pb-2">
-          <div class="grid grid-cols-4 gap-10 mb-4 text-center">
-            <div class="px-3 py-1.5 rounded-full bg-white border border-slate-200 text-[11px] font-semibold text-ink-600 flex items-center justify-center gap-1.5">
-              <Shield class="w-3.5 h-3.5 text-ink-400" />
-              Perempat Final
+        <div class="flex items-stretch min-w-max">
+          <!-- ===== Rounds Columns (R32, R16, QF, SF) ===== -->
+          <template v-for="kolom in daftarKolom" :key="kolom.id">
+            <div
+              class="bracket-kolom flex flex-col"
+              :style="{ width: '230px' }"
+            >
+              <!-- Stage Header -->
+              <div
+                class="px-3 py-1.5 rounded-full bg-white border border-slate-200 text-[11px] font-semibold text-ink-600 flex items-center justify-center gap-1.5 mb-3 text-center shadow-sm mx-1"
+              >
+                <component :is="kolom.icon" class="w-3.5 h-3.5 text-ucl-600" />
+                <span>{{ kolom.label }}</span>
+              </div>
+
+              <!-- Match Cards -->
+              <div class="flex flex-col justify-around flex-1 gap-1">
+                <div
+                  v-for="match in kolom.matches"
+                  :key="match.id"
+                  class="bracket-kartu bg-white border border-slate-200 hover:border-ucl-400/60 transition-all rounded-lg p-2 shadow-sm space-y-1"
+                >
+                  <!-- Slot Header -->
+                  <div
+                    class="flex items-center justify-between text-[10px] text-slate-400 pb-0.5 border-b border-slate-100"
+                  >
+                    <span class="font-mono font-semibold text-ucl-700">{{
+                      match.label
+                    }}</span>
+                    <span
+                      :class="
+                        match.selesai
+                          ? 'text-emerald-600 font-bold'
+                          : 'font-medium'
+                      "
+                    >
+                      {{
+                        match.isBo3
+                          ? match.selesai
+                            ? match.viaAgregatGol
+                              ? `FT (Agg ${match.golTeam1}–${match.golTeam2})`
+                              : "FT (BO3)"
+                            : "BO3 Seri"
+                          : match.selesai
+                            ? "FT"
+                            : "—"
+                      }}
+                    </span>
+                  </div>
+
+                  <!-- Home -->
+                  <div
+                    class="flex items-center justify-between px-1.5 py-0.5 rounded text-xs"
+                    :class="
+                      match.home.pemenang
+                        ? 'text-ucl-600 font-bold bg-ucl-50/50'
+                        : 'text-slate-600'
+                    "
+                  >
+                    <div class="flex items-center gap-1.5 min-w-0">
+                      <img
+                        v-if="match.home.logo_url"
+                        :src="match.home.logo_url"
+                        :alt="match.home.nama"
+                        class="w-4 h-4 rounded-full object-contain bg-white border border-slate-200 shrink-0"
+                      />
+                      <span
+                        v-else
+                        class="w-6 h-6 rounded-full bg-slate-100 border border-slate-200 text-[8px] text-blue-800 font-bold flex items-center justify-center shrink-0"
+                        >{{ match.home.short }}</span
+                      >
+                      <span class="truncate text-[11px]">{{
+                        match.home.nama
+                      }}</span>
+                    </div>
+                    <div class="flex items-center gap-1 shrink-0 ml-1.5">
+                      <span
+                        v-if="match.viaAgregatGol"
+                        class="text-[9px] text-slate-400 font-normal tabular-nums"
+                        title="Total Gol"
+                      >
+                        ({{ match.home.totalGol ?? match.golTeam1 }})
+                      </span>
+                      <span
+                        class="tabular-nums text-xs"
+                        :class="
+                          match.home.pemenang ? 'text-ucl-600' : 'text-slate-400'
+                        "
+                      >
+                        {{ match.selesai || match.isBo3 ? match.home.skor : "-" }}
+                      </span>
+                    </div>
+                  </div>
+
+                  <!-- Away -->
+                  <div
+                    class="flex items-center justify-between px-1.5 py-0.5 rounded text-xs"
+                    :class="
+                      match.away.pemenang
+                        ? 'text-ucl-600 font-bold bg-ucl-50/50'
+                        : 'text-slate-600'
+                    "
+                  >
+                    <div class="flex items-center gap-1.5 min-w-0">
+                      <img
+                        v-if="match.away.logo_url"
+                        :src="match.away.logo_url"
+                        :alt="match.away.nama"
+                        class="w-4 h-4 rounded-full object-contain bg-white border border-slate-200 shrink-0"
+                      />
+                      <span
+                        v-else
+                        class="w-6 h-6 rounded-full bg-slate-100 border border-slate-200 text-[8px] font-bold flex items-center justify-center text-gold-500 shrink-0"
+                        >{{ match.away.short }}</span
+                      >
+                      <span class="truncate text-[11px]">{{
+                        match.away.nama
+                      }}</span>
+                    </div>
+                    <div class="flex items-center gap-1 shrink-0 ml-1.5">
+                      <span
+                        v-if="match.viaAgregatGol"
+                        class="text-[9px] text-slate-400 font-normal tabular-nums"
+                        title="Total Gol"
+                      >
+                        ({{ match.away.totalGol ?? match.golTeam2 }})
+                      </span>
+                      <span
+                        class="tabular-nums text-xs"
+                        :class="
+                          match.away.pemenang ? 'text-ucl-600' : 'text-slate-400'
+                        "
+                      >
+                        {{ match.selesai || match.isBo3 ? match.away.skor : "-" }}
+                      </span>
+                    </div>
+                  </div>
+
+                  <!-- Rincian Skor Game BO3 jika ada -->
+                  <div
+                    v-if="
+                      match.isBo3 &&
+                      match.rincianGames &&
+                      match.rincianGames.length > 0
+                    "
+                    class="pt-1 border-t border-slate-100 flex items-center justify-between text-[9px] text-slate-400"
+                  >
+                    <span
+                      v-for="rg in match.rincianGames"
+                      :key="`g-${rg.game}`"
+                      class="px-1 rounded bg-slate-50 font-mono"
+                      :class="
+                        rg.selesai
+                          ? 'text-slate-700 font-semibold'
+                          : 'text-slate-400'
+                      "
+                    >
+                      G{{ rg.game }}:
+                      {{ rg.selesai ? `${rg.skorT1}-${rg.skorT2}` : "—" }}
+                    </span>
+                  </div>
+                </div>
+              </div>
             </div>
-            <div class="px-3 py-1.5 rounded-full bg-white border border-slate-200 text-[11px] font-semibold text-ink-600 flex items-center justify-center gap-1.5">
-              <Flame class="w-3.5 h-3.5 text-ucl-600" />
-              Semi Final
+
+            <!-- ===== Connector Lines between columns ===== -->
+            <div
+              v-if="!adalahKolomTerakhir(kolom.id)"
+              class="bracket-konektor flex flex-col"
+              :style="{ width: '32px' }"
+            >
+              <div class="h-[34px] shrink-0"></div>
+              <div class="flex flex-col justify-around flex-1">
+                <div
+                  v-for="pIdx in Math.ceil(kolom.matches.length / 2)"
+                  :key="`conn-${kolom.id}-${pIdx}`"
+                  class="flex-1 flex items-center"
+                >
+                  <svg
+                    class="w-full h-full"
+                    preserveAspectRatio="none"
+                    viewBox="0 0 32 100"
+                  >
+                    <line
+                      x1="0"
+                      y1="25"
+                      x2="16"
+                      y2="25"
+                      stroke="#cbd5e1"
+                      stroke-width="1.5"
+                    />
+                    <line
+                      x1="0"
+                      y1="75"
+                      x2="16"
+                      y2="75"
+                      stroke="#cbd5e1"
+                      stroke-width="1.5"
+                    />
+                    <line
+                      x1="16"
+                      y1="25"
+                      x2="16"
+                      y2="75"
+                      stroke="#cbd5e1"
+                      stroke-width="1.5"
+                    />
+                    <line
+                      x1="16"
+                      y1="50"
+                      x2="32"
+                      y2="50"
+                      stroke="#cbd5e1"
+                      stroke-width="1.5"
+                    />
+                  </svg>
+                </div>
+              </div>
             </div>
-            <div class="px-3 py-1.5 rounded-full bg-gold-400/10 border border-gold-400/50 text-[11px] font-semibold text-amber-700 flex items-center justify-center gap-1.5">
+
+            <!-- Connector dari SF ke Final -->
+            <div
+              v-if="adalahKolomTerakhir(kolom.id)"
+              class="bracket-konektor flex flex-col"
+              :style="{ width: '32px' }"
+            >
+              <div class="h-[34px] shrink-0"></div>
+              <div class="flex flex-col justify-around flex-1">
+                <div class="flex-1 flex items-center">
+                  <svg
+                    class="w-full h-full"
+                    preserveAspectRatio="none"
+                    viewBox="0 0 32 100"
+                  >
+                    <line
+                      x1="0"
+                      y1="25"
+                      x2="16"
+                      y2="25"
+                      stroke="#cbd5e1"
+                      stroke-width="1.5"
+                    />
+                    <line
+                      x1="0"
+                      y1="75"
+                      x2="16"
+                      y2="75"
+                      stroke="#cbd5e1"
+                      stroke-width="1.5"
+                    />
+                    <line
+                      x1="16"
+                      y1="25"
+                      x2="16"
+                      y2="75"
+                      stroke="#cbd5e1"
+                      stroke-width="1.5"
+                    />
+                    <line
+                      x1="16"
+                      y1="50"
+                      x2="32"
+                      y2="50"
+                      stroke="#cbd5e1"
+                      stroke-width="1.5"
+                    />
+                  </svg>
+                </div>
+              </div>
+            </div>
+          </template>
+
+          <!-- ===== Grand Final Column ===== -->
+          <div class="bracket-kolom flex flex-col" :style="{ width: '250px' }">
+            <div
+              class="px-3 py-1.5 rounded-full bg-gold-400/10 border border-gold-400/40 text-[11px] font-semibold text-amber-700 flex items-center justify-center gap-1.5 mb-3 text-center shadow-sm mx-1"
+            >
               <Trophy class="w-3.5 h-3.5 text-gold-500" />
-              Grand Final
+              <span>Grand Final (BO3)</span>
             </div>
-            <div class="px-3 py-1.5 rounded-full bg-gradient-to-r from-gold-500 to-gold-400 text-[11px] font-semibold text-navy-950 flex items-center justify-center gap-1.5">
-              <Crown class="w-3.5 h-3.5" />
-              Juara
+
+            <div class="flex flex-col justify-center flex-1">
+              <div
+                class="bg-white border border-gold-400/40 rounded-xl shadow-md overflow-hidden"
+              >
+                <div class="p-3.5 space-y-2">
+                  <div
+                    class="flex items-center justify-between pb-1 border-b border-gold-400/20"
+                  >
+                    <span
+                      class="flex items-center gap-1 text-[11px] font-semibold text-amber-700 truncate"
+                    >
+                      <Trophy class="w-3.5 h-3.5 text-gold-500 shrink-0" />
+                      {{ baganData.final.label }}
+                    </span>
+                    <span
+                      class="px-2 py-0.5 rounded-full bg-gold-400/15 border border-gold-400/40 text-amber-700 font-semibold text-[9px] uppercase tracking-wider shrink-0"
+                    >
+                      {{
+                        baganData.final.selesai
+                          ? baganData.final.viaAgregatGol
+                            ? `FT (Agg ${baganData.final.golTeam1}–${baganData.final.golTeam2})`
+                            : "FT (BO3)"
+                          : "BO3"
+                      }}
+                    </span>
+                  </div>
+
+                  <!-- Final Home -->
+                  <div
+                    class="flex items-center justify-between px-2 py-1 rounded-md transition-all"
+                    :class="
+                      baganData.final.home.pemenang
+                        ? 'text-ucl-600 font-bold bg-ucl-50/50'
+                        : 'text-slate-600'
+                    "
+                  >
+                    <div class="flex items-center gap-2 truncate">
+                      <img
+                        v-if="baganData.final.home.logo_url"
+                        :src="baganData.final.home.logo_url"
+                        :alt="baganData.final.home.nama"
+                        class="w-6 h-6 rounded-md object-contain bg-white border border-slate-200 shrink-0"
+                      />
+                      <span
+                        v-else
+                        class="w-6 h-6 rounded-md bg-slate-100 border border-slate-200 text-[8px] font-bold text-blue-800 flex items-center justify-center shrink-0"
+                        >{{ baganData.final.home.short }}</span
+                      >
+                      <span class="truncate text-xs">{{
+                        baganData.final.home.nama
+                      }}</span>
+                    </div>
+                    <div class="flex items-center gap-1 shrink-0 ml-2">
+                      <span
+                        v-if="baganData.final.viaAgregatGol"
+                        class="text-[9px] text-slate-400 font-normal tabular-nums"
+                        title="Total Gol"
+                      >
+                        ({{ baganData.final.home.totalGol ?? baganData.final.golTeam1 }})
+                      </span>
+                      <span
+                        class="text-sm tabular-nums font-bold"
+                        :class="
+                          baganData.final.home.pemenang
+                            ? 'text-ucl-600'
+                            : 'text-slate-500'
+                        "
+                      >
+                        {{
+                          baganData.final.selesai || baganData.final.home.skor > 0
+                            ? baganData.final.home.skor
+                            : "-"
+                        }}
+                      </span>
+                    </div>
+                  </div>
+
+                  <!-- VS divider -->
+                  <div
+                    class="text-center text-[9px] font-semibold text-slate-300 tracking-widest"
+                  >
+                    VS
+                  </div>
+
+                  <!-- Final Away -->
+                  <div
+                    class="flex items-center justify-between px-2 py-1 rounded-md transition-all"
+                    :class="
+                      baganData.final.away.pemenang
+                        ? 'text-ucl-600 font-bold bg-ucl-50/50'
+                        : 'text-slate-600'
+                    "
+                  >
+                    <div class="flex items-center gap-2 truncate">
+                      <img
+                        v-if="baganData.final.away.logo_url"
+                        :src="baganData.final.away.logo_url"
+                        :alt="baganData.final.away.nama"
+                        class="w-6 h-6 rounded-md object-contain bg-white border border-slate-200 shrink-0"
+                      />
+                      <span
+                        v-else
+                        class="w-6 h-6 rounded-md bg-slate-100 border border-slate-200 text-[8px] font-bold text-amber-700 flex items-center justify-center shrink-0"
+                        >{{ baganData.final.away.short }}</span
+                      >
+                      <span class="truncate text-xs">{{
+                        baganData.final.away.nama
+                      }}</span>
+                    </div>
+                    <div class="flex items-center gap-1 shrink-0 ml-2">
+                      <span
+                        v-if="baganData.final.viaAgregatGol"
+                        class="text-[9px] text-slate-400 font-normal tabular-nums"
+                        title="Total Gol"
+                      >
+                        ({{ baganData.final.away.totalGol ?? baganData.final.golTeam2 }})
+                      </span>
+                      <span
+                        class="text-sm tabular-nums font-bold"
+                        :class="
+                          baganData.final.away.pemenang
+                            ? 'text-ucl-600'
+                            : 'text-slate-500'
+                        "
+                      >
+                        {{
+                          baganData.final.selesai || baganData.final.away.skor > 0
+                            ? baganData.final.away.skor
+                            : "-"
+                        }}
+                      </span>
+                    </div>
+                  </div>
+
+                  <!-- Rincian Game Final -->
+                  <div
+                    v-if="
+                      baganData.final.rincianGames &&
+                      baganData.final.rincianGames.length > 0
+                    "
+                    class="pt-1.5 border-t border-slate-100 flex items-center justify-around text-[9px]"
+                  >
+                    <span
+                      v-for="rg in baganData.final.rincianGames"
+                      :key="`fin-g-${rg.game}`"
+                      class="px-1.5 py-0.5 rounded bg-slate-50 font-mono"
+                      :class="
+                        rg.selesai
+                          ? 'text-slate-700 font-semibold'
+                          : 'text-slate-400'
+                      "
+                    >
+                      G{{ rg.game }}:
+                      {{ rg.selesai ? `${rg.skorT1}-${rg.skorT2}` : "—" }}
+                    </span>
+                  </div>
+
+                  <div
+                    class="text-center pt-1 text-[10px] text-slate-400 border-t border-slate-100"
+                  >
+                    {{
+                      baganData.final.selesai
+                        ? "BO3 Selesai · Juara Ditentukan"
+                        : "Best of 3 Series"
+                    }}
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
 
-          <div class="relative h-[520px]">
-            <svg class="absolute inset-0 w-full h-full pointer-events-none z-0" xmlns="http://www.w3.org/2000/svg">
-              <path d="M 235 58 H 275 V 123 H 315" fill="none" stroke="#CBD5E1" stroke-width="2" />
-              <circle cx="275" cy="123" r="3.5" fill="#CBD5E1" />
-              <path d="M 235 188 H 275 V 123" fill="none" stroke="#CBD5E1" stroke-width="2" />
-
-              <path d="M 235 318 H 275 V 383 H 315" fill="none" stroke="#CBD5E1" stroke-width="2" />
-              <circle cx="275" cy="383" r="3.5" fill="#CBD5E1" />
-              <path d="M 235 448 H 275 V 383" fill="none" stroke="#CBD5E1" stroke-width="2" />
-
-              <path d="M 550 123 H 590 V 253 H 630" fill="none" stroke="#CBD5E1" stroke-width="2" />
-              <circle cx="590" cy="253" r="3.5" fill="#CBD5E1" />
-              <path d="M 550 383 H 590 V 253" fill="none" stroke="#CBD5E1" stroke-width="2" />
-
-              <path d="M 865 253 H 905" fill="none" stroke="#2465EB" stroke-width="2" stroke-dasharray="4,3" />
-              <circle cx="905" cy="253" r="4" fill="#2465EB" />
-            </svg>
-
-            <div class="absolute left-0 top-0 w-[235px] h-full flex flex-col justify-between z-10">
+          <!-- Connector Final → Trophy -->
+          <div class="flex flex-col" :style="{ width: '32px' }">
+            <div class="h-[34px] shrink-0"></div>
+            <div class="flex flex-col justify-center flex-1 items-center">
               <div
-                v-for="match in baganData.perempatFinal"
-                :key="match.id"
-                class="h-[96px] bg-slate-50 border border-slate-200 hover:border-ucl-500/50 transition-colors rounded-lg p-2.5 flex flex-col justify-between"
-              >
-                <div class="flex items-center justify-between text-[10px] font-semibold text-slate-400 pb-1 border-b border-slate-200">
-                  <span>{{ match.label }}</span>
-                  <span>FT</span>
-                </div>
+                class="w-full h-[2px] bg-gradient-to-r from-slate-300 to-gold-400"
+              ></div>
+            </div>
+          </div>
 
-                <div
-                  class="flex items-center justify-between px-2 py-0.5 rounded-md text-xs transition-colors"
-                  :class="match.home.pemenang ? 'bg-white ring-1 ring-ucl-500/40 text-ink-900 font-semibold' : 'text-slate-400'"
-                >
-                  <div class="flex items-center gap-1.5 truncate">
-                    <span class="w-4 h-4 rounded-full bg-white border border-slate-300 text-[9px] font-semibold flex items-center justify-center text-navy-800 shrink-0">{{ match.home.short }}</span>
-                    <span class="truncate">{{ match.home.nama }}</span>
-                  </div>
-                  <span class="font-semibold tabular-nums text-xs ml-2" :class="match.home.pemenang ? 'text-ucl-600' : 'text-slate-400'">{{ match.selesai ? match.home.skor : '-' }}</span>
-                </div>
-
-                <div
-                  class="flex items-center justify-between px-2 py-0.5 rounded-md text-xs transition-colors"
-                  :class="match.away.pemenang ? 'bg-white ring-1 ring-ucl-500/40 text-ink-900 font-semibold' : 'text-slate-400'"
-                >
-                  <div class="flex items-center gap-1.5 truncate">
-                    <span class="w-4 h-4 rounded-full bg-white border border-slate-300 text-[9px] font-semibold flex items-center justify-center text-navy-800 shrink-0">{{ match.away.short }}</span>
-                    <span class="truncate">{{ match.away.nama }}</span>
-                  </div>
-                  <span class="font-semibold tabular-nums text-xs ml-2" :class="match.away.pemenang ? 'text-ucl-600' : 'text-slate-400'">{{ match.selesai ? match.away.skor : '-' }}</span>
-                </div>
-              </div>
+          <!-- ===== Trophy / Winner Column ===== -->
+          <div class="bracket-kolom flex flex-col" :style="{ width: '210px' }">
+            <div
+              class="px-3 py-1.5 rounded-full bg-gradient-to-r from-gold-500 to-gold-400 text-[11px] font-semibold text-navy-950 flex items-center justify-center gap-1.5 mb-3 text-center shadow-sm mx-1"
+            >
+              <Crown class="w-3.5 h-3.5" />
+              <span>Juara</span>
             </div>
 
-            <div class="absolute left-[315px] top-0 w-[235px] h-full flex flex-col justify-around z-10">
+            <div class="flex flex-col justify-center flex-1">
               <div
-                v-for="match in baganData.semiFinal"
-                :key="match.id"
-                class="h-[106px] bg-slate-50 border border-slate-200 hover:border-ucl-500/50 transition-colors rounded-lg p-2.5 flex flex-col justify-between"
+                class="bg-white border border-gold-400/40 rounded-xl shadow-lift overflow-hidden"
               >
-                <div class="flex items-center justify-between text-[10px] font-semibold text-slate-400 pb-1 border-b border-slate-200">
-                  <span class="flex items-center gap-1">
-                    <Flame class="w-3 h-3 text-ucl-600" />
-                    {{ match.label }}
-                  </span>
-                  <span>FT</span>
-                </div>
-
-                <div
-                  class="flex items-center justify-between px-2 py-1 rounded-md text-xs transition-colors"
-                  :class="match.home.pemenang ? 'bg-white ring-1 ring-ucl-500/40 text-ink-900 font-semibold' : 'text-slate-400'"
-                >
-                  <div class="flex items-center gap-1.5 truncate">
-                    <span class="w-5 h-5 rounded-full bg-white border border-slate-300 text-[10px] font-semibold flex items-center justify-center text-navy-800 shrink-0">{{ match.home.short }}</span>
-                    <span class="truncate">{{ match.home.nama }}</span>
-                  </div>
-                  <span class="tabular-nums text-sm ml-2 font-semibold" :class="match.home.pemenang ? 'text-ucl-600' : 'text-slate-400'">{{ match.selesai ? match.home.skor : '-' }}</span>
-                </div>
-
-                <div
-                  class="flex items-center justify-between px-2 py-1 rounded-md text-xs transition-colors"
-                  :class="match.away.pemenang ? 'bg-white ring-1 ring-ucl-500/40 text-ink-900 font-semibold' : 'text-slate-400'"
-                >
-                  <div class="flex items-center gap-1.5 truncate">
-                    <span class="w-5 h-5 rounded-full bg-white border border-slate-300 text-[10px] font-semibold flex items-center justify-center text-navy-800 shrink-0">{{ match.away.short }}</span>
-                    <span class="truncate">{{ match.away.nama }}</span>
-                  </div>
-                  <span class="tabular-nums text-sm ml-2 font-semibold" :class="match.away.pemenang ? 'text-ucl-600' : 'text-slate-400'">{{ match.selesai ? match.away.skor : '-' }}</span>
-                </div>
-              </div>
-            </div>
-
-            <div class="absolute left-[630px] top-0 w-[235px] h-full flex flex-col justify-center z-10">
-              <div class="bg-white border border-gold-400/50 ring-1 ring-gold-400/50 rounded-lg shadow-card overflow-hidden">
-                <div class="p-3.5 space-y-2.5">
-                  <div class="flex items-center justify-between pb-1.5 border-b border-slate-100">
-                    <span class="flex items-center gap-1 text-[11px] font-semibold text-amber-700">
-                      <Trophy class="w-3.5 h-3.5 text-gold-500" />
-                      {{ baganData.final.label }}
-                    </span>
-                    <span class="px-2 py-0.5 rounded-full bg-gold-400/15 border border-gold-400/50 text-amber-700 font-semibold text-[10px] uppercase tracking-wider">Final</span>
-                  </div>
-
+                <div class="p-4 text-center space-y-2.5">
                   <div
-                    class="flex items-center justify-between px-2.5 py-1.5 rounded-md transition-all"
-                    :class="baganData.final.home.pemenang ? 'bg-ucl-50 ring-1 ring-ucl-500/40 text-ink-900 font-semibold' : 'text-slate-400'"
+                    class="mx-auto w-14 h-14 flex items-center justify-center"
                   >
-                    <div class="flex items-center gap-2 truncate">
-                      <span class="w-5 h-5 rounded-full bg-white border border-slate-300 text-[10px] font-semibold flex items-center justify-center text-navy-800 shrink-0">{{ baganData.final.home.short }}</span>
-                      <span class="truncate text-xs">{{ baganData.final.home.nama }}</span>
-                    </div>
-                    <span class="text-base font-semibold tabular-nums ml-2" :class="baganData.final.home.pemenang ? 'text-ucl-600' : 'text-slate-400'">{{ baganData.final.selesai ? baganData.final.home.skor : '-' }}</span>
-                  </div>
-
-                  <div
-                    class="flex items-center justify-between px-2.5 py-1.5 rounded-md transition-all"
-                    :class="baganData.final.away.pemenang ? 'bg-ucl-50 ring-1 ring-ucl-500/40 text-ink-900 font-semibold' : 'text-slate-400'"
-                  >
-                    <div class="flex items-center gap-2 truncate">
-                      <span class="w-5 h-5 rounded-full bg-white border border-slate-300 text-[10px] font-semibold flex items-center justify-center text-navy-800 shrink-0">{{ baganData.final.away.short }}</span>
-                      <span class="truncate text-xs">{{ baganData.final.away.nama }}</span>
-                    </div>
-                    <span class="text-base font-semibold tabular-nums ml-2" :class="baganData.final.away.pemenang ? 'text-ucl-600' : 'text-slate-400'">{{ baganData.final.selesai ? baganData.final.away.skor : '-' }}</span>
-                  </div>
-
-                  <div class="text-center pt-1 text-[11px] text-slate-400">
-                    Full Time · Menentukan Juara
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <div class="absolute left-[905px] top-0 w-[235px] h-full flex flex-col justify-center z-10">
-              <div class="bg-white border border-gold-400/50 ring-1 ring-gold-400/50 rounded-xl shadow-lift overflow-hidden">
-                <div class="p-5 text-center space-y-2.5">
-                  <div class="mx-auto w-16 h-16 flex items-center justify-center relative">
-                    <img :src="pialaPcl" alt="Piala PCL" class="w-full h-full object-contain drop-shadow-md" />
+                    <img
+                      :src="pialaPcl"
+                      alt="Piala PCL"
+                      class="w-full h-full object-contain drop-shadow-md"
+                    />
                   </div>
 
                   <div>
-                    <span class="inline-block px-2.5 py-0.5 rounded-full bg-gold-400/15 border border-gold-400/50 text-amber-700 text-[10px] font-semibold uppercase tracking-wider">
-                      Juara 1
+                    <span
+                      class="inline-block px-2 py-0.5 rounded-full bg-gold-400/15 border border-gold-400/40 text-amber-700 text-[9px] font-semibold uppercase tracking-wider"
+                    >
+                      Juara PCL
                     </span>
-                    <h3 class="font-display text-base font-semibold tracking-tight text-ink-900 mt-1">
-                      {{ baganData.final.juara?.nama || 'Menunggu Juara' }}
+                    <h3
+                      class="font-display text-sm font-semibold tracking-tight text-ink-900 mt-1 line-clamp-2"
+                    >
+                      {{ baganData.final.juara?.nama || "Menunggu Juara" }}
                     </h3>
-                    <p class="text-xs text-slate-400 mt-0.5">
+                    <p class="text-[10px] text-slate-400 mt-0.5">
                       Peak Champions League 2026
                     </p>
                   </div>
                 </div>
               </div>
             </div>
-
           </div>
         </div>
       </div>

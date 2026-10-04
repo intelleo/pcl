@@ -1,6 +1,7 @@
 <script setup>
 import { ref } from "vue";
 import { useRouter, useRoute } from "vue-router";
+import { useAuth } from "../../composables/useAuth.js";
 import {
   Trophy,
   Calendar,
@@ -9,22 +10,23 @@ import {
   Shield,
   Menu,
   X,
-  ShieldAlert,
+  ShieldCheck,
   Newspaper,
   Crown,
+  LogOut,
 } from "lucide-vue-next";
 import logoPcl from "@/assets/img/logoo.webp";
 
 const router = useRouter();
 const route = useRoute();
 const menuTerbuka = ref(false);
+const { adminAktif, terotentikasi, keluarAdmin } = useAuth();
 
 const daftarMenu = [
   { nama: "Beranda", rute: "/", ikon: Trophy },
   { nama: "Turnamen", rute: "/turnamen", ikon: Shield },
-  { nama: "Jadwal & Hasil", rute: "/jadwal", ikon: Calendar },
+  { nama: "Jadwal & Tim", rute: "/jadwal", ikon: Calendar },
   { nama: "Statistik", rute: "/statistik", ikon: BarChart3 },
-  { nama: "Tim", rute: "/tim", ikon: Users },
   { nama: "Riwayat Juara", rute: "/riwayat-juara", ikon: Crown },
   { nama: "Berita", rute: "/berita", ikon: Newspaper },
 ];
@@ -32,6 +34,11 @@ const daftarMenu = [
 function navigasi(rute) {
   menuTerbuka.value = false;
   router.push(rute);
+}
+
+function handleLogout() {
+  keluarAdmin();
+  router.push("/");
 }
 </script>
 
@@ -75,7 +82,7 @@ function navigasi(rute) {
             @click="navigasi(item.rute)"
             class="relative px-3 text-sm font-medium transition-colors cursor-pointer focus:outline-none focus-visible:text-ucl-600"
             :class="
-              route.path === item.rute
+              route.path === item.rute || (item.rute === '/admin' && route.path.startsWith('/admin'))
                 ? 'text-ucl-600 font-semibold'
                 : 'text-slate-600 hover:text-ink-900'
             "
@@ -85,18 +92,37 @@ function navigasi(rute) {
                 :is="item.ikon"
                 class="w-4 h-4"
                 :class="
-                  route.path === item.rute ? 'text-ucl-600' : 'text-slate-400'
+                  route.path === item.rute || (item.rute === '/admin' && route.path.startsWith('/admin')) ? 'text-ucl-600' : 'text-slate-400'
                 "
               />
               {{ item.nama }}
             </span>
             <span
-              v-if="route.path === item.rute"
+              v-if="route.path === item.rute || (item.rute === '/admin' && route.path.startsWith('/admin'))"
               aria-hidden="true"
               class="absolute inset-x-2 bottom-0 h-[3px] rounded-t-full bg-ucl-600"
             ></span>
           </button>
         </nav>
+
+        <!-- Admin Badge & Logout (Desktop) - Hanya saat Terotentikasi -->
+        <div v-if="terotentikasi" class="hidden md:flex items-center gap-2 ml-2">
+          <button
+            @click="navigasi('/admin')"
+            class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border text-xs font-semibold transition-colors cursor-pointer"
+            :class="route.path.startsWith('/admin') ? 'bg-emerald-600 text-white border-emerald-600' : 'bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100'"
+          >
+            <ShieldCheck class="w-3.5 h-3.5" />
+            {{ adminAktif?.nama || 'Admin' }}
+          </button>
+          <button
+            @click="handleLogout"
+            class="p-1.5 rounded-lg text-slate-400 hover:text-red-600 hover:bg-red-50 transition-colors cursor-pointer"
+            title="Keluar Admin"
+          >
+            <LogOut class="w-4 h-4" />
+          </button>
+        </div>
 
         <div class="md:hidden flex items-center">
           <button
@@ -143,6 +169,24 @@ function navigasi(rute) {
             />
             {{ item.nama }}
           </button>
+
+          <!-- Mobile Admin Section - Hanya saat Terotentikasi -->
+          <div v-if="terotentikasi" class="pt-2 mt-2 border-t border-slate-100 flex items-center justify-between px-3">
+            <button
+              @click="navigasi('/admin')"
+              class="inline-flex items-center gap-1.5 text-xs font-semibold text-emerald-700"
+            >
+              <ShieldCheck class="w-4 h-4 text-emerald-600" />
+              {{ adminAktif?.nama || 'Admin PCL' }}
+            </button>
+            <button
+              @click="handleLogout"
+              class="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-semibold text-red-600 hover:bg-red-50 cursor-pointer"
+            >
+              <LogOut class="w-3.5 h-3.5" />
+              Keluar
+            </button>
+          </div>
         </nav>
       </div>
     </Transition>

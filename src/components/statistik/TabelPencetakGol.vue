@@ -32,23 +32,33 @@ defineProps({
         <div
           v-for="(item, idx) in data"
           :key="item.player_id"
-          class="flex items-center justify-between px-4 sm:px-5 py-2.5 transition-colors hover:bg-ucl-50/50"
+          class="flex items-center justify-between px-4 sm:px-5 py-2.5 transition-colors hover:bg-slate-50/80"
         >
           <div class="flex items-center gap-3 min-w-0">
             <span
               class="w-6 h-6 flex items-center justify-center shrink-0 rounded-full text-xs tabular-nums transition-colors"
-              :class="idx < 3 ? 'font-semibold text-ucl-600 bg-ucl-50' : 'text-slate-400'"
+              :class="idx < 3 ? 'font-bold text-gold-600 bg-amber-50 border border-gold-300' : 'text-slate-400 font-normal'"
             >
               {{ idx + 1 }}
             </span>
             <div class="min-w-0">
-              <div class="text-sm font-medium text-ink-900 truncate">{{ item.name }}</div>
+              <div
+                class="text-sm truncate"
+                :class="idx < 3 ? 'font-bold text-gold-600' : 'font-medium text-ink-900'"
+              >
+                {{ item.name }}
+              </div>
               <div class="mt-0.5 text-[11px] text-ink-400">{{ item.team_short }} · Penyerang</div>
             </div>
           </div>
 
           <div class="shrink-0 ml-2">
-            <span class="text-base font-semibold tabular-nums text-ink-900">{{ item.total }}</span>
+            <span
+              class="text-base tabular-nums"
+              :class="idx < 3 ? 'font-bold text-gold-600' : 'font-semibold text-ink-900'"
+            >
+              {{ item.total }}
+            </span>
           </div>
         </div>
       </div>

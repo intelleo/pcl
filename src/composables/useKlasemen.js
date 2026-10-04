@@ -1,5 +1,6 @@
 import { ref } from 'vue'
-import { supabase } from '../lib/supabase.js'
+import { api } from '../lib/api.js'
+import { getCache, setCache } from '../lib/cache.js'
 
 /**
  * Menghitung klasemen tim berdasarkan daftar pertandingan yang berstatus finished.
@@ -89,55 +90,33 @@ export function hitungKlasemen(daftarPertandingan = [], daftarTim = []) {
 }
 
 /**
- * Composable Vue untuk state dan fetching klasemen dari Supabase.
+ * Composable Vue untuk state dan fetching klasemen.
  */
 export function useKlasemen() {
   const sedangMemuat = ref(false)
   const pesanKesalahan = ref(null)
   const klasemenPerGrup = ref({})
 
-  async function ambilKlasemenGrup(tournamentId) {
+  async function ambilKlasemenGrup(tournamentId, forceFresh = false) {
+    const cacheKey = `standings_${tournamentId || 'all'}`
+    if (!forceFresh) {
+      const cached = getCache(cacheKey)
+      if (cached) {
+        klasemenPerGrup.value = cached
+        return
+      }
+    }
+
     sedangMemuat.value = true
     pesanKesalahan.value = null
 
     try {
-      // Ambil grup, tim, dan laga
-      let qGrup = supabase.from('pcl_tournament_groups').select('*')
-      let qTim = supabase.from('pcl_teams').select('*')
-      let qLaga = supabase.from('pcl_matches').select('*').eq('stage', 'group')
+      const params = {}
+      if (tournamentId) params.tournament_id = tournamentId
 
-      if (tournamentId) {
-        qGrup = qGrup.eq('tournament_id', tournamentId)
-        qTim = qTim.eq('tournament_id', tournamentId)
-        qLaga = qLaga.eq('tournament_id', tournamentId)
-      }
-
-      const [resGrup, resTim, resLaga] = await Promise.all([
-        qGrup,
-        qTim,
-        qLaga
-      ])
-
-      if (resGrup.error) throw resGrup.error
-      if (resTim.error) throw resTim.error
-      if (resLaga.error) throw resLaga.error
-
-      const grupList = resGrup.data || []
-      const timList = resTim.data || []
-      const lagaList = resLaga.data || []
-
-      const hasil = {}
-      grupList.forEach(grup => {
-        const lagaGrup = lagaList.filter(m => m.group_id === grup.id)
-        const timDiGrup = timList.filter(t => t.group_name === grup.name || !t.group_name)
-        hasil[grup.id] = {
-          id: grup.id,
-          nama: grup.name,
-          klasemen: hitungKlasemen(lagaGrup, timDiGrup.length > 0 ? timDiGrup : timList)
-        }
-      })
-
-      klasemenPerGrup.value = hasil
+      const hasil = await api.getStandings(params)
+      klasemenPerGrup.value = hasil || {}
+      setCache(cacheKey, hasil, 30000) // TTL 30s
     } catch (err) {
       pesanKesalahan.value = err.message
       klasemenPerGrup.value = {}
@@ -154,4 +133,3 @@ export function useKlasemen() {
     ambilKlasemenGrup
   }
 }
-

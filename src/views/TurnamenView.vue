@@ -1,174 +1,251 @@
 <script setup>
-import { ref, onMounted, computed } from 'vue'
-import { useKlasemen } from '../composables/useKlasemen.js'
-import { supabase } from '../lib/supabase.js'
-import TabelKlasemenGrup from '../components/turnamen/TabelKlasemenGrup.vue'
-import BaganFaseGugur from '../components/turnamen/BaganFaseGugur.vue'
-import { Shield, GitBranch } from 'lucide-vue-next'
+import { ref, onMounted, computed, watch } from "vue";
+import { useRoute, useRouter } from "vue-router";
+import { api } from "../lib/api.js";
+import { getCache, setCache } from "../lib/cache.js";
+import { useKlasemen } from "../composables/useKlasemen.js";
+import { bentukDataBagan } from "../composables/useKnockout.js";
+import BaganFaseGugur from "../components/turnamen/BaganFaseGugur.vue";
+import TabelKlasemenGrup from "../components/turnamen/TabelKlasemenGrup.vue";
+import { Trophy, GitBranch, LayoutGrid, ShieldAlert, Sparkles, CheckCircle2, Calendar, ChevronDown } from "lucide-vue-next";
 
-const tabAktif = ref('grup')
-const { sedangMemuat, klasemenPerGrup, ambilKlasemenGrup } = useKlasemen()
-const sedangMemuatBagan = ref(false)
-const lagaKnockout = ref([])
+const route = useRoute();
+const router = useRouter();
 
-async function ambilBaganGugur() {
-  sedangMemuatBagan.value = true
+// === Season Selector ===
+const daftarSeason = ref([]);
+const seasonTerpilihId = ref(null);
+const sedangMemuatSeason = ref(false);
+
+const seasonTerpilih = computed(() =>
+  daftarSeason.value.find((s) => s.id === seasonTerpilihId.value) || null
+);
+
+async function muatDaftarSeason() {
+  sedangMemuatSeason.value = true;
   try {
-    const { data, error } = await supabase
-      .from('pcl_matches')
-      .select(`
-        *,
-        home_team:pcl_teams!pcl_matches_home_team_id_fkey(*),
-        away_team:pcl_teams!pcl_matches_away_team_id_fkey(*)
-      `)
-      .in('stage', ['quarter_final', 'semi_final', 'final'])
-      .order('created_at', { ascending: true })
-
-    if (!error && data) {
-      lagaKnockout.value = data
-    }
-  } catch (err) {
-    lagaKnockout.value = []
+    const data = await api.getTournaments();
+    daftarSeason.value = data || [];
+    // Default: season aktif (belum completed) atau terbaru
+    const aktif = (data || []).find((s) => s.status !== "completed");
+    seasonTerpilihId.value = aktif?.id || (data || [])[0]?.id || null;
+  } catch {
+    daftarSeason.value = [];
   } finally {
-    sedangMemuatBagan.value = false
+    sedangMemuatSeason.value = false;
+  }
+}
+
+watch(seasonTerpilihId, (newId) => {
+  if (newId) {
+    ambilKlasemenGrup(newId, true);
+    ambilBaganGugur(true);
+  }
+});
+
+// Tab: 'grup' | 'knockout'
+const tabAktif = ref(route.query.tab === "knockout" ? "knockout" : "grup");
+
+watch(
+  () => route.query.tab,
+  (newTab) => {
+    if (newTab === "grup" || newTab === "knockout") {
+      tabAktif.value = newTab;
+    }
+    if (newTab === "knockout") {
+      ambilBaganGugur(true);
+    }
+  }
+);
+
+function gantiTab(tab) {
+  tabAktif.value = tab;
+  router.replace({ query: { ...route.query, tab } });
+  if (tab === "knockout") {
+    ambilBaganGugur(true);
+  }
+}
+
+// 1. Logika Klasemen Fase Grup
+const { sedangMemuat: sedangMemuatKlasemen, klasemenPerGrup, ambilKlasemenGrup } = useKlasemen();
+
+const grupTersedia = computed(() => {
+  return Object.values(klasemenPerGrup.value || {}).filter(
+    (g) => g && g.klasemen && g.klasemen.length > 0
+  );
+});
+
+// 2. Logika Bagan Knockout
+const sedangMemuatBagan = ref(false);
+const lagaKnockout = ref([]);
+
+async function ambilBaganGugur(forceFresh = false) {
+  if (!forceFresh) {
+    const cached = getCache(`knockout_matches_${seasonTerpilihId.value || 'all'}`);
+    if (cached) {
+      lagaKnockout.value = cached;
+      return;
+    }
+  }
+
+  sedangMemuatBagan.value = true;
+  try {
+    const params = {};
+    if (seasonTerpilihId.value) params.tournament_id = seasonTerpilihId.value;
+    const data = await api.getMatches(params);
+    const knockoutStages = [
+      "round_of_32",
+      "round_of_16",
+      "quarter_final",
+      "semi_final",
+      "final",
+    ];
+    const filtered = (data || []).filter((m) =>
+      knockoutStages.includes(m.stage)
+    );
+
+    lagaKnockout.value = filtered;
+    setCache(`knockout_matches_${seasonTerpilihId.value || 'all'}`, filtered, 30000);
+  } catch (err) {
+    lagaKnockout.value = [];
+  } finally {
+    sedangMemuatBagan.value = false;
   }
 }
 
 onMounted(async () => {
-  await Promise.all([
-    ambilKlasemenGrup('sample-tournament-id'),
-    ambilBaganGugur()
-  ])
-})
+  await muatDaftarSeason();
+});
 
-const dataBaganDinamic = computed(() => {
-  const qfMatches = lagaKnockout.value.filter(m => m.stage === 'quarter_final')
-  const sfMatches = lagaKnockout.value.filter(m => m.stage === 'semi_final')
-  const finalMatch = lagaKnockout.value.find(m => m.stage === 'final')
-
-  const formatLaga = (m, defaultLabel) => {
-    if (!m) return null
-    const homeScore = Number(m.home_score || 0)
-    const awayScore = Number(m.away_score || 0)
-    const selesai = m.status === 'finished'
-    return {
-      id: m.id,
-      label: m.knockout_bracket_slot || defaultLabel,
-      home: {
-        nama: m.home_team?.name || 'TBD',
-        short: m.home_team?.short_name || '-',
-        skor: homeScore,
-        pemenang: selesai && homeScore > awayScore
-      },
-      away: {
-        nama: m.away_team?.name || 'TBD',
-        short: m.away_team?.short_name || '-',
-        skor: awayScore,
-        pemenang: selesai && awayScore > homeScore
-      },
-      selesai
-    }
-  }
-
-  const qfList = [0, 1, 2, 3].map(i => formatLaga(qfMatches[i], `QF ${i + 1}`) || {
-    id: `qf-${i + 1}`,
-    label: `QF ${i + 1}`,
-    home: { nama: `Juara Grup ${String.fromCharCode(65 + i)}`, short: `1${String.fromCharCode(65 + i)}`, skor: 0, pemenang: false },
-    away: { nama: `Runner-up Grup ${String.fromCharCode(65 + ((i + 1) % 4))}`, short: `2${String.fromCharCode(65 + ((i + 1) % 4))}`, skor: 0, pemenang: false },
-    selesai: false
-  })
-
-  const sfList = [0, 1].map(i => formatLaga(sfMatches[i], `Semi Final ${i + 1}`) || {
-    id: `sf-${i + 1}`,
-    label: `Semi Final ${i + 1}`,
-    home: { nama: `Pemenang QF ${i * 2 + 1}`, short: `W${i * 2 + 1}`, skor: 0, pemenang: false },
-    away: { nama: `Pemenang QF ${i * 2 + 2}`, short: `W${i * 2 + 2}`, skor: 0, pemenang: false },
-    selesai: false
-  })
-
-  let fin = formatLaga(finalMatch, 'Grand Final PCL 2026')
-  if (!fin) {
-    fin = {
-      id: 'fin',
-      label: 'Grand Final PCL 2026',
-      home: { nama: 'Pemenang SF 1', short: 'F1', skor: 0, pemenang: false },
-      away: { nama: 'Pemenang SF 2', short: 'F2', skor: 0, pemenang: false },
-      selesai: false,
-      juara: null
-    }
-  } else {
-    const homeMenang = fin.home.pemenang
-    const awayMenang = fin.away.pemenang
-    const timJuara = homeMenang ? finalMatch.home_team : awayMenang ? finalMatch.away_team : null
-    fin.juara = timJuara ? {
-      nama: timJuara.name,
-      short: timJuara.short_name,
-      trofi: 'Peak Champions League Trophy 2026'
-    } : null
-  }
-
-  return {
-    perempatFinal: qfList,
-    semiFinal: sfList,
-    final: fin
-  }
-})
+const dataBaganDinamic = computed(() => bentukDataBagan(lagaKnockout.value));
 </script>
 
 <template>
   <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-10 pb-16 space-y-6 sm:space-y-8">
-    <!-- Header -->
+    <!-- Header Hero Turnamen -->
     <div class="anim-muncul flex flex-col md:flex-row md:items-end justify-between gap-5 pb-6 border-b border-slate-200">
       <div>
-        <span class="text-xs font-semibold uppercase tracking-[0.14em] text-gold-600">Turnamen PCL 2026</span>
-        <h1 class="font-display text-2xl sm:text-3xl font-semibold tracking-tight text-ink-900 mt-1">
-          Fase &amp; bagan turnamen
+        <span class="text-xs font-semibold uppercase tracking-[0.14em] text-gold-600">Turnamen PCL</span>
+        <h1 class="font-display text-2xl sm:text-3xl font-semibold tracking-tight text-ink-900 mt-1 flex items-center gap-2.5">
+          <Trophy class="w-7 h-7 text-gold-600 shrink-0" />
+          Format &amp; Bagan Turnamen
         </h1>
-        <p class="text-sm sm:text-base text-ink-400 max-w-2xl mt-1 leading-relaxed">
-          Pantau peringkat fase grup dan jalannya bagan gugur menuju grand final.
+        <p class="text-xs sm:text-sm text-slate-500 mt-1">
+          16 Klub bersaing di 4 Grup. 2 tim teratas lolos ke Perempat Final (8 Besar) hingga Grand Final.
         </p>
       </div>
 
-      <!-- Tabs -->
-      <div class="inline-flex p-1 rounded-full bg-slate-100 w-full md:w-auto shrink-0 self-start md:self-auto">
+      <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 shrink-0">
+        <!-- Season Selector -->
+        <div v-if="daftarSeason.length > 1" class="relative">
+          <select
+            v-model="seasonTerpilihId"
+            class="appearance-none bg-white border border-slate-300 rounded-xl pl-3.5 pr-9 py-2 text-xs font-semibold text-ink-900 cursor-pointer hover:border-ucl-400 focus:border-ucl-500 outline-none transition-colors shadow-sm w-full sm:w-auto min-w-[180px]"
+          >
+            <option v-for="s in daftarSeason" :key="s.id" :value="s.id">
+              {{ s.name }} ({{ s.season }}){{ s.status !== 'completed' ? ' — Aktif' : '' }}
+            </option>
+          </select>
+          <ChevronDown class="w-3.5 h-3.5 text-slate-400 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+        </div>
+
+        <!-- Tab Switcher (Fase Grup vs Bagan Knockout) -->
+        <div class="inline-flex p-1 bg-slate-100 rounded-xl shrink-0">
         <button
-          @click="tabAktif = 'grup'"
-          class="flex-1 md:flex-initial flex items-center justify-center gap-1.5 px-4 py-2 rounded-full text-sm font-semibold transition-all cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-ucl-500/40"
-          :class="tabAktif === 'grup' ? 'bg-white text-ink-900 shadow-card' : 'text-slate-500 hover:text-ink-900'"
+          @click="gantiTab('grup')"
+          class="py-2 px-4 rounded-lg text-xs sm:text-sm font-semibold transition-all flex items-center gap-2 cursor-pointer"
+          :class="tabAktif === 'grup' ? 'bg-white text-ucl-700 shadow-sm' : 'text-slate-600 hover:text-ink-900'"
         >
-          <Shield class="w-4 h-4" :class="tabAktif === 'grup' ? 'text-ucl-600' : 'text-slate-400'" />
-          Fase Grup
+          <LayoutGrid class="w-4 h-4" />
+          <span>Fase Grup (4 Grup)</span>
         </button>
+
         <button
-          @click="tabAktif = 'knockout'"
-          class="flex-1 md:flex-initial flex items-center justify-center gap-1.5 px-4 py-2 rounded-full text-sm font-semibold transition-all cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-ucl-500/40"
-          :class="tabAktif === 'knockout' ? 'bg-white text-ink-900 shadow-card' : 'text-slate-500 hover:text-ink-900'"
+          @click="gantiTab('knockout')"
+          class="py-2 px-4 rounded-lg text-xs sm:text-sm font-semibold transition-all flex items-center gap-2 cursor-pointer"
+          :class="tabAktif === 'knockout' ? 'bg-white text-ucl-700 shadow-sm' : 'text-slate-600 hover:text-ink-900'"
         >
-          <GitBranch class="w-4 h-4" :class="tabAktif === 'knockout' ? 'text-ucl-600' : 'text-slate-400'" />
-          Bagan Gugur
+          <GitBranch class="w-4 h-4" />
+          <span>Bagan Fase Gugur</span>
         </button>
+      </div>
       </div>
     </div>
 
-    <!-- Fase Grup -->
+    <!-- TAB 1: KLASEMEN FASE GRUP -->
     <div v-if="tabAktif === 'grup'" class="space-y-6">
-      <div v-if="sedangMemuat" class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <div v-for="n in 2" :key="n" class="h-64 rounded-xl bg-white border border-slate-200 animate-pulse"></div>
+      <!-- Info Format Banner -->
+      <div class="p-4 rounded-xl bg-gradient-to-r from-ucl-50 via-white to-gold-50/40 border border-ucl-100 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
+        <div class="flex items-center gap-2.5 text-ink-900 font-medium">
+          <Sparkles class="w-4 h-4 text-gold-600 shrink-0" />
+          <span>Format: <strong class="text-ucl-700">4 Grup x 4 Klub</strong>. Setiap tim bertanding 3 laga (Round Robin).</span>
+        </div>
+        <div class="inline-flex items-center gap-1.5 text-ucl-700 font-semibold px-2.5 py-1 rounded-lg bg-ucl-100/70 border border-ucl-200 shrink-0">
+          <CheckCircle2 class="w-3.5 h-3.5 text-emerald-600" />
+          <span>Top 2 Tiap Grup Maju ke Babak 8 Besar</span>
+        </div>
       </div>
 
+      <!-- Loading State -->
+      <div v-if="sedangMemuatKlasemen" class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div v-for="n in 4" :key="n" class="h-64 rounded-xl bg-white border border-slate-200 animate-pulse"></div>
+      </div>
+
+      <!-- Empty State jika belum ada grup yang diundi -->
+      <div
+        v-else-if="grupTersedia.length === 0"
+        class="bg-white border border-slate-200 rounded-xl p-12 text-center shadow-card space-y-3"
+      >
+        <div class="w-12 h-12 rounded-full bg-ucl-50 border border-ucl-200 text-ucl-600 flex items-center justify-center mx-auto">
+          <LayoutGrid class="w-6 h-6" />
+        </div>
+        <h3 class="text-base font-semibold text-ink-900">
+          Fase Grup Belum Diundi
+        </h3>
+        <p class="text-xs text-slate-500 max-w-md mx-auto">
+          Panitia turnamen belum mengocok pembagian grup untuk musim ini.
+          Klasemen akan aktif segera setelah proses drawing grup diterapkan.
+        </p>
+      </div>
+
+      <!-- Grid 4 Klasemen Grup -->
       <div v-else class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <TabelKlasemenGrup
-          v-for="grup in klasemenPerGrup"
+        <div
+          v-for="grup in grupTersedia"
           :key="grup.id"
-          :namaGrup="grup.nama"
-          :klasemen="grup.klasemen"
-        />
+          class="anim-muncul"
+        >
+          <TabelKlasemenGrup
+            :namaGrup="grup.nama"
+            :klasemen="grup.klasemen"
+          />
+        </div>
       </div>
     </div>
 
-    <!-- Bagan Knockout -->
+    <!-- TAB 2: BAGAN FASE GUGUR KNOCKOUT -->
     <div v-else-if="tabAktif === 'knockout'" class="space-y-6">
-      <BaganFaseGugur :baganData="dataBaganDinamic" />
+      <!-- Empty State jika belum ada laga yang di-generate -->
+      <div
+        v-if="!sedangMemuatBagan && lagaKnockout.length === 0"
+        class="bg-white border border-slate-200 rounded-xl p-12 text-center shadow-card space-y-3"
+      >
+        <div class="w-12 h-12 rounded-full bg-ucl-50 border border-ucl-200 text-ucl-600 flex items-center justify-center mx-auto">
+          <Trophy class="w-6 h-6" />
+        </div>
+        <h3 class="text-base font-semibold text-ink-900">
+          Bagan Turnamen Belum Diundi
+        </h3>
+        <p class="text-xs text-slate-500 max-w-md mx-auto">
+          Panitia belum melakukan pengundian bagan knockout untuk musim ini.
+          Jadwal akan muncul otomatis setelah drawing selesai.
+        </p>
+      </div>
+
+      <!-- Interactive Tree Bracket Component -->
+      <div v-else class="anim-muncul space-y-6">
+        <BaganFaseGugur :baganData="dataBaganDinamic" />
+      </div>
     </div>
   </div>
 </template>

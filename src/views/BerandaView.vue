@@ -1,20 +1,19 @@
 <script setup>
 import { ref, computed, onMounted } from "vue";
 import { useRouter } from "vue-router";
-import { supabase } from "../lib/supabase.js";
+import { api } from "../lib/api.js";
 import ModalDetailPertandingan from "../components/turnamen/ModalDetailPertandingan.vue";
+import SorotanMatchday from "../components/turnamen/SorotanMatchday.vue";
+import TombolDasar from "../components/umum/TombolDasar.vue";
 import {
-  Trophy,
   Calendar,
   Shield,
   ArrowRight,
-  Star,
   Crown,
   Newspaper,
-  Award,
-  Activity,
-  ChevronRight,
+  ChevronRight
 } from "lucide-vue-next";
+import { hitungStatusSeriBO3 } from "../composables/useKnockout.js";
 import logoPcl from "@/assets/img/logoo.webp";
 import heroBanner from "@/assets/img/hero-banner.webp";
 
@@ -24,34 +23,26 @@ const idLagaTerpilih = ref("");
 const modalLagaTerbuka = ref(false);
 const daftarPertandingan = ref([]);
 const daftarBerita = ref([]);
+const eventLagaAktif = ref([]);
 const sedangMemuat = ref(false);
 
 onMounted(async () => {
   sedangMemuat.value = true;
 
   try {
-    const [resMatches, resNews] = await Promise.all([
-      supabase
-        .from("pcl_matches")
-        .select(`
-          *,
-          home_team:pcl_teams!pcl_matches_home_team_id_fkey(*),
-          away_team:pcl_teams!pcl_matches_away_team_id_fkey(*),
-          group:pcl_tournament_groups(*)
-        `)
-        .order("matchday", { ascending: true })
-        .limit(10),
-      supabase
-        .from("pcl_news")
-        .select("*")
-        .order("diterbitkan_pada", { ascending: false })
-        .limit(4),
+    const [tournaments, news] = await Promise.all([
+      api.getTournaments(),
+      api.getNews(),
     ]);
 
-    daftarPertandingan.value = resMatches.data || [];
-    daftarBerita.value = resNews.data || [];
-    if (daftarPertandingan.value.length > 0) {
-      idLagaTerpilih.value = daftarPertandingan.value[0].id;
+    const activeTur = (tournaments || []).find((s) => s.status !== "completed") || (tournaments || [])[0];
+    const matchParams = activeTur?.id ? { tournament_id: activeTur.id } : {};
+    const matches = await api.getMatches(matchParams);
+
+    daftarPertandingan.value = matches || [];
+    daftarBerita.value = (news || []).slice(0, 4);
+    if (lagaUnggulanList.value.length > 0) {
+      idLagaTerpilih.value = lagaUnggulanList.value[0].id;
     }
   } catch (err) {
     daftarPertandingan.value = [];
@@ -61,17 +52,93 @@ onMounted(async () => {
   }
 });
 
-const lagaUnggulanList = computed(() => daftarPertandingan.value.slice(0, 3));
+const bobotTahap = {
+  final: 60,
+  semi_final: 50,
+  quarter_final: 40,
+  round_of_16: 30,
+  round_of_32: 20,
+  group: 10,
+};
+
+function isLive(m) {
+  return !!(m && (m.status === "ongoing" || m.status === "in_progress" || m.status === "live"));
+}
+
+function isSelesai(m) {
+  return !!(m && (m.status === "finished" || m.status === "completed" || m.status === "selesai"));
+}
+
+function isTerjadwal(m) {
+  return !!(m && (m.status === "scheduled" || m.status === "terjadwal" || !m.status));
+}
+
+const lagaUnggulanList = computed(() => {
+  const listLengkap = daftarPertandingan.value.filter(
+    (m) => m.home_team && m.away_team
+  );
+  if (listLengkap.length === 0) return daftarPertandingan.value.slice(0, 3);
+
+  // 1. Laga Live / Ongoing (Prioritas Tertinggi)
+  const lagaLive = listLengkap.filter(isLive);
+
+  // 2. Laga Selesai Terbaru (Babak tertinggi & Matchday tertinggi)
+  const lagaSelesai = listLengkap
+    .filter(isSelesai)
+    .sort((a, b) => {
+      const stageDiff = (bobotTahap[b.stage] || 0) - (bobotTahap[a.stage] || 0);
+      if (stageDiff !== 0) return stageDiff;
+      const mdDiff = (b.matchday || 1) - (a.matchday || 1);
+      if (mdDiff !== 0) return mdDiff;
+      if (b.scheduled_at && a.scheduled_at) {
+        return new Date(b.scheduled_at) - new Date(a.scheduled_at);
+      }
+      return 0;
+    });
+
+  // 3. Laga Terjadwal Berikutnya (Babak aktif & waktu terdekat)
+  const lagaTerjadwal = listLengkap
+    .filter(isTerjadwal)
+    .sort((a, b) => {
+      const stageDiff = (bobotTahap[b.stage] || 0) - (bobotTahap[a.stage] || 0);
+      if (stageDiff !== 0) return stageDiff;
+      if (a.scheduled_at && b.scheduled_at) {
+        return new Date(a.scheduled_at) - new Date(b.scheduled_at);
+      }
+      return (a.matchday || 1) - (b.matchday || 1);
+    });
+
+  // Susun urutan sorotan: Live -> Selesai Terbaru -> Terjadwal Berikutnya
+  let hasil = [];
+  if (lagaLive.length > 0) {
+    hasil = [...lagaLive, ...lagaSelesai, ...lagaTerjadwal];
+  } else if (lagaSelesai.length > 0) {
+    hasil = [...lagaSelesai, ...lagaTerjadwal];
+  } else {
+    hasil = [...lagaTerjadwal];
+  }
+
+  return hasil.slice(0, 3);
+});
+
 const lagaAktif = computed(
   () =>
     daftarPertandingan.value.find((m) => m.id === idLagaTerpilih.value) ||
+    lagaUnggulanList.value[0] ||
     daftarPertandingan.value[0] ||
     null,
 );
+const infoSeriLagaAktif = computed(() => hitungStatusSeriBO3(lagaAktif.value, daftarPertandingan.value));
 
-function bukaModalLaga(laga) {
+async function bukaModalLaga(laga) {
   if (!laga) return;
   idLagaTerpilih.value = laga.id;
+  try {
+    const detail = await api.getMatchDetail(laga.id);
+    eventLagaAktif.value = detail.events || [];
+  } catch (e) {
+    eventLagaAktif.value = [];
+  }
   modalLagaTerbuka.value = true;
 }
 
@@ -140,225 +207,54 @@ function bukaBeritaLaga(berita) {
           </h1>
 
           <p
-            class="anim-muncul text-sm sm:text-base text-blue-100/85 leading-relaxed max-w-lg"
+            class="anim-muncul text-sm sm:text-base text-blue-100/90 leading-relaxed max-w-lg"
             style="animation-delay: 180ms"
           >
-            Panggung turnamen elit 16 klub Flash Soccer. Pantau klasemen grup,
-            papan skor, statistik pemain, dan bagan juara PCL 2026.
+            Turnamen kasta tertinggi Flash Peak. Daftarkan skuad terbaikmu,
+            bersaing di panggung kompetisi, dan jadilah juara Peak Champions
+            League!
           </p>
 
           <div
-            class="anim-muncul flex items-stretch divide-x divide-white/15 border-y border-white/15 max-w-md"
+            class="anim-muncul flex flex-col sm:flex-row items-stretch sm:items-center gap-3 pt-2"
             style="animation-delay: 240ms"
           >
-            <div class="flex-1 py-3 pr-4">
-              <div
-                class="text-xl sm:text-2xl font-semibold tabular-nums text-white"
-              >
-                16
-              </div>
-              <div
-                class="text-[11px] font-semibold uppercase tracking-wider text-blue-200/70 mt-0.5"
-              >
-                Klub
-              </div>
-            </div>
-            <div class="flex-1 py-3 px-4">
-              <div
-                class="text-xl sm:text-2xl font-semibold tabular-nums text-white"
-              >
-                4
-              </div>
-              <div
-                class="text-[11px] font-semibold uppercase tracking-wider text-blue-200/70 mt-0.5"
-              >
-                Grup
-              </div>
-            </div>
-            <div class="flex-1 py-3 pl-4">
-              <div
-                class="text-xl sm:text-2xl font-semibold tabular-nums text-gold-400"
-              >
-                1
-              </div>
-              <div
-                class="text-[11px] font-semibold uppercase tracking-wider text-blue-200/70 mt-0.5"
-              >
-                Juara
-              </div>
-            </div>
-          </div>
-
-          <div
-            class="anim-muncul flex flex-col sm:flex-row items-stretch sm:items-center gap-3 pt-1"
-            style="animation-delay: 310ms"
-          >
-            <button
-              @click="router.push('/turnamen')"
-              class="w-full sm:w-auto inline-flex items-center justify-center px-6 py-2.5 rounded-full bg-ucl-600 hover:bg-blue-700 text-white font-semibold text-sm transition-all shadow-card hover:shadow-lift focus:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-navy-900 cursor-pointer"
+            <TombolDasar
+              varian="gold"
+              @click="router.push('/pendaftaran')"
+              class="w-full sm:w-auto px-6 py-2.5"
             >
-              <Trophy class="w-4 h-4 mr-2" />
-              Bagan & Klasemen
-            </button>
-            <button
+              <Shield class="w-4 h-4 mr-2" />
+              Daftar Turnamen
+            </TombolDasar>
+            <TombolDasar
+              varian="kaca"
               @click="router.push('/jadwal')"
-              class="w-full sm:w-auto inline-flex items-center justify-center px-6 py-2.5 rounded-full bg-white/10 border border-white/25 text-white font-semibold text-sm transition-colors hover:bg-white/20 focus:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-navy-900 cursor-pointer"
+              class="w-full sm:w-auto px-6 py-2.5"
             >
               <Calendar class="w-4 h-4 mr-2" />
               Jadwal Pertandingan
-            </button>
+            </TombolDasar>
           </div>
         </div>
       </div>
     </section>
 
-    <!-- Sorotan Matchday -->
-    <section v-if="lagaAktif" class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-5">
-      <div class="flex items-end justify-between gap-4">
-        <div>
-          <span
-            class="text-xs font-semibold uppercase tracking-[0.14em] text-gold-600"
-            >Matchday</span
-          >
-          <h2
-            class="font-display text-xl sm:text-2xl font-semibold tracking-tight text-ink-900 mt-0.5 flex items-center gap-2"
-          >
-            <Star class="w-5 h-5 text-gold-500 fill-gold-300" />
-            Sorotan Laga
-          </h2>
-        </div>
-        <button
-          @click="router.push('/jadwal')"
-          class="shrink-0 inline-flex items-center gap-1 text-sm font-semibold text-ucl-600 hover:text-blue-700 transition-colors cursor-pointer"
-        >
-          Semua Laga <ArrowRight class="w-4 h-4" />
-        </button>
-      </div>
-
-      <div
-        class="bg-white rounded-2xl border border-slate-200 shadow-card overflow-hidden"
-      >
-        <div class="p-4 sm:p-6 space-y-4">
-          <div
-            class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 pb-4"
-          >
-            <div class="flex items-center gap-2.5">
-              <span
-                class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-ucl-50 border border-ucl-100 text-ucl-600 text-[11px] font-semibold"
-              >
-                <Shield class="w-3 h-3" />
-                {{ lagaAktif.group?.name || "Grup A" }} · Matchday
-                {{ lagaAktif.matchday || 1 }}
-              </span>
-            </div>
-
-            <div
-              v-if="lagaUnggulanList.length > 0"
-              class="flex items-center gap-1 p-1 rounded-full bg-slate-100 overflow-x-auto scrollbar-none self-start"
-            >
-              <button
-                v-for="laga in lagaUnggulanList"
-                :key="laga.id"
-                @click="idLagaTerpilih = laga.id"
-                class="px-3 py-1.5 rounded-full text-xs font-semibold transition-colors whitespace-nowrap cursor-pointer"
-                :class="
-                  idLagaTerpilih === laga.id
-                    ? 'bg-white text-ink-900 shadow-card'
-                    : 'text-slate-500 hover:text-ink-900'
-                "
-              >
-                {{ laga.home_team?.short_name || 'HOME' }} vs
-                {{ laga.away_team?.short_name || 'AWAY' }}
-              </button>
-            </div>
-          </div>
-
-          <!-- Scoreboard -->
-          <div
-            class="grid grid-cols-3 items-center gap-2 sm:gap-6 py-3 sm:py-5"
-          >
-            <div
-              class="flex flex-col sm:flex-row-reverse items-center gap-2 sm:gap-4 text-center min-w-0"
-            >
-              <div
-                class="w-12 h-12 sm:w-14 sm:h-14 rounded-full bg-slate-50 border border-slate-200 flex items-center justify-center font-display font-semibold text-sm text-navy-800 shrink-0"
-              >
-                {{ lagaAktif.home_team?.short_name || 'H' }}
-              </div>
-              <div class="min-w-0">
-                <h3
-                  class="text-xs sm:text-base font-semibold text-ink-900 truncate"
-                >
-                  {{ lagaAktif.home_team?.name || 'Home Team' }}
-                </h3>
-                <span class="text-[11px] text-slate-400 hidden sm:inline"
-                  >Tuan Rumah</span
-                >
-              </div>
-            </div>
-
-            <div class="text-center space-y-1.5">
-              <div
-                class="font-display text-2xl sm:text-4xl font-semibold tabular-nums tracking-tight text-navy-800"
-              >
-                {{ lagaAktif.home_score ?? 0 }} – {{ lagaAktif.away_score ?? 0 }}
-              </div>
-              <span
-                class="inline-block px-2.5 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 text-[11px] font-semibold"
-              >
-                Selesai
-              </span>
-            </div>
-
-            <div
-              class="flex flex-col sm:flex-row items-center gap-2 sm:gap-4 text-center min-w-0"
-            >
-              <div
-                class="w-12 h-12 sm:w-14 sm:h-14 rounded-full bg-slate-50 border border-slate-200 flex items-center justify-center font-display font-semibold text-sm text-navy-800 shrink-0"
-              >
-                {{ lagaAktif.away_team?.short_name || 'A' }}
-              </div>
-              <div class="min-w-0">
-                <h3
-                  class="text-xs sm:text-base font-semibold text-ink-900 truncate"
-                >
-                  {{ lagaAktif.away_team?.name || 'Away Team' }}
-                </h3>
-                <span class="text-[11px] text-slate-400 hidden sm:inline"
-                  >Tim Tamu</span
-                >
-              </div>
-            </div>
-          </div>
-
-          <!-- Footer: MVP & Detail -->
-          <div
-            class="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 pt-4 border-t border-slate-100"
-          >
-            <div v-if="lagaAktif.mvp" class="flex items-center gap-2 text-sm">
-              <Award class="w-4 h-4 text-gold-500 shrink-0" />
-              <span class="text-slate-500 text-xs">
-                MVP:
-                <strong class="text-ink-900">{{ lagaAktif.mvp.name }}</strong>
-                ({{ lagaAktif.mvp.team_short }})
-              </span>
-            </div>
-            <div v-else></div>
-
-            <button
-              @click="bukaModalLaga(lagaAktif)"
-              class="inline-flex items-center justify-center px-5 py-2 rounded-full bg-ucl-600 hover:bg-blue-700 text-white text-sm font-semibold transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-ucl-500 focus-visible:ring-offset-2 cursor-pointer w-full sm:w-auto"
-            >
-              <Activity class="w-4 h-4 mr-1.5" />
-              Lihat Detail Laga
-            </button>
-          </div>
-        </div>
-      </div>
-    </section>
+    <!-- Sorotan Matchday Component -->
+    <SorotanMatchday
+      :lagaAktif="lagaAktif"
+      :lagaUnggulanList="lagaUnggulanList"
+      :idLagaTerpilih="idLagaTerpilih"
+      :infoSeriLagaAktif="infoSeriLagaAktif"
+      @pilihLaga="(id) => (idLagaTerpilih = id)"
+      @bukaModal="bukaModalLaga"
+    />
 
     <!-- Kabar & Liputan -->
-    <section v-if="daftarBerita.length > 0" class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-5">
+    <section
+      v-if="daftarBerita.length > 0"
+      class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-5"
+    >
       <div class="flex items-end justify-between gap-4">
         <div>
           <span
@@ -428,7 +324,8 @@ function bukaBeritaLaga(berita) {
       v-if="lagaAktif"
       :terbuka="modalLagaTerbuka"
       :laga="lagaAktif"
-      :events="lagaAktif.events || []"
+      :semuaLaga="daftarPertandingan"
+      :events="eventLagaAktif"
       @tutup="modalLagaTerbuka = false"
     />
   </div>
