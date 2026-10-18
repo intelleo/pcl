@@ -1,5 +1,6 @@
 <script setup>
 import { ref, computed, watch, onMounted } from 'vue'
+import { useRoute } from 'vue-router'
 import { api } from '../lib/api.js'
 import { kompresGambar, validasiUkuranGambar } from '../lib/gambar.js'
 import {
@@ -9,7 +10,9 @@ import {
   Lock,
   MessageCircle,
   ExternalLink,
-  RotateCcw
+  RotateCcw,
+  KeyRound,
+  Check
 } from 'lucide-vue-next'
 import TombolDasar from '../components/umum/TombolDasar.vue'
 import KotakPembayaranWa from '../components/pendaftaran/KotakPembayaranWa.vue'
@@ -26,6 +29,12 @@ const sedangKirim = ref(false)
 const pesanSukses = ref(false)
 const pesanError = ref(null)
 const draftTersimpanWaktu = ref(null)
+
+// Fitur Booking Key Slot Khusus
+const inputBookingKey = ref('')
+const sedangVerifikasiKey = ref(false)
+const keyTerverifikasi = ref(null) // { key_code, catatan }
+const pesanErrorKey = ref(null)
 
 // Form Data - Klub
 const namaTim = ref('')
@@ -209,6 +218,38 @@ async function cekStatusPendaftaran() {
   }
 }
 
+async function handleVerifikasiBookingKey() {
+  if (!inputBookingKey.value || !inputBookingKey.value.trim()) {
+    pesanErrorKey.value = 'Silakan masukkan kode booking key.'
+    return
+  }
+
+  sedangVerifikasiKey.value = true
+  pesanErrorKey.value = null
+
+  try {
+    const res = await api.verifyBookingKey(inputBookingKey.value.trim())
+    if (res.valid) {
+      keyTerverifikasi.value = {
+        key_code: res.key_code,
+        catatan: res.catatan
+      }
+    } else {
+      pesanErrorKey.value = res.message || 'Booking key tidak valid.'
+    }
+  } catch (err) {
+    pesanErrorKey.value = err.message || 'Gagal memverifikasi booking key.'
+  } finally {
+    sedangVerifikasiKey.value = false
+  }
+}
+
+function batalKeyBooking() {
+  keyTerverifikasi.value = null
+  inputBookingKey.value = ''
+  pesanErrorKey.value = null
+}
+
 async function handleKirimPendaftaran() {
   if (!namaTim.value || !kaptenNoHp.value || !kaptenNickname.value) {
     pesanError.value = 'Harap isi semua data wajib (Nama Tim, No HP Kapten & Nickname Kapten).'
@@ -228,6 +269,7 @@ async function handleKirimPendaftaran() {
       catatan: JSON.stringify({
         logo_url: logoUrl.value.trim() || null,
         metode_konfirmasi: 'whatsapp',
+        booking_key: keyTerverifikasi.value?.key_code || null,
         kapten: {
           no_hp: kaptenNoHp.value.trim(),
           game_id: kaptenGameId.value.trim(),
@@ -240,6 +282,7 @@ async function handleKirimPendaftaran() {
           role: a.role
         }))
       }),
+      booking_key: keyTerverifikasi.value?.key_code || null,
       status: 'pending'
     }
 
@@ -253,9 +296,18 @@ async function handleKirimPendaftaran() {
   }
 }
 
-onMounted(() => {
+const route = useRoute()
+
+onMounted(async () => {
   pulihkanDraft()
-  cekStatusPendaftaran()
+  await cekStatusPendaftaran()
+
+  // Cek jika ada query param ?key=XXXX di URL
+  const queryKey = route.query.key
+  if (queryKey && typeof queryKey === 'string') {
+    inputBookingKey.value = queryKey.trim()
+    await handleVerifikasiBookingKey()
+  }
 })
 </script>
 
@@ -313,18 +365,55 @@ onMounted(() => {
     <!-- State Loading -->
     <div v-if="sedangMemuatCek" class="h-64 rounded-2xl bg-white border border-slate-200 animate-pulse"></div>
 
-    <!-- State Pendaftaran Ditutup -->
+    <!-- State Pendaftaran Ditutup (Namun ada opsi Key Booking) -->
     <div
-      v-else-if="!pendaftaranBuka"
-      class="anim-muncul bg-white border border-slate-200 rounded-2xl p-8 sm:p-12 text-center shadow-card space-y-4"
+      v-else-if="!pendaftaranBuka && !keyTerverifikasi"
+      class="anim-muncul bg-white border border-slate-200 rounded-2xl p-6 sm:p-10 text-center shadow-card space-y-6"
     >
       <div class="w-14 h-14 rounded-2xl bg-amber-50 border border-amber-200 text-amber-600 flex items-center justify-center mx-auto shadow-sm">
         <Lock class="w-7 h-7" />
       </div>
-      <h2 class="text-xl font-bold text-ink-900">Pendaftaran PCL 2026 Saat Ini Ditutup</h2>
-      <p class="text-xs sm:text-sm text-slate-500 max-w-md mx-auto leading-relaxed">
-        Kuota pendaftaran tim telah terpenuhi atau masa pendaftaran telah ditutup oleh panitia. Pantau terus informasi turnamen di halaman Berita.
-      </p>
+      <div class="space-y-1.5">
+        <h2 class="text-xl sm:text-2xl font-bold text-ink-900">Pendaftaran PCL 2026 Saat Ini Ditutup</h2>
+        <p class="text-xs sm:text-sm text-slate-500 max-w-md mx-auto leading-relaxed">
+          Pendaftaran umum sudah ditutup atau kuota reguler telah terpenuhi.
+        </p>
+      </div>
+
+      <!-- Kotak Input Booking Key Khusus -->
+      <div class="max-w-md mx-auto p-4 sm:p-5 rounded-2xl bg-slate-50 border border-gold-300/60 shadow-xs text-left space-y-3">
+        <div class="flex items-center gap-2">
+          <KeyRound class="w-4 h-4 text-gold-600 shrink-0" />
+          <h3 class="text-xs font-bold uppercase tracking-wider text-ink-900">Punya Key Booking Slot?</h3>
+        </div>
+        <p class="text-[11px] text-slate-500 leading-relaxed">
+          Jika kamu sudah booking slot ke panitia dan menerima <span class="font-semibold text-ink-800">Booking Key</span> khusus, masukkan di bawah untuk membuka form pendaftaran tim:
+        </p>
+
+        <form @submit.prevent="handleVerifikasiBookingKey" class="space-y-2.5 pt-1">
+          <div class="flex flex-col sm:flex-row gap-2">
+            <input
+              v-model="inputBookingKey"
+              type="text"
+              placeholder="Contoh: PCL-BKXXXX"
+              class="flex-1 uppercase font-mono font-bold tracking-wider px-3.5 py-2.5 rounded-xl bg-white border border-slate-300 text-xs text-ink-900 placeholder:text-slate-400 placeholder:font-normal placeholder:tracking-normal focus:border-gold-500 focus:ring-2 focus:ring-gold-500/20 outline-none"
+            />
+            <TombolDasar
+              tipe="submit"
+              varian="gold"
+              class="justify-center shrink-0"
+              :sedangMemuat="sedangVerifikasiKey"
+            >
+              Buka Form
+            </TombolDasar>
+          </div>
+
+          <div v-if="pesanErrorKey" class="p-2.5 rounded-lg bg-red-50 border border-red-200 text-red-700 text-xs font-medium flex items-center gap-1.5">
+            <AlertCircle class="w-3.5 h-3.5 shrink-0" />
+            <span>{{ pesanErrorKey }}</span>
+          </div>
+        </form>
+      </div>
     </div>
 
     <!-- State Sukses Mendaftar -->
@@ -368,6 +457,32 @@ onMounted(() => {
 
     <!-- Form Pendaftaran -->
     <form v-else @submit.prevent="handleKirimPendaftaran" class="anim-muncul space-y-6">
+      <!-- Banner Khusus jika masuk lewat Key Booking -->
+      <div v-if="keyTerverifikasi" class="p-4 rounded-2xl bg-gold-50 border border-gold-300 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-xs">
+        <div class="flex items-center gap-2.5">
+          <div class="w-8 h-8 rounded-lg bg-gold-500/20 text-gold-700 flex items-center justify-center shrink-0">
+            <KeyRound class="w-4 h-4" />
+          </div>
+          <div>
+            <div class="text-xs font-bold text-ink-900 flex items-center gap-1.5">
+              <span>Slot Khusus Booking Aktif</span>
+              <span class="font-mono bg-white px-2 py-0.5 rounded border border-gold-300 text-gold-800">{{ keyTerverifikasi.key_code }}</span>
+            </div>
+            <p class="text-[11px] text-slate-600 mt-0.5">
+              {{ keyTerverifikasi.catatan ? `Catatan: ${keyTerverifikasi.catatan} — ` : '' }}Key akan otomatis terpakai setelah formulir dikirim.
+            </p>
+          </div>
+        </div>
+
+        <button
+          type="button"
+          @click="batalKeyBooking"
+          class="text-xs text-slate-500 hover:text-red-600 font-semibold underline cursor-pointer self-end sm:self-auto"
+        >
+          Ganti Key
+        </button>
+      </div>
+
       <div v-if="pesanError" class="p-4 rounded-xl bg-red-50 border border-red-200 text-red-700 text-xs font-semibold flex items-center gap-2">
         <AlertCircle class="w-4 h-4 shrink-0" />
         {{ pesanError }}

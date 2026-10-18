@@ -16,6 +16,15 @@ import registrationRoutes from './routes/registrations.js'
 import championRoutes from './routes/champions.js'
 import newsRoutes from './routes/news.js'
 import settingRoutes from './routes/settings.js'
+import teamAuthRoutes from './routes/team_auth.js'
+import recapRoutes from './routes/recaps.js'
+import bookingKeyRoutes from './routes/booking_keys.js'
+
+import path from 'path'
+import { fileURLToPath } from 'url'
+
+const __filename = fileURLToPath(import.meta.url)
+const __dirname = path.dirname(__filename)
 
 dotenv.config()
 
@@ -24,8 +33,11 @@ const PORT = process.env.PORT || 3000
 
 // Middleware
 app.use(cors())
-app.use(express.json({ limit: '10mb' }))
-app.use(express.urlencoded({ extended: true, limit: '10mb' }))
+app.use(express.json({ limit: '15mb' }))
+app.use(express.urlencoded({ extended: true, limit: '15mb' }))
+
+// Static file uploads
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')))
 
 // Health Check
 app.get('/api/health', (req, res) => {
@@ -51,6 +63,9 @@ app.use('/api/registrations', registrationRoutes)
 app.use('/api/champions', championRoutes)
 app.use('/api/news', newsRoutes)
 app.use('/api/settings', settingRoutes)
+app.use('/api/team-auth', teamAuthRoutes)
+app.use('/api/recaps', recapRoutes)
+app.use('/api/booking-keys', bookingKeyRoutes)
 
 // Open Graph SSR Pre-renderer untuk Bot & Social Media Crawlers (WhatsApp, Telegram, Twitter, Facebook)
 app.get('/berita/:id', async (req, res, next) => {
@@ -70,16 +85,25 @@ app.get('/berita/:id', async (req, res, next) => {
 
     const title = news.judul || 'Peak Champions League (PCL)'
     const desc = news.ringkasan || 'Ulasan dan kabar turnamen Peak Champions League.'
-    const defaultBanner = `${req.protocol}://${req.get('host')}/img/hero-banner.webp`
+
+    // Gunakan host publik https://pcl.web.id untuk crawler media sosial
+    const baseUrl = 'https://pcl.web.id'
+    const defaultBanner = `${baseUrl}/img/og-banner.jpg`
+
     let img = news.gambar_url || defaultBanner
     if (img && img.startsWith('/')) {
-      img = `${req.protocol}://${req.get('host')}${img}`
+      img = `${baseUrl}${img}`
     }
-    const fullUrl = `${req.protocol}://${req.get('host')}/berita/${id}`
+    const fullUrl = `${baseUrl}/berita/${id}`
+
+    // Deteksi tipe mime gambar untuk tag og:image:type
+    let imgType = 'image/jpeg'
+    if (img.endsWith('.png')) imgType = 'image/png'
+    else if (img.endsWith('.webp')) imgType = 'image/webp'
 
     res.setHeader('Content-Type', 'text/html; charset=utf-8')
     res.send(`<!DOCTYPE html>
-<html lang="id">
+<html lang="id" prefix="og: https://ogp.me/ns#">
 <head>
   <meta charset="UTF-8">
   <title>${title} - PCL 2026</title>
@@ -90,9 +114,12 @@ app.get('/berita/:id', async (req, res, next) => {
   <meta property="og:site_name" content="Peak Champions League">
   <meta property="og:title" content="${title}">
   <meta property="og:description" content="${desc}">
+  <meta property="og:url" content="${fullUrl}">
   <meta property="og:image" content="${img}">
   <meta property="og:image:secure_url" content="${img}">
-  <meta property="og:url" content="${fullUrl}">
+  <meta property="og:image:type" content="${imgType}">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
 
   <!-- Twitter Card -->
   <meta name="twitter:card" content="summary_large_image">
@@ -110,6 +137,70 @@ app.get('/berita/:id', async (req, res, next) => {
 </html>`)
   } catch {
     next()
+  }
+})
+
+// Dinamis XML Sitemap untuk Google & Search Engine Indexing
+app.get('/sitemap.xml', async (req, res) => {
+  try {
+    const { query } = await import('./config/db.js')
+    const daftarBerita = await query('SELECT id, created_at, diterbitkan_pada FROM pcl_news ORDER BY diterbitkan_pada DESC')
+    const daftarTim = await query('SELECT id FROM pcl_teams')
+
+    const baseUrl = 'https://pcl.web.id'
+    const nowIso = new Date().toISOString().split('T')[0]
+
+    let xml = `<?xml version="1.0" encoding="UTF-8"?>\n`
+    xml += `<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n`
+
+    // Halaman Statis Utama
+    const halamanStatis = [
+      { loc: '/', priority: '1.0', changefreq: 'daily' },
+      { loc: '/turnamen', priority: '0.9', changefreq: 'daily' },
+      { loc: '/jadwal', priority: '0.9', changefreq: 'daily' },
+      { loc: '/statistik', priority: '0.8', changefreq: 'daily' },
+      { loc: '/berita', priority: '0.8', changefreq: 'daily' },
+      { loc: '/riwayat-juara', priority: '0.7', changefreq: 'weekly' },
+      { loc: '/pendaftaran', priority: '0.7', changefreq: 'weekly' }
+    ]
+
+    for (const h of halamanStatis) {
+      xml += `  <url>\n`
+      xml += `    <loc>${baseUrl}${h.loc}</loc>\n`
+      xml += `    <lastmod>${nowIso}</lastmod>\n`
+      xml += `    <changefreq>${h.changefreq}</changefreq>\n`
+      xml += `    <priority>${h.priority}</priority>\n`
+      xml += `  </url>\n`
+    }
+
+    // Halaman Berita Dinamis
+    for (const b of (daftarBerita || [])) {
+      const lastMod = (b.diterbitkan_pada || b.created_at || nowIso).toString().slice(0, 10)
+      xml += `  <url>\n`
+      xml += `    <loc>${baseUrl}/berita/${b.id}</loc>\n`
+      xml += `    <lastmod>${lastMod}</lastmod>\n`
+      xml += `    <changefreq>weekly</changefreq>\n`
+      xml += `    <priority>0.7</priority>\n`
+      xml += `  </url>\n`
+    }
+
+    // Halaman Detail Tim Dinamis
+    for (const t of (daftarTim || [])) {
+      xml += `  <url>\n`
+      xml += `    <loc>${baseUrl}/tim/${t.id}</loc>\n`
+      xml += `    <lastmod>${nowIso}</lastmod>\n`
+      xml += `    <changefreq>weekly</changefreq>\n`
+      xml += `    <priority>0.6</priority>\n`
+      xml += `  </url>\n`
+    }
+
+    xml += `</urlset>`
+
+    res.setHeader('Content-Type', 'application/xml; charset=utf-8')
+    res.send(xml)
+  } catch (err) {
+    console.error('Gagal membuat sitemap.xml:', err)
+    res.status(500).send('Error generating sitemap')
   }
 })
 

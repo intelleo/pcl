@@ -92,7 +92,7 @@ function submitForm() {
 <template>
   <div class="space-y-6">
     <!-- Header & Action -->
-    <div class="flex items-center justify-between gap-4 p-5 bg-white rounded-xl border border-slate-200 shadow-card">
+    <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 p-4 sm:p-5 bg-white rounded-xl border border-slate-200 shadow-card">
       <div>
         <h3 class="text-base font-semibold text-ink-900 flex items-center gap-2">
           <Trophy class="w-5 h-5 text-gold-600" />
@@ -103,7 +103,7 @@ function submitForm() {
         </p>
       </div>
 
-      <TombolDasar @click="modalTambah = !modalTambah" varian="primer" class="shrink-0 flex items-center gap-1.5">
+      <TombolDasar @click="modalTambah = !modalTambah" varian="primer" class="shrink-0 flex items-center gap-1.5 w-full sm:w-auto justify-center">
         <Plus class="w-4 h-4" />
         Tambah Juara Musim Baru
       </TombolDasar>

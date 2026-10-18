@@ -22,10 +22,24 @@ router.get('/', async (req, res) => {
  */
 router.post('/', async (req, res) => {
   try {
-    const { nama_tim, short_name, manager_name, kontak, email, catatan, status = 'pending' } = req.body
+    const { nama_tim, short_name, manager_name, kontak, email, catatan, booking_key, status = 'pending' } = req.body
 
     if (!nama_tim || !short_name || !manager_name) {
       return res.status(400).json({ error: 'Nama tim, singkatan, dan manajer wajib diisi.' })
+    }
+
+    // Jika menyertakan booking_key, validasi dan tandai sudah terpakai
+    let keyData = null
+    if (booking_key && String(booking_key).trim()) {
+      const cleanKey = String(booking_key).trim().toUpperCase()
+      const [keyRow] = await query('SELECT * FROM pcl_booking_keys WHERE UPPER(key_code) = ?', [cleanKey])
+      if (!keyRow) {
+        return res.status(400).json({ error: 'Booking key tidak valid.' })
+      }
+      if (keyRow.is_used) {
+        return res.status(400).json({ error: 'Booking key ini sudah digunakan oleh pendaftar lain.' })
+      }
+      keyData = keyRow
     }
 
     const id = generateUUID()
@@ -34,6 +48,16 @@ router.post('/', async (req, res) => {
        VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
       [id, nama_tim.trim(), short_name.trim().toUpperCase(), manager_name.trim(), kontak || '', email || '', catatan || null, status]
     )
+
+    // Jika menggunakan key, update status key menjadi used
+    if (keyData) {
+      await query(
+        `UPDATE pcl_booking_keys
+         SET is_used = 1, used_by_team_id = ?, used_by_team_name = ?, used_at = NOW()
+         WHERE id = ?`,
+        [id, nama_tim.trim(), keyData.id]
+      )
+    }
 
     const [created] = await query('SELECT * FROM pcl_team_registrations WHERE id = ?', [id])
     res.status(201).json(created)
@@ -76,10 +100,10 @@ router.put('/:id/status', async (req, res) => {
         }
         const tourneyId = activeTourney?.id || null
 
-        // Cek apakah tim sudah ada di tournament ini
+        // Cek apakah tim sudah ada di tournament ini (berdasarkan nama tim)
         const [existingTeam] = await query(
-          'SELECT id FROM pcl_teams WHERE (name = ? OR short_name = ?) AND (tournament_id = ? OR (? IS NULL AND tournament_id IS NULL))',
-          [reg.nama_tim, reg.short_name, tourneyId, tourneyId]
+          'SELECT id FROM pcl_teams WHERE name = ? AND (tournament_id = ? OR (? IS NULL AND tournament_id IS NULL))',
+          [reg.nama_tim.trim(), tourneyId, tourneyId]
         )
 
         let teamId = existingTeam?.id
@@ -107,25 +131,27 @@ router.put('/:id/status', async (req, res) => {
           const kapten = catatanData.kapten
           const namaKapten = kapten?.nickname || reg.manager_name || 'Kapten'
           const roleKapten = validPositions.includes(kapten?.role?.toUpperCase()) ? kapten.role.toUpperCase() : 'CM'
+          const gameIdKapten = kapten?.game_id ? String(kapten.game_id).trim() : null
           const pIdKapten = generateUUID()
 
           await query(
-            `INSERT INTO pcl_players (id, team_id, name, squad_number, position)
-             VALUES (?, ?, ?, ?, ?)`,
-            [pIdKapten, teamId, namaKapten.trim(), noPunggung++, roleKapten]
+            `INSERT INTO pcl_players (id, team_id, name, game_id, squad_number, position)
+             VALUES (?, ?, ?, ?, ?, ?)`,
+            [pIdKapten, teamId, namaKapten.trim(), gameIdKapten, noPunggung++, roleKapten]
           )
 
           // 2. Masukkan Anggota Skuad
           if (Array.isArray(catatanData.anggota)) {
             for (const a of catatanData.anggota) {
               const namaAnggota = a.nickname || a.name || a.game_id
+              const gameIdAnggota = a.game_id ? String(a.game_id).trim() : null
               if (namaAnggota && String(namaAnggota).trim()) {
                 const roleAnggota = validPositions.includes(a.role?.toUpperCase()) ? a.role.toUpperCase() : 'CM'
                 const pId = generateUUID()
                 await query(
-                  `INSERT INTO pcl_players (id, team_id, name, squad_number, position)
-                   VALUES (?, ?, ?, ?, ?)`,
-                  [pId, teamId, String(namaAnggota).trim(), noPunggung++, roleAnggota]
+                  `INSERT INTO pcl_players (id, team_id, name, game_id, squad_number, position)
+                   VALUES (?, ?, ?, ?, ?, ?)`,
+                  [pId, teamId, String(namaAnggota).trim(), gameIdAnggota, noPunggung++, roleAnggota]
                 )
               }
             }
@@ -136,6 +162,25 @@ router.put('/:id/status', async (req, res) => {
 
     const [updated] = await query('SELECT * FROM pcl_team_registrations WHERE id = ?', [id])
     res.json(updated)
+  } catch (err) {
+    res.status(500).json({ error: err.message })
+  }
+})
+
+/**
+ * DELETE /api/registrations/:id
+ * Hapus data pendaftaran tim
+ */
+router.delete('/:id', async (req, res) => {
+  try {
+    const { id } = req.params
+    const [reg] = await query('SELECT id FROM pcl_team_registrations WHERE id = ?', [id])
+    if (!reg) {
+      return res.status(404).json({ error: 'Data pendaftaran tidak ditemukan.' })
+    }
+
+    await query('DELETE FROM pcl_team_registrations WHERE id = ?', [id])
+    res.json({ success: true, message: 'Data pendaftaran berhasil dihapus.' })
   } catch (err) {
     res.status(500).json({ error: err.message })
   }

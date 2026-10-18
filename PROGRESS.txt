@@ -20,6 +20,213 @@ Membangun web turnamen Peak Champions League (PCL) berbasis Vue 3 + Express.js +
 ---
 
 ## Catatan Log & Keputusan
+- [2026-10-18]: Perbaikan State Persisten Admin & Auto-Save Draft Tambah Klub:
+  1. Sinkronisasi Tab URL Admin Panel (`src/views/AdminView.vue`):
+     - Menghubungkan `tabAktif` ke URL query (`/admin?tab=...`) menggunakan `useRoute` dan `useRouter.replace`.
+     - Ketika tab atau browser di HP melakukan reload otomatis (misal saat multitasking pindah ke WhatsApp), tab aktif tidak lagi terlempar ke tab awal ('Input Skor') melainkan tetap stay di tab yang sedang dibuka (contoh: `/admin?tab=klub`).
+  2. Auto-Save & Auto-Restore Form Tambah Klub (`src/components/admin/ManajemenTim.vue`):
+     - Mengimplementasikan penyimpanan otomatis draft form (`namaTim`, `shortName`, `managerName`, `logoUrl`, dan status `formTerbuka`) ke `localStorage` (`pcl_draft_admin_tambah_tim`).
+     - Saat browser me-reload, form otomatis pulih dan kembali terbuka dengan seluruh isian data yang belum sempat disimpan.
+     - Membersihkan draft otomatis ketika klub baru berhasil disimpan (`submit`) atau tombol `Batal`/`resetForm` ditekan secara eksplisit oleh admin.
+- [2026-10-17]: Fitur Upload Langsung Logo Klub Peserta (Admin Panel):
+  1. Frontend (`src/components/admin/ManajemenTim.vue`):
+     - Mengganti field input text `URL Logo Klub (Opsional)` menjadi tombol upload gambar langsung (`input[type="file"]`).
+     - Menggunakan utilitas `kompresGambar` dan `validasiUkuranGambar` dengan format output PNG (max 400x400) untuk mempertahankan transparansi logo klub.
+     - Menambahkan pratinjau thumbnail logo interaktif lengkap dengan tombol ganti logo dan tombol hapus logo.
+     - Pada mode edit, otomatis memuat logo klub yang sudah tersimpan untuk dilihat atau diganti.
+  2. Backend (`server/routes/teams.js`):
+     - Menambahkan fungsi `simpanBase64KeFile` untuk otomatis mendeteksi payload base64 logo tim pada endpoint `POST /api/teams` dan `PUT /api/teams/:id`.
+     - Menyimpan file gambar fisik ke disk di `server/uploads/teams/` dan menyimpan path URL statis publik (`/uploads/teams/...`) ke database MySQL `pcl_teams.logo_url`.
+- [2026-10-16]: Pengembalian Layout Tabel Asli Admin (Horizontal Scroll Native):
+  - Mengembalikan tabel di seluruh modul admin (`PanelPemilihLagaSkor.vue`, `ManajemenTim.vue`, `PanelPendaftaranTim.vue`, `PanelManajemenJuara.vue`, `PanelManajemenBerita.vue`, `PanelRecapMatch.vue`) ke struktur tabel tunggal dengan pembungkus `overflow-x-auto`.
+  - Menghapus kartu mobile bertumpuk (`sm:hidden`) sesuai instruksi pengguna, mempertahankan scrolling horizontal tabel asli.
+  - Tetap mempertahankan perbaikan non-tabel (overflow modal `ModalDialog.vue`, tipografi berita `DetailBeritaView.vue`, modal preview/download logo, dan wrap toolbar tombol).
+- [2026-10-16]: Peningkatan Responsivitas Mobile Seluruh Panel Admin & Typography Berita:
+  1. Halaman Berita (`src/views/DetailBeritaView.vue`):
+     - Memperbesar ukuran tipografi paragraf, lead summary, dan kutipan dari `text-xs sm:text-sm md:text-base` menjadi `text-sm sm:text-base md:text-lg` dengan leading yang lebih longgar (`leading-relaxed sm:leading-loose`) agar sangat nyaman dibaca di layar HP.
+  2. Dialog & Modal Global (`src/components/umum/ModalDialog.vue`):
+     - Memperbaiki layout modal agar tidak terpotong di browser HP: batas tinggi `max-h-[92vh] flex flex-col`, header `shrink-0`, dan bodi konten `overflow-y-auto flex-1 overscroll-contain`.
+  3. Header & Navigasi Admin (`src/views/AdminView.vue`):
+     - Tab navigasi 8 modul admin dibuat horizontal touch-scrollable dengan `scrollbar-none` dan padding responsif.
+     - Sub-tab drawing grup & knockout dibuat membungkus fleksibel (`grid grid-cols-1 sm:grid-cols-2`).
+  4. Modul Skor & Form Input (`PanelPemilihLagaSkor.vue` & `FormInputSkor.vue`):
+     - Menambahkan tampilan kartu mobile (`sm:hidden`) untuk daftar pertandingan lengkap dengan stage badge, score, tanggal, dan tombol input skor.
+     - Membuat action bar datetime & tombol simpan di modal input skor menjadi sticky mobile bar (`sticky -bottom-3.5 sm:static bg-white/95 backdrop-blur-sm`) agar mudah disimpan dengan jempol tanpa harus scroll sampai ke bawah.
+  5. Manajemen Klub & Skuad (`ManajemenTim.vue` & `ModalKelolaPemain.vue`):
+     - Tampilan kartu mobile untuk klub peserta dengan aksi pratinjau logo, kelola skuad, edit, dan hapus.
+     - Input nama pemain, ID game, dan posisi pada modal skuad disesuaikan agar tidak terjepit di layar sempit (`flex-col sm:flex-row`).
+  6. Drawing Turnamen (`PanelDrawingGrup.vue` & `PanelDrawingBagan.vue`):
+     - Mengubah toolbar aksi drawing, reset DB, dan tombol kapasitas bagan menjadi responsif (`grid grid-cols-1 sm:flex`).
+  7. Panel Pendaftaran, Juara, Berita, & Recap (`PanelPendaftaranTim.vue`, `PanelManajemenJuara.vue`, `PanelManajemenBerita.vue`, `PanelRecapMatch.vue`):
+     - Menerapkan arsitektur tampilan kartu mobile (`sm:hidden`) berdampingan dengan tabel desktop (`hidden sm:block`) untuk meniadakan tabel gepeng dan horizontal overflow di layar HP.
+- [2026-10-16]: Fitur Auto-Link URL (Hyperlink Otomatis) pada Halaman Detail Berita:
+  1. Frontend Helper (`src/views/DetailBeritaView.vue`):
+     - Menambahkan fungsi helper `formatTeksDenganLink(teks)` dengan sanitasi entitas HTML (`&`, `<`, `>`) guna mencegah XSS injection.
+     - Mendeteksi pola URL (`http://` dan `https://`) via regex dan mengonversinya menjadi elemen `<a>` interaktif berformat:
+       - Warna biru khas UCL (`text-ucl-600 hover:text-ucl-700 underline font-semibold`).
+       - Membuka halaman di tab baru (`target="_blank"` dan `rel="noopener noreferrer"`).
+       - Menjaga teks panjang tidak merusak layout (`break-all`).
+     - Diterapkan pada kotak ringkasan berita (`lead box`) dan setiap paragraf isi konten berita via `v-html`.
+- [2026-10-16]: Fitur Recap Match (Portal Lapor Screenshot Match Kapten & Tab Admin Recap Match):
+  1. Skema Database & Migrasi:
+     - Menambahkan tabel `pcl_team_accounts` (akun login tim kapten: id, team_id, username, password_hash, salt).
+     - Menambahkan tabel `pcl_match_recaps` (bukti match: id, match_id, team_id, recap_image_url, gk_stats_image_url, catatan, status).
+     - Menambahkan indeks terkait dan fallback auto-migrasi `CREATE TABLE IF NOT EXISTS` di backend route.
+     - Memperbarui skrip `server/database/schema_mysql.sql`.
+  2. Backend REST API Express (`server/routes/team_auth.js` & `server/routes/recaps.js`):
+     - Handler `POST /api/team-auth/login`: Autentikasi kapten tim menggunakan PBKDF2 SHA-512.
+     - Handler `POST /api/team-auth/generate`: Auto-generate akun tim oleh admin (username `tim_[tag]` + password acak 6 char).
+     - Handler `GET /api/team-auth/list`, `POST /api/team-auth/reset-password`, `DELETE /api/team-auth/:id`.
+     - Handler `POST /api/recaps`: Upload screenshot recap + kiper, simpan berkas fisik ke `server/uploads/recaps/`.
+     - Handler `GET /api/recaps`, `GET /api/recaps/team/:teamId`, `PUT /api/recaps/:id/status`, `DELETE /api/recaps/:id`.
+     - Mount rute baru di `server/index.js`.
+  3. Frontend Portal Kapten Tim (`src/views/LaporMatchView.vue`):
+     - Route publik `/lapor-match` dengan tautan di navbar (`BilahNavigasi.vue`).
+     - State login kapten tim via composable baru `src/composables/useTimAuth.js`.
+     - Form pemilihan pertandingan berstatus selesai (`finished`) milik tim tersebut.
+     - Unggah dua screenshot (Foto Recap Match wajib, Foto Statistik Kiper opsional) dengan kompresi client-side via `kompresGambar()` dari `src/lib/gambar.js`.
+     - Tabel riwayat bukti match yang telah dikirim beserta badge status verifikasi.
+  4. Frontend Admin Panel (`src/components/admin/PanelRecapMatch.vue` & `src/views/AdminView.vue`):
+     - Tab baru "Recap Match" di AdminView.
+     - Sub-tab 1 "Daftar Bukti Match": Pratinjau thumbnail screenshot (zoom modal besar), unduh berkas gambar (`unduhGambar()`), aksi ubah status verifikasi (`verified`/`rejected`), serta tombol hapus.
+     - Sub-tab 2 "Kelola Akun Tim": Generator 1-klik akun tim, tombol reset password, tombol salin format teks WhatsApp ke clipboard untuk dibagikan ke kapten tim.
+- [2026-10-16]: Fitur Pratinjau & Unduh Logo Klub di Halaman Admin (Tab Klub Peserta):
+  1. Frontend Client Helper (`src/lib/gambar.js`):
+     - Menambahkan fungsi helper `unduhGambar(url, namaBerkas)` yang mendukung format Base64 data URL maupun remote URL dengan sanitasi nama berkas, penanganan blob fetch, serta fallback canvas/tab baru jika terkendala CORS.
+  2. Komponen Admin (`src/components/admin/ManajemenTim.vue`):
+     - Interaksi Thumbnail Logo: Mengklik logo thumbnail di daftar tabel klub peserta akan membuka modal pratinjau.
+     - Tombol Aksi Cepat: Menambahkan tombol "Logo" di kolom aksi tabel untuk membuka modal pratinjau & opsi unduh logo klub.
+     - Modal Pratinjau (`ModalDialog`): Menampilkan logo dalam resolusi besar dengan latar pola grid checkerboard (kontras optimal untuk PNG transparan), rincian metadata klub (nama, tag, format berkas), tombol "Buka Tab Baru" (jika remote URL), dan tombol primer "Unduh Logo".
+- [2026-10-15]: Penambahan Input ID Game Pemain pada Modal Kelola Skuad Klub Admin:
+  1. Skema Database & Migrasi:
+     - Menambahkan kolom `game_id VARCHAR(50) NULL AFTER name` pada tabel `pcl_players` di MySQL database.
+     - Memperbarui skrip `server/database/schema_mysql.sql` dan `docs/DOMAIN_SPEC.md`.
+     - Melakukan sinkronisasi data riwayat pendaftaran tim ke kolom `game_id` pemain yang sudah terdaftar sebelumnya.
+  2. Backend REST API Express (`server/routes/players.js`, `teams.js`, `registrations.js`):
+     - Handler `POST /api/players` & `PUT /api/players/:id` menerima dan menyimpan field `game_id`.
+     - Handler `GET /api/players` & `GET /api/teams/:id` mengembalikan kolom `game_id`.
+     - Registrasi tim yang disetujui otomatis menyalin `game_id` kapten & skuad ke `pcl_players`.
+     - Salin tim antar musim (`/api/teams/copy-from-season`) mempertahankan `game_id`.
+     - Service `pcl-backend` di-restart via systemd.
+  3. Frontend Modal Admin:
+     - `ModalKelolaPemain.vue`: Form input mengikuti format pendaftaran yang ada (hanya Nama Pemain, ID Game, dan Posisi/Role; input No. Punggung dihapus dan otomatis diset sesuai urutan skuad).
+  4. Pengujian: 9/9 Vitest tests lulus dan Vite build sukses 100%.
+- [2026-10-13]: Perbaikan Sinkronisasi Pendaftaran Tim dengan Nama Singkatan Sama:
+  1. Backend REST API Express (`server/routes/registrations.js` & `server/routes/teams.js`):
+     - Memperbaiki pengecekan tim duplikat saat status pendaftaran disetujui (`diterima`) dan saat penyalinan antar season. Pengecekan diubah dari `(name = ? OR short_name = ?)` menjadi hanya berdasarkan `name = ?`.
+     - Mengizinkan tim berbeda dari divisi/organisasi yang sama memiliki singkatan yang identik (misal `7Sins•BlueLock` dan `7Sins•BlueLock B` keduanya menggunakan singkatan `7SB`).
+  2. Pemulihan & Sinkronisasi Data Database (`pcl_teams` & `pcl_players`):
+     - Memulihkan data manajer `7Sins•BlueLock B` ke manajer aslinya (`7SB_LISUYYYY`).
+     - Mendaftarkan entri tim `7Sins•BlueLock` (manajer `7SB_CANNAYYYY`) ke tabel `pcl_teams` beserta sinkronisasi 8 pemain skuadnya ke `pcl_players`.
+     - Kedua tim kini tampil lengkap dan terpisah di daftar tim publik maupun panel admin.
+- [2026-10-08]: Penambahan Fitur Pin / Sematkan Informasi Berita Penting:
+  1. Database MySQL & Skema:
+     - Menambahkan kolom `is_pinned TINYINT(1) DEFAULT 0` pada tabel `pcl_news`.
+     - Menambahkan indeks B-Tree `idx_pcl_news_pinned` (`is_pinned` DESC, `diterbitkan_pada` DESC).
+     - Memperbarui skrip `server/database/schema_mysql.sql`.
+  2. Backend REST API Express (`server/routes/news.js`):
+     - Self-healing database migration otomatis untuk `is_pinned` jika belum ada.
+     - Urutan query `GET /api/news` kini memprioritaskan berita sematan: `ORDER BY is_pinned DESC, diterbitkan_pada DESC, created_at DESC`.
+     - Dukungan field `is_pinned` pada handler `POST /api/news` dan `PUT /api/news/:id`.
+     - Menambahkan endpoint cepat `POST /api/news/:id/pin` untuk toggle pin/unpin 1-klik.
+     - Service `pcl-backend` berhasil di-restart melalui systemd.
+  3. Client & Composable Layer:
+     - Menambahkan method `togglePinNews` di `src/lib/api.js`.
+     - Menambahkan fungsi `togglePinBerita` serta update payload pada `tambahBerita` dan `perbaruiBerita` di `src/composables/useAdmin.js`.
+  4. Panel Admin Berita (`PanelManajemenBerita.vue` & `AdminView.vue`):
+     - Menambahkan tombol aksi 1-klik Pin/Unpin (ikon `Pin`) langsung di tabel daftar berita tanpa harus membuka form edit.
+     - Menambahkan opsi centang checkbox *"Sematkan berita ini (Pin ke urutan paling atas)"* saat membuat dan mengedit berita.
+     - Baris berita yang disematkan diberi highlight lembut dan lencana `Dipin` berwarna amber.
+  5. Tampilan Publik (`BeritaView.vue` & `BerandaView.vue`):
+     - Berita yang di-pin otomatis menjadi prioritas teratas (Sorotan Utama / awal daftar).
+     - Menambahkan lencana visual `Disematkan` / `Dipin` dengan ikon Pin di kartu artikel berita utama maupun grid kartu di halaman Berita dan Beranda.
+  6. Pengujian: 9/9 tes unit Vitest lolos dan Vite build produksi sukses 100%.
+
+- [2026-10-06]: Penambahan Fitur Preview & Unduh QRIS di Halaman Pendaftaran:
+  1. Komponen: Memperbarui `src/components/pendaftaran/KotakPembayaranWa.vue`.
+  2. Interaksi Preview:
+     - Kartu QRIS memiliki efek hover zoom & overlay ikon Eye dengan petunjuk klik.
+     - Klik pada foto QRIS atau tombol "Perbesar" membuka modal pratinjau (`ModalDialog`) beresolusi penuh.
+  3. Fitur Unduh:
+     - Ditambahkan tombol "Unduh QR" (menggunakan `TombolDasar` + ikon `Download`) baik di bawah kotak QR maupun di dalam dialog modal.
+     - Otomatis men-download file gambar dengan penamaan rapi (`qris-pcl-2026-[namatim].png`).
+  4. Pengujian: Vite build & Vitest 9/9 unit tests lolos tanpa error.
+
+- [2026-10-06]: Perbaikan Kolom `pcl_settings.value` untuk Upload Gambar/QRIS:
+  1. Root cause: Kolom `value` pada tabel `pcl_settings` sebelumnya bertipe `TEXT` (maks 64 KB). Ketika mengunggah gambar QRIS berupa data URL base64 (> 64 KB), MySQL melempar error `Data too long for column 'value' at row 1`.
+  2. Perubahan Database: Menjalankan `ALTER TABLE pcl_settings MODIFY COLUMN value LONGTEXT NOT NULL;` di database `pcl_tournament` agar selaras dengan `docs/DOMAIN_SPEC.md`.
+  3. Skrip Schema: Memperbarui definisi tabel `pcl_settings` di `server/database/schema_mysql.sql` menjadi `LONGTEXT`.
+  4. Pengujian: Berhasil memvalidasi insert string base64 berukuran > 150 KB ke tabel `pcl_settings`.
+
+- [2026-10-05]: Penambahan Fitur Hapus Pendaftaran Tim & Pembersihan Naming Konvensi API:
+  1. Backend API: Menambahkan endpoint `DELETE /api/registrations/:id` pada Express router (`server/routes/registrations.js`) untuk menghapus pendaftar dari tabel `pcl_team_registrations`. Service `pcl-backend` telah di-restart via systemd sehingga endpoint aktif.
+  2. Frontend Client & Composables: Menambahkan method `deleteRegistration` di `src/lib/api.js` dan fungsi `hapusPendaftaran` di `src/composables/useAdmin.js`.
+  3. Pembersihan Naming Konvensi: Menghapus seluruh penamaan legacy `...Supabase` di `useAdmin.js`, `useKnockout.js`, dan `AdminView.vue`, diganti dengan nama native (`hapusPendaftaran`, `tambahBerita`, `buatTimBaru`, dll) yang selaras dengan arsitektur murni Express.js + MySQL.
+  4. UI Panel Pendaftaran (`PanelPendaftaranTim.vue`):
+     - Menambahkan tombol aksi hapus (ikon `Trash2`) di kolom "Aksi Panitia".
+     - Menambahkan dialog konfirmasi modal (`ModalDialog`) sebelum penghapusan.
+     - Mengintegrasikan handler reaktif di `AdminView.vue` agar data tabel dan status counter terupdate langsung.
+  5. Pengujian: 9/9 tes unit lulus dan Vite build berhasil 100%.
+- [2026-10-05]: Perapian Header & Toolbar Drawing Bagan Knockout (`PanelDrawingBagan.vue`):
+  1. Header Bersih & Terorganisir: Memisahkan bagian judul & pemilih musim (Season selector) di baris atas dengan tombol bahaya Reset DB, sehingga header tidak berdesakan di layar sedang maupun kecil.
+  2. Toolbar Kontrol Terstruktur:
+     - Mengelompokkan Format Bagan (4, 8, 16, 32 Klub) dalam pill container mandiri yang rapi.
+     - Menyusun tombol aksi pengundian dengan hierarki jelas: Opsi baku turnamen ("Ambil Top 2 Grup") berwarna emerald mencolok, tombol "Kocok Acak Bagan" beraksen primer UCL, serta tombol utilitas "Batal Pratinjau".
+  3. UI Polish & Baku: Menyelaraskan tombol konfirmasi simpan jadwal dengan komponen baku `TombolDasar` varian `gold`, serta merapikan tipografi label dan card matchup babak gugur.
+  4. Pengujian: 9/9 tes unit lulus (vitest) dan build Vite lulus tanpa error.
+- [2026-10-04]: Optimalisasi Tampilan Card Berita Desktop (Ramping & Proporsional):
+  1. Banner Sorotan Utama (`BeritaView.vue`): Dibuat kompak dengan pembagian kolom proporsional (5:7), batas tinggi foto maksimal 260px sehingga tidak makan tempat di desktop.
+  2. Grid Kartu Berita (`BeritaView.vue`):
+     - Memakai grid 3 kolom (`lg:grid-cols-3`) standar turnamen/portal olahraga.
+     - Ketinggian foto dibatasi ramping dan proporsional (`h-36 sm:h-40`, sekitar 140-160px).
+     - Menghindari kartu memanjang horizontal raksasa sehingga proporsional di layar lebar maupun mobile.
+  3. Halaman Detail Berita: Foto tetap tampil penuh utuh (`object-contain max-h-[500px]`) tanpa crop.
+  4. Pengujian: 9/9 unit test pass dan Vite build lulus 100%.
+- [2026-10-04]: Konfigurasi Search Engine Optimization (SEO) & Google Search Console Indexing:
+  1. Membuat `public/robots.txt` dengan instruksi akses crawler penuh (`Allow: /`), proteksi area sensitif (`Disallow: /admin`, `Disallow: /api/`), serta deklarasi sitemap kanonikal `Sitemap: https://pcl.web.id/sitemap.xml`.
+  2. Mengimplementasikan endpoint dynamic XML sitemap di Express backend (`server/index.js` -> `/sitemap.xml`) yang otomatis mengambil daftar seluruh halaman statis, artikel berita terkini dari tabel `pcl_news`, serta halaman klub dari tabel `pcl_teams` berserta tanggal `lastmod`.
+  3. Mengonfigurasi reverse proxy Vite (`vite.config.js`) untuk meneruskan permintaan `/sitemap.xml` ke backend Express port 3001.
+  4. Menambahkan meta tag kanonikal dan indexing (`<meta name="robots" content="index, follow" />`, `<link rel="canonical" href="https://pcl.web.id/" />`) pada `index.html`.
+  5. Pengujian publik: `https://pcl.web.id/robots.txt` dan `https://pcl.web.id/sitemap.xml` terverifikasi merespons HTTP 200 OK dengan format XML valid langsung via Cloudflare Zero Trust tunnel.
+- [2026-10-04]: Penambahan Ikon Tautan Sosial Media Resmi PCL di Footer (`KakiHalaman.vue`):
+  1. Menambahkan tautan resmi Instagram (`@peakchampionsleague`) dengan ikon Lucide `Instagram` dan efek hover warna brand.
+  2. Menambahkan tautan resmi TikTok (`@peakchampionsleague1`) dengan SVG icon TikTok native dan aksen neon cyan.
+  3. Desain tombol tautan responsif, rapi, dan terintegrasi selaras dengan tema gelap `hero-navy` pada footer situs.
+  4. Pengujian Vitest: 9/9 tes unit lulus 100%.
+- [2026-10-04]: Peningkatan Kompatibilitas Open Graph WhatsApp Preview:
+  1. Root cause crawler WhatsApp: WhatsApp crawler menolak format WebP pada beberapa versi dan mewajibkan metadata `og:image:type`, `og:image:width` (1200), `og:image:height` (630), serta namespace `prefix="og: https://ogp.me/ns#"`.
+  2. Mengubah generator kompresi gambar frontend (`src/lib/gambar.js`) ke format `image/jpeg` (maks 1200x1200px) agar secara native didukung penuh oleh WhatsApp scraper.
+  3. Memperbarui handler SSR di `server/index.js` dengan meta tag OG lengkap: `og:image:type`, `og:image:width`, `og:image:height`, dan URL fallback standar `https://pcl.web.id/img/og-banner.jpg`.
+  4. Mengonversi gambar artikel yang sudah ada ke format JPEG: `https://pcl.web.id/uploads/news/06976f36-4f63-4b21-8054-ca92c27050a7.jpg`.
+  5. Teruji: Crawler WhatsApp (`User-Agent: WhatsApp/2.21.4.18`) menerima HTML OG article dengan link JPEG HTTPS valid (HTTP 200 OK).
+- [2026-10-04]: Perbaikan Tampilan Gambar Penuh & Pratinjau Open Graph (WhatsApp/Sosmed):
+  1. Tampilan Gambar Full (No Crop): Mengubah styling cover gambar di `DetailBeritaView.vue` dan preview di `PanelManajemenBerita.vue` dari `object-cover` dengan tinggi terpotong menjadi `object-contain` dengan `max-h-[500px]` dan latar netral, sehingga seluruh aspek gambar terlihat utuh tanpa terpotong.
+  2. Solusi Open Graph WhatsApp:
+     - Menyimpan payload gambar base64 yang diunggah langsung ke file statis di `server/uploads/news/` dan menyediakan URL HTTPS statis (`/uploads/news/...`).
+     - Memperbaiki proxy crawler di `vite.config.js` untuk merutekan bot media sosial (WhatsApp, Facebook, Twitter, Telegram, dll) ke handler SSR Express.
+     - Memperbaiki Open Graph metadata di `server/index.js` agar menghasilkan tag `og:image` dengan URL HTTPS publik absolut `https://pcl.web.id/uploads/news/...`.
+  3. Teruji: Crawler WhatsApp (`User-Agent: WhatsApp/2.21.4.18`) menerima HTML metadata dengan tag `og:image` absolut `https://pcl.web.id/uploads/news/...` berstatus HTTP 200 OK.
+- [2026-10-04]: Perbaikan Kolom Gambar Berita MySQL (`Data too long for column 'gambar_url'`):
+  1. Root cause: Kolom `gambar_url` di tabel `pcl_news` sebelumnya bertipe `TEXT` (maksimum 65.535 byte / 64KB), sehingga saat upload gambar via base64/kompresi data string panjang melebihi kapasitas dan melempar error MySQL 500.
+  2. Solusi: Mengubah tipe kolom `gambar_url`, `ringkasan`, dan `konten` di tabel `pcl_news` menjadi `LONGTEXT` (kapasitas hingga 4GB).
+  3. Memperbarui skema file master `server/database/schema_mysql.sql`.
+  4. Teruji: Pembuatan berita dengan payload gambar base64 berhasil tersimpan normal (HTTP 200).
+- [2026-10-04]: Penerapan Logo & Favicon Resmi PCL pada Browser Tab (`index.html`):
+  1. Men-generate aset favicon multi-resolusi dari logo resmi (`src/assets/img/logoo.webp`): `favicon.ico` (64x64), `favicon-32x32.png`, `favicon-192.png`, dan `logo-pcl.webp` ke folder `public/`.
+  2. Memperbarui `index.html` dengan tag `<link rel="icon">` untuk standar ICO, PNG 32x32, 192x192, serta `apple-touch-icon`.
+  3. Teruji: Akses langsung ke `https://pcl.web.id/favicon.ico` dan `https://pcl.web.id/favicon-32x32.png` sukses (HTTP 200 OK).
+- [2026-10-04]: Migrasi Autentikasi Admin ke Tabel Database MySQL (`pcl_admins`):
+  1. Membuat tabel `pcl_admins` pada database MySQL dengan kolom `id`, `username`, `email`, `password_hash`, `salt`, `nama`, `role`.
+  2. Mendaftarkan user `adminpcl` ke tabel `pcl_admins` dengan pengacakan salt dan hashing aman standar PBKDF2 SHA-512 (password: `pcl#27`).
+  3. Memperbarui skema file master `server/database/schema_mysql.sql` agar mencakup DDL tabel `pcl_admins` dan seed user admin.
+  4. Memperbarui endpoint `POST /api/auth/login` (`server/routes/auth.js`) untuk memvalidasi kredensial langsung terhadap tabel MySQL menggunakan `crypto.timingSafeEqual` dan menghapus fallback array hardcoded di memori.
+  5. Memperbarui composable frontend (`src/composables/useAuth.js`) untuk murni berkomunikasi via API tanpa hardcode kredensial di bundle klien.
+  6. Menghapus teks petunjuk `Akun default: admin / admin123` pada halaman login admin (`src/views/AdminView.vue`).
+  7. Teruji: Autentikasi live lewat `https://pcl.web.id/api/auth/login` sukses mengembalikan token dan profil admin dari database MySQL.
+- [2026-10-04]: Konfigurasi Domain & Cloudflare Zero Trust (pcl.web.id):
+  1. Menyesuaikan port server Vite frontend ke port 5175 dan mengizinkan host `pcl.web.id` di `vite.config.js`.
+  2. Proxy API tetap diarahkan secara internal ke backend Express di `http://localhost:3001`.
+  3. Konfigurasi database MySQL mengarah ke container aktif `mysql-mete` dengan user `pcl_user` dan database `pcl_tournament`.
 - [2026-10-04]: Sinkronisasi Otomatis Pendaftaran Tim ke Klub Peserta & Skuad Pemain (`server/routes/registrations.js`):
   1. Menjelaskan alur approval: pendaftaran awal berstatus 'Pending' agar panitia dapat memverifikasi pembayaran/struk WA sebelum masuk turnamen.
   2. Memperbaiki handler PUT `/api/registrations/:id/status` saat admin klik 'Terima' (`status: 'diterima'`) agar otomatis memasukkan klub ke tabel `pcl_teams` (termasuk `tournament_id` aktif dan `logo_url`) serta menyinkronkan seluruh pemain skuad (Kapten + Anggota) ke tabel `pcl_players`.
@@ -200,3 +407,43 @@ Membangun web turnamen Peak Champions League (PCL) berbasis Vue 3 + Express.js +
 
 
 
+- [2026-10-04]: Konfigurasi Systemd Service Backend PCL:
+  1. Pembuatan user service `pcl-backend.service` di `~/.config/systemd/user/pcl-backend.service`.
+  2. Service diaktifkan (`enabled`) dan dijalankan (`active (running)`) sehingga persisten berjalan di background (tidak mati saat session SSH/terminal ditutup dan otomatis restart saat reboot).
+  3. Verifikasi endpoint `http://localhost:3001/api/health` dan proxy Vite `:5175/api/health` status OK.
+
+- [2026-10-13]: Pemulihan Service Pasca Reboot Server:
+  1. Menyalakan container Docker yang sebelumnya mati: `palleko_db`, `palleko_web`, `mysql-mete`, dan `supabase_edge_runtime_supabase-local`.
+  2. Mengidentifikasi kendala akses domain `pcl.web.id` karena frontend Vite di port 5175 belum berjalan otomatis.
+  3. Membuat systemd user service `pcl-frontend.service` di `~/.config/systemd/user/pcl-frontend.service` untuk menjalankan `npm run dev` di background dan auto-start saat reboot.
+  4. Mengaktifkan (`enable --now`) `pcl-frontend.service`.
+  5. Verifikasi: Akses `https://pcl.web.id/` (HTTP 200) dan `https://pcl.web.id/api/health` (HTTP 200) kembali normal dan sukses terhubung via Cloudflare Tunnel.
+
+- [2026-10-16]: Fitur Unduh Logo Tim, Portal Lapor Match & Tipografi Berita:
+  1. Unduh & Pratinjau Logo Tim (`ManajemenTim.vue`, `src/lib/gambar.js`): Modal preview logo dengan checkerboard transparency background, metadata, tombol buka tab baru, dan download file logo tim via `unduhGambar()`.
+  2. Portal Lapor Match & Akun Tim (`/lapor-match`, `LaporMatchView.vue`, `PanelRecapMatch.vue`):
+     - DDL tabel `pcl_team_accounts` dan `pcl_match_recaps`.
+     - Backend route auth tim (`server/routes/team_auth.js`) dan upload recap (`server/routes/recaps.js`) dengan penyimpanan gambar ke disk `/uploads/recaps/`.
+     - Panel admin tab "Recap Match" untuk review foto hasil pertandingan & kiper, status verifikasi/tolak, zoom modal, download foto, dan 1-click generate kredensial akun tim format WhatsApp.
+     - Portal mandiri kapten tim `/lapor-match` (akses langsung tanpa navbar) untuk login, pilih laga jadwal tim, upload 2 screenshot (recap & statistik kiper), dan input catatan kecurangan/kejanggalan lawan.
+  3. Auto-link & Tipografi Detail Berita (`DetailBeritaView.vue`):
+     - Sanitasi teks dan konversi otomatis URL `http://` / `https://` menjadi link aktif berwarna biru yang dapat diklik.
+     - Penyesuaian ukuran font konten berita di layar HP (mobile) dari 12px (`text-xs`) menjadi 14px-16px (`text-sm sm:text-base md:text-lg`) agar lebih nyaman dibaca.
+
+- [2026-10-16]: Fitur Booking Key Pendaftaran Slot Khusus Turnamen:
+  1. Skema Database (`server/database/schema_mysql.sql`):
+     - Tabel `pcl_booking_keys`: `id`, `key_code`, `is_used`, `used_by_team_id`, `used_by_team_name`, `used_at`, `catatan`, `created_at` dengan auto-create table saat route pertama dimuat.
+  2. Backend REST Endpoints (`server/routes/booking_keys.js` & `server/routes/registrations.js`):
+     - `GET /api/booking-keys`: Ambil daftar booking key untuk admin.
+     - `POST /api/booking-keys/generate`: Generate batch key booking dengan jumlah kustom (1-50) & catatan pemesan.
+     - `POST /api/booking-keys/verify`: Verifikasi validitas key booking untuk publik/pendaftar.
+     - `DELETE /api/booking-keys/:id`: Hapus key booking oleh admin.
+     - `POST /api/registrations`: Validasi key booking saat pendaftaran & auto-update status key menjadi `is_used = 1` dengan mencatat nama tim pemakai.
+  3. Panel Admin (`PanelBookingKeys.vue` & `PanelPendaftaranTim.vue`):
+     - Tombol toggle "Kelola Booking Key" di toolbar pendaftaran admin.
+     - Panel generator key dengan input jumlah dan catatan, tombol salin 1-klik, status badge (Tersedia / Terpakai), dan riwayat tim yang memakai.
+     - Indikator badge key booking pada baris nama tim di tabel pendaftaran admin.
+  4. Halaman Pendaftaran Publik (`PendaftaranView.vue`):
+     - Saat pendaftaran ditutup, muncul kotak "Punya Key Booking Slot?" untuk memasukkan key booking.
+     - Dukungan direct URL link dengan query param (misal `/pendaftaran?key=PCL-BKXXXX`).
+     - Verifikasi instan: membuka formulir pendaftaran dengan banner slot khusus aktif dan mencatat key ke pendaftaran tim.

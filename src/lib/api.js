@@ -105,6 +105,7 @@ export const api = {
   getRegistrations: () => request('/registrations'),
   createRegistration: (payload) => request('/registrations', { method: 'POST', body: payload }),
   updateRegistrationStatus: (id, status) => request(`/registrations/${id}/status`, { method: 'PUT', body: { status } }),
+  deleteRegistration: (id) => request(`/registrations/${id}`, { method: 'DELETE' }),
 
   // === CHAMPIONS / HALL OF FAME ===
   getChampions: () => request('/champions'),
@@ -118,6 +119,7 @@ export const api = {
   updateNews: (id, payload) => request(`/news/${id}`, { method: 'PUT', body: payload }),
   deleteNews: (id) => request(`/news/${id}`, { method: 'DELETE' }),
   likeNews: (id, delta = 1) => request(`/news/${id}/like`, { method: 'POST', body: { delta } }),
+  togglePinNews: (id) => request(`/news/${id}/pin`, { method: 'POST' }),
 
   // === SETTINGS ===
   getSettings: () => request('/settings'),
@@ -125,7 +127,27 @@ export const api = {
   updateSetting: (key, value) => request(`/settings/${key}`, { method: 'PUT', body: { value } }),
 
   // === AUTH ===
-  login: (username, password) => request('/auth/login', { method: 'POST', body: { username, password } })
+  login: (username, password) => request('/auth/login', { method: 'POST', body: { username, password } }),
+
+  // === TEAM AUTH (AKUN KAPTEN TIM) ===
+  loginTim: (username, password) => request('/team-auth/login', { method: 'POST', body: { username, password } }),
+  generateAkunTim: (team_id) => request('/team-auth/generate', { method: 'POST', body: { team_id } }),
+  daftarAkunTim: () => request('/team-auth/list'),
+  resetPasswordTim: (id) => request('/team-auth/reset-password', { method: 'POST', body: { id } }),
+  hapusAkunTim: (id) => request(`/team-auth/${id}`, { method: 'DELETE' }),
+
+  // === MATCH RECAPS ===
+  getRecaps: () => request('/recaps'),
+  getRecapsTim: (teamId) => request(`/recaps/team/${teamId}`),
+  uploadRecap: (payload) => request('/recaps', { method: 'POST', body: payload }),
+  updateStatusRecap: (id, status) => request(`/recaps/${id}/status`, { method: 'PUT', body: { status } }),
+  hapusRecap: (id) => request(`/recaps/${id}`, { method: 'DELETE' }),
+
+  // === BOOKING KEYS (SLOT RESERVASI PENDAFTARAN) ===
+  getBookingKeys: () => request('/booking-keys'),
+  generateBookingKeys: (payload) => request('/booking-keys/generate', { method: 'POST', body: payload }),
+  verifyBookingKey: (key) => request('/booking-keys/verify', { method: 'POST', body: { key } }),
+  deleteBookingKey: (id) => request(`/booking-keys/${id}`, { method: 'DELETE' })
 }
 
 export default api

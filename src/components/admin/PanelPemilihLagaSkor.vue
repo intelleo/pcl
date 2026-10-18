@@ -102,36 +102,36 @@ function pilihLaga(id) {
     <div class="flex flex-col md:flex-row md:items-center justify-between gap-3 pb-3 border-b border-slate-100">
       <div>
         <h3 class="text-sm font-semibold text-ink-900">Tabel Jadwal &amp; Hasil Pertandingan</h3>
-        <p class="text-[11px] text-slate-500">Klik baris atau tombol pada tabel untuk membuka popup input skor laga.</p>
+        <p class="text-[11px] text-slate-500">Klik baris atau tombol untuk membuka popup input skor laga.</p>
       </div>
 
       <!-- Quick Filter Status Tabs -->
-      <div class="inline-flex p-1 rounded-lg bg-slate-100 text-xs font-semibold self-start md:self-auto">
+      <div class="grid grid-cols-3 sm:inline-flex p-1 rounded-lg bg-slate-100 text-xs font-semibold w-full sm:w-auto">
         <button
           type="button"
           @click="filterStatus = 'pending'"
-          class="px-3 py-1.5 rounded-md transition cursor-pointer flex items-center gap-1.5"
+          class="px-2.5 sm:px-3 py-1.5 rounded-md transition cursor-pointer flex items-center justify-center gap-1 sm:gap-1.5 text-center"
           :class="filterStatus === 'pending' ? 'bg-white text-amber-700 shadow-sm' : 'text-slate-500 hover:text-ink-900'"
         >
-          <Clock class="w-3.5 h-3.5 text-amber-500" />
-          Belum Selesai ({{ daftarLaga.filter(m => m.status !== 'finished').length }})
+          <Clock class="w-3.5 h-3.5 text-amber-500 shrink-0" />
+          <span class="truncate">Belum ({{ daftarLaga.filter(m => m.status !== 'finished').length }})</span>
         </button>
         <button
           type="button"
           @click="filterStatus = 'finished'"
-          class="px-3 py-1.5 rounded-md transition cursor-pointer flex items-center gap-1.5"
+          class="px-2.5 sm:px-3 py-1.5 rounded-md transition cursor-pointer flex items-center justify-center gap-1 sm:gap-1.5 text-center"
           :class="filterStatus === 'finished' ? 'bg-white text-emerald-700 shadow-sm' : 'text-slate-500 hover:text-ink-900'"
         >
-          <CheckCircle2 class="w-3.5 h-3.5 text-emerald-500" />
-          Selesai ({{ daftarLaga.filter(m => m.status === 'finished').length }})
+          <CheckCircle2 class="w-3.5 h-3.5 text-emerald-500 shrink-0" />
+          <span class="truncate">Selesai ({{ daftarLaga.filter(m => m.status === 'finished').length }})</span>
         </button>
         <button
           type="button"
           @click="filterStatus = 'semua'"
-          class="px-3 py-1.5 rounded-md transition cursor-pointer"
+          class="px-2.5 sm:px-3 py-1.5 rounded-md transition cursor-pointer text-center"
           :class="filterStatus === 'semua' ? 'bg-white text-ink-900 shadow-sm' : 'text-slate-500 hover:text-ink-900'"
         >
-          Semua ({{ daftarLaga.length }})
+          <span class="truncate">Semua ({{ daftarLaga.length }})</span>
         </button>
       </div>
     </div>
@@ -165,7 +165,7 @@ function pilihLaga(id) {
       </div>
     </div>
 
-    <!-- Table Section -->
+    <!-- Tabel Daftar Laga -->
     <div class="border border-slate-200 rounded-xl overflow-hidden">
       <div class="overflow-x-auto">
         <table class="w-full text-left text-xs min-w-[640px]">
@@ -174,7 +174,7 @@ function pilihLaga(id) {
               <th class="py-2.5 px-3">Fase &amp; MD</th>
               <th class="py-2.5 px-3">Pertandingan</th>
               <th class="py-2.5 px-3 text-center">Skor</th>
-              <th class="py-2.5 px-3 hidden sm:table-cell">Waktu Laga</th>
+              <th class="py-2.5 px-3">Waktu Laga</th>
               <th class="py-2.5 px-3 text-center">Status</th>
               <th class="py-2.5 px-3 text-right">Aksi</th>
             </tr>
@@ -272,7 +272,7 @@ function pilihLaga(id) {
               </td>
 
               <!-- Scheduled Time -->
-              <td class="py-3 px-3 text-slate-500 whitespace-nowrap hidden sm:table-cell">
+              <td class="py-3 px-3 text-slate-500 whitespace-nowrap">
                 <div class="flex items-center gap-1 text-[11px]">
                   <Calendar class="w-3 h-3 text-slate-400 shrink-0" />
                   {{ formatWaktu(laga.scheduled_at) }}

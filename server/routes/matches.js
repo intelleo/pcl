@@ -10,7 +10,7 @@ const router = express.Router()
  */
 router.get('/', async (req, res) => {
   try {
-    const { tournament_id, stage, status, matchday, group_id } = req.query
+    const { tournament_id, stage, status, matchday, group_id, team_id } = req.query
 
     // Evaluasi & sinkronisasi otomatis status tim di babak knockout
     await sinkronkanSemuaBaganKnockout()
@@ -45,6 +45,10 @@ router.get('/', async (req, res) => {
     if (status) { conditions.push('m.status = ?'); params.push(status) }
     if (matchday) { conditions.push('m.matchday = ?'); params.push(Number(matchday)) }
     if (group_id) { conditions.push('m.group_id = ?'); params.push(group_id) }
+    if (team_id) {
+      conditions.push('(m.home_team_id = ? OR m.away_team_id = ?)')
+      params.push(team_id, team_id)
+    }
 
     if (conditions.length > 0) {
       sql += ' WHERE ' + conditions.join(' AND ')

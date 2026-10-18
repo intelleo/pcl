@@ -1,5 +1,40 @@
 import express from 'express'
+import fs from 'fs'
+import path from 'path'
+import { fileURLToPath } from 'url'
 import { query, generateUUID } from '../config/db.js'
+
+const __filename = fileURLToPath(import.meta.url)
+const __dirname = path.dirname(__filename)
+const UPLOAD_DIR = path.join(__dirname, '../uploads/teams')
+
+if (!fs.existsSync(UPLOAD_DIR)) {
+  fs.mkdirSync(UPLOAD_DIR, { recursive: true })
+}
+
+/**
+ * Simpan base64 data URL ke file disk, return path relatif publik
+ */
+function simpanBase64KeFile(dataUrl, namaDasar) {
+  if (!dataUrl || !dataUrl.startsWith('data:image/')) return dataUrl
+
+  try {
+    const cocok = dataUrl.match(/^data:image\/([a-zA-Z0-9+]+);base64,(.+)$/)
+    if (!cocok) return dataUrl
+
+    let ekstensi = cocok[1].toLowerCase()
+    if (ekstensi === 'jpeg') ekstensi = 'jpg'
+    const buffer = Buffer.from(cocok[2], 'base64')
+    const namaFile = `${namaDasar}-${Date.now()}.${ekstensi}`
+    const pathLengkap = path.join(UPLOAD_DIR, namaFile)
+
+    fs.writeFileSync(pathLengkap, buffer)
+    return `/uploads/teams/${namaFile}`
+  } catch (err) {
+    console.error('Gagal menyimpan file logo tim ke disk:', err)
+    return dataUrl
+  }
+}
 
 const router = express.Router()
 
@@ -56,7 +91,7 @@ router.get('/:id', async (req, res) => {
     }
 
     const players = await query(
-      'SELECT id, name, squad_number, position, avatar_url FROM pcl_players WHERE team_id = ? ORDER BY squad_number ASC',
+      'SELECT id, name, game_id, squad_number, position, avatar_url FROM pcl_players WHERE team_id = ? ORDER BY squad_number ASC',
       [id]
     )
 
@@ -79,10 +114,12 @@ router.post('/', async (req, res) => {
     }
 
     const teamId = generateUUID()
+    const finalLogoUrl = simpanBase64KeFile(logo_url, `team-${short_name.toLowerCase()}`)
+
     await query(
       `INSERT INTO pcl_teams (id, tournament_id, name, short_name, logo_url, manager_name, group_name, rating)
        VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-      [teamId, tournament_id || null, name.trim(), short_name.trim().toUpperCase(), logo_url || null, manager_name || null, group_name || null, rating]
+      [teamId, tournament_id || null, name.trim(), short_name.trim().toUpperCase(), finalLogoUrl || null, manager_name || null, group_name || null, rating]
     )
 
     if (Array.isArray(players) && players.length > 0) {
@@ -90,9 +127,9 @@ router.post('/', async (req, res) => {
         if (p.name) {
           const pId = generateUUID()
           await query(
-            `INSERT INTO pcl_players (id, team_id, name, squad_number, position, avatar_url)
-             VALUES (?, ?, ?, ?, ?, ?)`,
-            [pId, teamId, p.name.trim(), p.squad_number || 1, p.position || 'MF', p.avatar_url || null]
+            `INSERT INTO pcl_players (id, team_id, name, game_id, squad_number, position, avatar_url)
+             VALUES (?, ?, ?, ?, ?, ?, ?)`,
+            [pId, teamId, p.name.trim(), p.game_id ? String(p.game_id).trim() : null, p.squad_number || 1, p.position || 'MF', p.avatar_url || null]
           )
         }
       }
@@ -134,8 +171,8 @@ router.post('/copy-from-season', async (req, res) => {
 
     for (const t of teamsAsal) {
       const [existing] = await query(
-        'SELECT id FROM pcl_teams WHERE tournament_id = ? AND (name = ? OR short_name = ?)',
-        [to_tournament_id, t.name, t.short_name]
+        'SELECT id FROM pcl_teams WHERE tournament_id = ? AND name = ?',
+        [to_tournament_id, t.name]
       )
 
       if (!existing) {
@@ -154,9 +191,9 @@ router.post('/copy-from-season', async (req, res) => {
         for (const p of pemainAsal) {
           const newPlayerId = generateUUID()
           await query(
-            `INSERT INTO pcl_players (id, team_id, name, squad_number, position, avatar_url, goals, assists, passes, defense, mvp)
-             VALUES (?, ?, ?, ?, ?, ?, 0, 0, 0, 0, 0)`,
-            [newPlayerId, newTeamId, p.name, p.squad_number, p.position, p.avatar_url]
+            `INSERT INTO pcl_players (id, team_id, name, game_id, squad_number, position, avatar_url, goals, assists, passes, defense, mvp)
+             VALUES (?, ?, ?, ?, ?, ?, ?, 0, 0, 0, 0, 0)`,
+            [newPlayerId, newTeamId, p.name, p.game_id || null, p.squad_number, p.position, p.avatar_url]
           )
         }
 
@@ -184,7 +221,11 @@ router.put('/:id', async (req, res) => {
 
     if (name !== undefined) { updates.push('name = ?'); params.push(name.trim()) }
     if (short_name !== undefined) { updates.push('short_name = ?'); params.push(short_name.trim().toUpperCase()) }
-    if (logo_url !== undefined) { updates.push('logo_url = ?'); params.push(logo_url) }
+    if (logo_url !== undefined) {
+      const finalLogoUrl = simpanBase64KeFile(logo_url, `team-${(short_name || id).toLowerCase()}`)
+      updates.push('logo_url = ?')
+      params.push(finalLogoUrl)
+    }
     if (manager_name !== undefined) { updates.push('manager_name = ?'); params.push(manager_name) }
     if (group_name !== undefined) { updates.push('group_name = ?'); params.push(group_name) }
     if (rating !== undefined) { updates.push('rating = ?'); params.push(Number(rating)) }

@@ -11,7 +11,8 @@ import {
   ArrowRight,
   Crown,
   Newspaper,
-  ChevronRight
+  ChevronRight,
+  Pin
 } from "lucide-vue-next";
 import { hitungStatusSeriBO3 } from "../composables/useKnockout.js";
 import logoPcl from "@/assets/img/logoo.webp";
@@ -287,11 +288,20 @@ function bukaBeritaLaga(berita) {
         >
           <div class="space-y-2">
             <div class="flex items-center justify-between">
-              <span
-                class="px-2 py-0.5 rounded-full bg-ucl-50 text-ucl-600 text-[10px] font-semibold uppercase tracking-wide"
-              >
-                {{ berita.tag }}
-              </span>
+              <div class="flex items-center gap-1.5">
+                <span
+                  v-if="berita.is_pinned"
+                  class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-amber-500 text-white text-[9px] font-bold uppercase tracking-wide"
+                >
+                  <Pin class="w-2.5 h-2.5 fill-white text-white" />
+                  Dipin
+                </span>
+                <span
+                  class="px-2 py-0.5 rounded-full bg-ucl-50 text-ucl-600 text-[10px] font-semibold uppercase tracking-wide"
+                >
+                  {{ berita.tag }}
+                </span>
+              </div>
               <span class="font-mono text-[11px] text-slate-400">{{
                 berita.tanggal
               }}</span>

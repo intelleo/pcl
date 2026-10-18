@@ -1,6 +1,8 @@
 <script setup>
-import { computed } from "vue";
-import { QrCode, MessageCircle, ExternalLink } from "lucide-vue-next";
+import { ref, computed } from "vue";
+import { QrCode, MessageCircle, ExternalLink, Download, Maximize2, Eye } from "lucide-vue-next";
+import ModalDialog from "../umum/ModalDialog.vue";
+import TombolDasar from "../umum/TombolDasar.vue";
 
 const props = defineProps({
   biayaPendaftaran: {
@@ -30,6 +32,8 @@ const props = defineProps({
   },
 });
 
+const modalPreviewTerbuka = ref(false);
+
 const linkWhatsApp = computed(() => {
   let raw = (props.kontakPanitiaWa || "").replace(/\D/g, "");
   if (raw.startsWith("0")) raw = "62" + raw.slice(1);
@@ -38,6 +42,27 @@ const linkWhatsApp = computed(() => {
   );
   return `https://wa.me/${raw}?text=${pesan}`;
 });
+
+function bukaPreviewQR() {
+  if (props.qrPembayaranUrl) {
+    modalPreviewTerbuka.value = true;
+  }
+}
+
+function unduhQR() {
+  if (!props.qrPembayaranUrl) return;
+
+  // Nama file unduhan rapi
+  const namaFile = `qris-pcl-2026-${(props.namaTim || 'tim').toLowerCase().replace(/[^a-z0-9]/g, '-')}.png`;
+
+  // Buat element <a> virtual untuk mengunduh base64 / URL
+  const a = document.createElement("a");
+  a.href = props.qrPembayaranUrl;
+  a.download = namaFile;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+}
 </script>
 
 <template>
@@ -66,21 +91,51 @@ const linkWhatsApp = computed(() => {
           >Scan QRIS Panitia</span
         >
         <div
-          class="w-44 h-44 rounded-xl border border-slate-200 bg-white p-2 flex items-center justify-center overflow-hidden shadow-sm"
+          class="group relative w-48 h-48 rounded-xl border border-slate-200 bg-white p-2 flex items-center justify-center overflow-hidden shadow-sm transition-all"
+          :class="{ 'cursor-pointer hover:border-ucl-500 hover:shadow-md': qrPembayaranUrl }"
+          @click="bukaPreviewQR"
+          title="Klik untuk memperbesar QRIS"
         >
-          <img
-            v-if="qrPembayaranUrl"
-            :src="qrPembayaranUrl"
-            alt="QR Code Pembayaran"
-            class="w-full h-full object-contain"
-            loading="lazy"
-            decoding="async"
-          />
+          <template v-if="qrPembayaranUrl">
+            <img
+              :src="qrPembayaranUrl"
+              alt="QR Code Pembayaran"
+              class="w-full h-full object-contain transition-transform duration-200 group-hover:scale-105"
+              loading="lazy"
+              decoding="async"
+            />
+            <!-- Overlay Hover Petunjuk Klik -->
+            <div class="absolute inset-0 bg-navy-950/40 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center text-white gap-1 rounded-xl">
+              <Eye class="w-6 h-6 drop-shadow" />
+              <span class="text-[11px] font-semibold drop-shadow">Klik perbesar</span>
+            </div>
+          </template>
           <div v-else class="text-center p-3 text-slate-400 text-xs">
             <QrCode class="w-10 h-10 mx-auto mb-1 opacity-25 text-slate-600" />
             <span>QR Code akan segera diunggah panitia</span>
           </div>
         </div>
+
+        <!-- Tombol Aksi: Preview & Unduh -->
+        <div v-if="qrPembayaranUrl" class="flex items-center justify-center gap-2 w-full pt-1">
+          <TombolDasar
+            varian="sekunder"
+            class="!text-xs !py-1.5 !px-3 gap-1.5"
+            @click="bukaPreviewQR"
+          >
+            <Maximize2 class="w-3.5 h-3.5" />
+            <span>Perbesar</span>
+          </TombolDasar>
+          <TombolDasar
+            varian="primer"
+            class="!text-xs !py-1.5 !px-3 gap-1.5"
+            @click="unduhQR"
+          >
+            <Download class="w-3.5 h-3.5" />
+            <span>Unduh QR</span>
+          </TombolDasar>
+        </div>
+
         <p class="text-[11px] text-slate-500 leading-relaxed max-w-xs">
           {{ instruksiPembayaran }}
         </p>
@@ -130,5 +185,49 @@ const linkWhatsApp = computed(() => {
         </div>
       </div>
     </div>
+
+    <!-- Modal Pratinjau QRIS Berukuran Penuh -->
+    <ModalDialog
+      :terbuka="modalPreviewTerbuka"
+      judul="QRIS Pembayaran PCL 2026"
+      lebarMaksimal="max-w-md"
+      @tutup="modalPreviewTerbuka = false"
+    >
+      <div class="p-6 flex flex-col items-center text-center space-y-4">
+        <div class="bg-white p-3 rounded-2xl border border-slate-200 shadow-sm max-w-xs w-full aspect-square flex items-center justify-center overflow-hidden">
+          <img
+            :src="qrPembayaranUrl"
+            alt="QR Code Pembayaran Full"
+            class="w-full h-full object-contain"
+          />
+        </div>
+
+        <div class="space-y-1">
+          <span class="text-xs font-semibold text-slate-500 uppercase tracking-wider block">Biaya Registrasi</span>
+          <span class="text-lg font-bold text-ucl-700 block">{{ biayaPendaftaran || "Rp 50.000 / Tim" }}</span>
+          <p class="text-xs text-slate-500 max-w-sm pt-1">
+            Gunakan aplikasi m-banking atau e-wallet (GoPay, OVO, Dana, ShopeePay, BCA, dll) untuk memindai QRIS di atas.
+          </p>
+        </div>
+
+        <div class="flex items-center gap-3 w-full pt-2">
+          <TombolDasar
+            varian="sekunder"
+            class="flex-1 !py-2"
+            @click="modalPreviewTerbuka = false"
+          >
+            Tutup
+          </TombolDasar>
+          <TombolDasar
+            varian="primer"
+            class="flex-1 !py-2 gap-1.5"
+            @click="unduhQR"
+          >
+            <Download class="w-4 h-4" />
+            <span>Unduh QR</span>
+          </TombolDasar>
+        </div>
+      </div>
+    </ModalDialog>
   </div>
 </template>

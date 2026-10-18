@@ -19,10 +19,10 @@ const KUALITAS_KOMPRESI = 0.75 // 75% quality JPEG/WEBP
  */
 export function kompresGambar(file, opsi = {}) {
   const {
-    maksLebar = MAKS_LEBAR,
-    maksTinggi = MAKS_TINGGI,
-    kualitas = KUALITAS_KOMPRESI,
-    format = 'image/webp'
+    maksLebar = 1200,
+    maksTinggi = 1200,
+    kualitas = 0.85,
+    format = 'image/jpeg'
   } = opsi
 
   return new Promise((resolve, reject) => {
@@ -34,7 +34,7 @@ export function kompresGambar(file, opsi = {}) {
       img.onload = () => {
         let { width, height } = img
 
-        // Hitung rasio resize
+        // Hitung rasio resize proporsional
         if (width > maksLebar || height > maksTinggi) {
           const rasio = Math.min(maksLebar / width, maksTinggi / height)
           width = Math.round(width * rasio)
@@ -48,13 +48,8 @@ export function kompresGambar(file, opsi = {}) {
         const ctx = canvas.getContext('2d')
         ctx.drawImage(img, 0, 0, width, height)
 
-        // Coba WebP dulu, fallback JPEG jika browser tidak support
-        let hasil = canvas.toDataURL(format, kualitas)
-        if (format === 'image/webp' && hasil.startsWith('data:image/png')) {
-          // Browser tidak support WebP export, fallback ke JPEG
-          hasil = canvas.toDataURL('image/jpeg', kualitas)
-        }
-
+        // Gunakan JPEG agar kompatibel 100% dengan WhatsApp Link Preview
+        const hasil = canvas.toDataURL(format, kualitas)
         resolve(hasil)
       }
       img.src = e.target.result
@@ -76,4 +71,70 @@ export function validasiUkuranGambar(file, maksByte = 2 * 1024 * 1024) {
     return { valid: false, pesan: `Ukuran gambar maksimal ${mbStr}MB.` }
   }
   return { valid: true, pesan: '' }
+}
+
+/**
+ * Unduh gambar ke file lokal pengguna (mendukung base64 data URL maupun remote URL).
+ * @param {string} url - URL gambar atau base64
+ * @param {string} namaBerkas - Nama file target (misal: logo-chelsea.png)
+ */
+export async function unduhGambar(url, namaBerkas = 'logo-tim.png') {
+  if (!url) throw new Error('URL gambar tidak valid.')
+
+  // Pastikan nama berkas memiliki ekstensi aman
+  const namaAman = namaBerkas.endsWith('.png') || namaBerkas.endsWith('.jpg') || namaBerkas.endsWith('.webp')
+    ? namaBerkas
+    : `${namaBerkas}.png`
+
+  // Kasus 1: Data URL (base64)
+  if (url.startsWith('data:')) {
+    const a = document.createElement('a')
+    a.href = url
+    a.download = namaAman
+    document.body.appendChild(a)
+    a.click()
+    document.body.removeChild(a)
+    return
+  }
+
+  // Kasus 2: Remote URL (ambil blob via fetch untuk bypass download restriction)
+  try {
+    const res = await fetch(url, { mode: 'cors' })
+    if (!res.ok) throw new Error(`HTTP ${res.status}`)
+    const blob = await res.blob()
+    const blobUrl = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = blobUrl
+    a.download = namaAman
+    document.body.appendChild(a)
+    a.click()
+    document.body.removeChild(a)
+    setTimeout(() => URL.revokeObjectURL(blobUrl), 1000)
+  } catch (err) {
+    // Fallback jika CORS memblokir fetch: gambar via canvas atau buka langsung
+    try {
+      const img = new Image()
+      img.crossOrigin = 'anonymous'
+      await new Promise((resolve, reject) => {
+        img.onload = resolve
+        img.onerror = reject
+        img.src = url
+      })
+      const canvas = document.createElement('canvas')
+      canvas.width = img.naturalWidth || img.width
+      canvas.height = img.naturalHeight || img.height
+      const ctx = canvas.getContext('2d')
+      ctx.drawImage(img, 0, 0)
+      const dataUrl = canvas.toDataURL('image/png')
+      const a = document.createElement('a')
+      a.href = dataUrl
+      a.download = namaAman
+      document.body.appendChild(a)
+      a.click()
+      document.body.removeChild(a)
+    } catch {
+      // Fallback terakhir: buka URL di tab baru
+      window.open(url, '_blank')
+    }
+  }
 }

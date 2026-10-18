@@ -1,7 +1,8 @@
 <script setup>
 import { ref, computed, onMounted, watch } from 'vue'
-import { Shield, Plus, X, Edit3, Trash2, Users, Copy, ChevronDown, CheckCircle2, AlertCircle } from 'lucide-vue-next'
+import { Shield, Plus, X, Edit3, Trash2, Users, Copy, ChevronDown, CheckCircle2, AlertCircle, Download, ExternalLink, Image as ImageIcon, Upload } from 'lucide-vue-next'
 import { api } from '../../lib/api.js'
+import { unduhGambar, kompresGambar, validasiUkuranGambar } from '../../lib/gambar.js'
 import TombolDasar from '../umum/TombolDasar.vue'
 import ModalDialog from '../umum/ModalDialog.vue'
 import ModalKelolaPemain from './ModalKelolaPemain.vue'
@@ -39,10 +40,6 @@ async function muatDaftarSeason() {
   }
 }
 
-onMounted(() => {
-  muatDaftarSeason()
-})
-
 const timTerfilter = computed(() => {
   if (!seasonTerpilihId.value) return props.daftarTim
   return props.daftarTim.filter((t) => t.tournament_id === seasonTerpilihId.value)
@@ -76,6 +73,8 @@ async function salinTimDariMusimLain() {
   }
 }
 
+const DRAFT_TAMBAH_TIM_KEY = 'pcl_draft_admin_tambah_tim'
+
 const formTerbuka = ref(false)
 const modeEdit = ref(false)
 const idTimEdit = ref(null)
@@ -87,15 +86,104 @@ const namaTim = ref('')
 const shortName = ref('')
 const managerName = ref('')
 const logoUrl = ref('')
+const inputLogoRef = ref(null)
+const sedangProsesLogo = ref(false)
+
+function pulihkanDraftTambahTim() {
+  try {
+    const raw = localStorage.getItem(DRAFT_TAMBAH_TIM_KEY)
+    if (!raw) return
+    const d = JSON.parse(raw)
+    // Hanya pulihkan jika form sebelumnya memang sedang terbuka atau ada data terisi
+    if (d && (d.formTerbuka || d.namaTim || d.shortName || d.managerName || d.logoUrl)) {
+      namaTim.value = d.namaTim || ''
+      shortName.value = d.shortName || ''
+      managerName.value = d.managerName || ''
+      logoUrl.value = d.logoUrl || ''
+      formTerbuka.value = true
+    }
+  } catch (e) {
+    // Abaikan kegagalan parse
+  }
+}
+
+function simpanDraftTambahTim() {
+  // Hanya simpan draft untuk mode tambah baru (bukan saat edit data tim existing)
+  if (modeEdit.value) return
+  try {
+    if (!formTerbuka.value && !namaTim.value && !shortName.value && !managerName.value && !logoUrl.value) {
+      localStorage.removeItem(DRAFT_TAMBAH_TIM_KEY)
+      return
+    }
+    const draft = {
+      formTerbuka: formTerbuka.value,
+      namaTim: namaTim.value,
+      shortName: shortName.value,
+      managerName: managerName.value,
+      logoUrl: logoUrl.value
+    }
+    localStorage.setItem(DRAFT_TAMBAH_TIM_KEY, JSON.stringify(draft))
+  } catch (e) {}
+}
+
+function bersihkanDraftTambahTim() {
+  try {
+    localStorage.removeItem(DRAFT_TAMBAH_TIM_KEY)
+  } catch (e) {}
+}
+
+// Auto-save draft saat ada perubahan input atau form dibuka/tutup
+watch([formTerbuka, namaTim, shortName, managerName, logoUrl], () => {
+  simpanDraftTambahTim()
+})
+
+onMounted(() => {
+  muatDaftarSeason()
+  pulihkanDraftTambahTim()
+})
+
+async function handleUploadLogo(e) {
+  const file = e.target.files?.[0]
+  if (!file) return
+  const validasi = validasiUkuranGambar(file, 2 * 1024 * 1024)
+  if (!validasi.valid) {
+    alert(validasi.pesan)
+    return
+  }
+  sedangProsesLogo.value = true
+  try {
+    // Kompres ke format PNG agar transparansi logo tetap terjaga
+    logoUrl.value = await kompresGambar(file, {
+      maksLebar: 400,
+      maksTinggi: 400,
+      format: 'image/png'
+    })
+  } catch (err) {
+    alert(`Gagal memproses gambar logo: ${err.message}`)
+  } finally {
+    sedangProsesLogo.value = false
+  }
+}
+
+function hapusLogo() {
+  logoUrl.value = ''
+  if (inputLogoRef.value) {
+    inputLogoRef.value.value = ''
+  }
+}
 
 function resetForm() {
   namaTim.value = ''
   shortName.value = ''
   managerName.value = ''
   logoUrl.value = ''
+  if (inputLogoRef.value) {
+    inputLogoRef.value.value = ''
+  }
   modeEdit.value = false
   idTimEdit.value = null
   formTerbuka.value = false
+  bersihkanDraftTambahTim()
 }
 
 function bukaFormBikin() {
@@ -118,15 +206,43 @@ function kelolaPemainTim(t) {
   modalPemainTerbuka.value = true
 }
 
+// === Modal Pratinjau & Unduh Logo ===
+const modalLogoTerbuka = ref(false)
+const timTerpilihLogo = ref(null)
+const sedangUnduhLogo = ref(false)
+
+function lihatLogoTim(t) {
+  if (!t.logo_url) return
+  timTerpilihLogo.value = t
+  modalLogoTerbuka.value = true
+}
+
+async function prosesUnduhLogo(t) {
+  if (!t || !t.logo_url) return
+  sedangUnduhLogo.value = true
+  try {
+    const slug = (t.name || 'tim')
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/(^-|-$)/g, '')
+    await unduhGambar(t.logo_url, `logo-${slug || t.short_name.toLowerCase()}.png`)
+  } catch (err) {
+    alert(`Gagal mengunduh logo: ${err.message}`)
+  } finally {
+    sedangUnduhLogo.value = false
+  }
+}
+
 function submit() {
   if (!namaTim.value || !shortName.value) return
+  const finalLogo = logoUrl.value ? logoUrl.value.trim() : null
   if (modeEdit.value && idTimEdit.value) {
     emit('updateTim', {
       id: idTimEdit.value,
       name: namaTim.value,
       short_name: shortName.value.toUpperCase(),
       manager_name: managerName.value,
-      logo_url: logoUrl.value.trim() || null,
+      logo_url: finalLogo,
       tournament_id: seasonTerpilihId.value || null
     })
   } else {
@@ -134,7 +250,7 @@ function submit() {
       name: namaTim.value,
       short_name: shortName.value.toUpperCase(),
       manager_name: managerName.value,
-      logo_url: logoUrl.value.trim() || null,
+      logo_url: finalLogo,
       tournament_id: seasonTerpilihId.value || null
     })
   }
@@ -151,13 +267,13 @@ function konfirmasiHapus(t) {
 <template>
   <div class="space-y-6">
     <!-- Header Control Bar: Filter Season & Aksi Cepat -->
-    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white p-4 rounded-xl border border-slate-200 shadow-card">
+    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white p-3.5 sm:p-4 rounded-xl border border-slate-200 shadow-card">
       <div class="flex items-center gap-2">
-        <label class="text-xs font-semibold text-ink-900 shrink-0">Musim Turnamen:</label>
-        <div v-if="daftarSeason.length > 0" class="relative">
+        <label class="text-xs font-semibold text-ink-900 shrink-0">Musim:</label>
+        <div v-if="daftarSeason.length > 0" class="relative flex-1 sm:flex-none">
           <select
             v-model="seasonTerpilihId"
-            class="appearance-none bg-slate-50 border border-slate-300 rounded-lg pl-3 pr-8 py-1.5 text-xs font-semibold text-ink-900 cursor-pointer hover:border-ucl-400 focus:border-ucl-500 outline-none transition-colors min-w-[170px]"
+            class="w-full sm:w-auto appearance-none bg-slate-50 border border-slate-300 rounded-lg pl-3 pr-8 py-1.5 text-xs font-semibold text-ink-900 cursor-pointer hover:border-ucl-400 focus:border-ucl-500 outline-none transition-colors min-w-[150px]"
           >
             <option v-for="s in daftarSeason" :key="s.id" :value="s.id">
               {{ s.name }} ({{ s.season }}){{ s.status !== 'completed' ? ' — Aktif' : '' }}
@@ -167,24 +283,24 @@ function konfirmasiHapus(t) {
         </div>
       </div>
 
-      <div class="flex items-center gap-2">
+      <div class="grid grid-cols-2 sm:flex items-center gap-2">
         <button
           v-if="opsiSeasonAsal.length > 0"
           type="button"
           @click="modalSalinTerbuka = true"
-          class="px-3 py-1.5 rounded-lg bg-amber-50 text-amber-700 border border-amber-200 text-xs font-semibold hover:bg-amber-100 transition-colors cursor-pointer flex items-center gap-1.5 shadow-sm"
+          class="px-3 py-1.5 rounded-lg bg-amber-50 text-amber-700 border border-amber-200 text-xs font-semibold hover:bg-amber-100 transition-colors cursor-pointer flex items-center justify-center gap-1.5 shadow-sm"
           title="Salin 16 Klub & Skuad dari Musim Sebelumnya"
         >
-          <Copy class="w-3.5 h-3.5" />
-          <span>Salin Tim dari Musim Lalu</span>
+          <Copy class="w-3.5 h-3.5 shrink-0" />
+          <span class="truncate">Salin Tim Musim Lalu</span>
         </button>
 
         <button
           @click="bukaFormBikin"
-          class="px-3 py-1.5 rounded-lg bg-ucl-600 text-white text-xs font-semibold hover:bg-ucl-700 transition-colors cursor-pointer flex items-center gap-1.5 shadow-sm"
+          class="px-3 py-1.5 rounded-lg bg-ucl-600 text-white text-xs font-semibold hover:bg-ucl-700 transition-colors cursor-pointer flex items-center justify-center gap-1.5 shadow-sm"
         >
-          <component :is="formTerbuka ? X : Plus" class="w-3.5 h-3.5" />
-          {{ formTerbuka ? 'Tutup Form' : 'Tambah Klub Baru' }}
+          <component :is="formTerbuka ? X : Plus" class="w-3.5 h-3.5 shrink-0" />
+          <span>{{ formTerbuka ? 'Tutup Form' : 'Tambah Klub Baru' }}</span>
         </button>
       </div>
     </div>
@@ -244,24 +360,59 @@ function konfirmasiHapus(t) {
         </div>
 
         <div>
-          <label class="block text-xs font-semibold text-ink-600 mb-1.5">URL Logo Klub (Opsional)</label>
-          <input
-            v-model="logoUrl"
-            type="url"
-            placeholder="https://..."
-            class="w-full bg-white border border-slate-300 rounded-lg px-3 py-2 text-xs font-medium text-ink-900 placeholder-slate-400 outline-none transition focus:border-ucl-500 focus:ring-2 focus:ring-ucl-500/20"
-          />
+          <label class="block text-xs font-semibold text-ink-600 mb-1.5">Logo Klub</label>
+          <div class="flex items-center gap-2">
+            <!-- Hidden native file input -->
+            <input
+              ref="inputLogoRef"
+              type="file"
+              accept="image/*"
+              @change="handleUploadLogo"
+              class="hidden"
+            />
+
+            <!-- Thumbnail Pratinjau Logo -->
+            <div
+              v-if="logoUrl"
+              class="relative group/logo w-9 h-9 rounded-lg border border-slate-200 bg-slate-50 p-0.5 flex items-center justify-center shrink-0 overflow-hidden"
+            >
+              <img
+                :src="logoUrl"
+                alt="Pratinjau Logo"
+                class="w-full h-full object-contain rounded"
+              />
+              <button
+                type="button"
+                @click="hapusLogo"
+                class="absolute inset-0 bg-red-600/80 text-white opacity-0 group-hover/logo:opacity-100 flex items-center justify-center transition-opacity cursor-pointer"
+                title="Hapus Logo"
+              >
+                <Trash2 class="w-3.5 h-3.5" />
+              </button>
+            </div>
+
+            <!-- Tombol Pilih File Logo -->
+            <button
+              type="button"
+              @click="inputLogoRef?.click()"
+              :disabled="sedangProsesLogo"
+              class="flex-1 bg-white border border-slate-300 hover:border-ucl-400 rounded-lg px-3 py-2 text-xs font-medium text-ink-900 flex items-center justify-center gap-1.5 transition-colors cursor-pointer disabled:opacity-60"
+            >
+              <Upload class="w-3.5 h-3.5 text-ucl-600 shrink-0" />
+              <span class="truncate">{{ sedangProsesLogo ? 'Memproses...' : (logoUrl ? 'Ganti Logo' : 'Upload Logo') }}</span>
+            </button>
+          </div>
         </div>
       </div>
 
-      <div class="flex items-center gap-2 pt-2 border-t border-slate-100">
-        <TombolDasar tipe="submit" varian="primer" :sedangMemuat="sedangMemuat">
+      <div class="grid grid-cols-2 gap-2 pt-2 border-t border-slate-100">
+        <TombolDasar tipe="submit" varian="primer" :sedangMemuat="sedangMemuat" class="w-full justify-center">
           {{ modeEdit ? 'Perbarui Data Klub' : 'Simpan Tim Baru' }}
         </TombolDasar>
         <button
           type="button"
           @click="resetForm"
-          class="px-4 py-2 rounded-lg bg-slate-100 text-xs font-semibold text-slate-600 hover:bg-slate-200 transition-colors cursor-pointer"
+          class="w-full py-2 rounded-lg bg-slate-100 text-xs font-semibold text-slate-600 hover:bg-slate-200 transition-colors cursor-pointer"
         >
           Batal
         </button>
@@ -284,7 +435,8 @@ function konfirmasiHapus(t) {
         </p>
       </div>
 
-      <div v-else class="overflow-x-auto">
+      <!-- Tabel Klub -->
+      <div class="overflow-x-auto">
         <table class="w-full text-left border-collapse text-xs">
           <thead>
             <tr class="bg-slate-50/50 border-b border-slate-200 text-[11px] font-semibold uppercase text-slate-500">
@@ -297,32 +449,54 @@ function konfirmasiHapus(t) {
           <tbody class="divide-y divide-slate-100">
             <tr v-for="t in timTerfilter" :key="t.id" class="hover:bg-slate-50 transition-colors">
               <td class="py-2.5 px-4 font-semibold text-ink-900">
-                <button
-                  type="button"
-                  @click="kelolaPemainTim(t)"
-                  class="flex items-center gap-2.5 text-left hover:text-ucl-600 transition-colors cursor-pointer"
-                  title="Klik untuk kelola pemain & statistik klub ini"
-                >
-                  <img
+                <div class="flex items-center gap-2.5">
+                  <button
                     v-if="t.logo_url"
-                    :src="t.logo_url"
-                    :alt="t.name"
-                    class="w-7 h-7 rounded-lg object-contain bg-white border border-slate-200 p-0.5 shrink-0"
-                    loading="lazy"
-                    decoding="async"
-                  />
+                    type="button"
+                    @click="lihatLogoTim(t)"
+                    class="relative group/logo shrink-0 cursor-pointer rounded-lg overflow-hidden focus:outline-none focus:ring-2 focus:ring-ucl-500"
+                    title="Klik untuk pratinjau & unduh logo tim"
+                  >
+                    <img
+                      :src="t.logo_url"
+                      :alt="t.name"
+                      class="w-7 h-7 rounded-lg object-contain bg-white border border-slate-200 p-0.5 group-hover/logo:brightness-90 transition-all"
+                      loading="lazy"
+                      decoding="async"
+                    />
+                    <span class="absolute inset-0 bg-navy-950/40 opacity-0 group-hover/logo:opacity-100 flex items-center justify-center text-white transition-opacity">
+                      <Download class="w-3 h-3" />
+                    </span>
+                  </button>
                   <span
                     v-else
                     class="w-7 h-7 rounded-lg bg-slate-100 border border-slate-200 text-[9px] font-bold tracking-wider flex items-center justify-center text-navy-800 shrink-0"
                   >
                     {{ t.short_name }}
                   </span>
-                  <span class="truncate font-semibold underline decoration-slate-300 underline-offset-2">{{ t.name }}</span>
-                </button>
+                  <button
+                    type="button"
+                    @click="kelolaPemainTim(t)"
+                    class="truncate font-semibold underline decoration-slate-300 underline-offset-2 text-left hover:text-ucl-600 transition-colors cursor-pointer"
+                    title="Klik untuk kelola pemain & statistik klub ini"
+                  >
+                    {{ t.name }}
+                  </button>
+                </div>
               </td>
               <td class="py-2.5 px-4 text-slate-600">{{ t.group_name || 'Belum Ditentukan' }}</td>
               <td class="py-2.5 px-4 text-slate-500">{{ t.manager_name || '-' }}</td>
               <td class="py-2.5 px-4 text-right space-x-1.5 whitespace-nowrap">
+                <button
+                  v-if="t.logo_url"
+                  type="button"
+                  @click="lihatLogoTim(t)"
+                  class="px-2 py-1 rounded bg-slate-100 text-slate-700 hover:text-ucl-600 hover:bg-ucl-50 font-semibold transition-colors cursor-pointer inline-flex items-center gap-1 border border-slate-200/60"
+                  title="Lihat & Unduh Logo Klub"
+                >
+                  <ImageIcon class="w-3.5 h-3.5 text-slate-500" />
+                  <span>Logo</span>
+                </button>
                 <button
                   type="button"
                   @click="kelolaPemainTim(t)"
@@ -420,5 +594,66 @@ function konfirmasiHapus(t) {
       @tutup="modalPemainTerbuka = false"
       @dataBerubah="emit('dataBerubah')"
     />
+
+    <!-- Modal Pratinjau & Unduh Logo Tim -->
+    <ModalDialog
+      :terbuka="modalLogoTerbuka"
+      @tutup="modalLogoTerbuka = false"
+      :judul="`Logo Klub: ${timTerpilihLogo?.name || ''}`"
+      lebarMaksimal="max-w-md"
+    >
+      <div v-if="timTerpilihLogo" class="space-y-4">
+        <!-- Area Gambar Preview dengan background checkered (kontras untuk PNG transparan) -->
+        <div class="relative w-full aspect-square max-w-[260px] mx-auto rounded-2xl border border-slate-200 bg-[linear-gradient(45deg,#f1f5f9_25%,transparent_25%),linear-gradient(-45deg,#f1f5f9_25%,transparent_25%),linear-gradient(45deg,transparent_75%,#f1f5f9_75%),linear-gradient(-45deg,transparent_75%,#f1f5f9_75%)] bg-[size:20px_20px] bg-[position:0_0,0_10px,10px_-10px,-10px_0] flex items-center justify-center p-6 shadow-inner overflow-hidden">
+          <img
+            :src="timTerpilihLogo.logo_url"
+            :alt="timTerpilihLogo.name"
+            class="max-w-full max-h-full object-contain drop-shadow-md select-none"
+          />
+        </div>
+
+        <!-- Info Singkat Klub -->
+        <div class="bg-slate-50 border border-slate-200/80 rounded-xl p-3 text-xs space-y-1">
+          <div class="flex items-center justify-between">
+            <span class="text-slate-500">Nama Tim:</span>
+            <span class="font-semibold text-ink-900">{{ timTerpilihLogo.name }}</span>
+          </div>
+          <div class="flex items-center justify-between">
+            <span class="text-slate-500">Tag Singkat:</span>
+            <span class="font-bold text-ucl-700 font-mono">{{ timTerpilihLogo.short_name }}</span>
+          </div>
+          <div class="flex items-center justify-between">
+            <span class="text-slate-500">Tipe Berkas:</span>
+            <span class="text-slate-600 font-mono text-[11px]">
+              {{ timTerpilihLogo.logo_url?.startsWith('data:') ? 'Base64 Data Image' : 'Remote Image' }}
+            </span>
+          </div>
+        </div>
+
+        <!-- Tombol Aksi -->
+        <div class="flex items-center justify-end gap-2 pt-2 border-t border-slate-100">
+          <a
+            v-if="!timTerpilihLogo.logo_url?.startsWith('data:')"
+            :href="timTerpilihLogo.logo_url"
+            target="_blank"
+            rel="noopener noreferrer"
+            class="px-3 py-2 rounded-lg bg-slate-100 text-xs font-semibold text-slate-700 hover:bg-slate-200 transition-colors inline-flex items-center gap-1.5"
+            title="Buka gambar di tab baru"
+          >
+            <ExternalLink class="w-3.5 h-3.5" />
+            <span>Buka Tab Baru</span>
+          </a>
+
+          <TombolDasar
+            varian="primer"
+            :sedangMemuat="sedangUnduhLogo"
+            @click="prosesUnduhLogo(timTerpilihLogo)"
+          >
+            <Download class="w-4 h-4 mr-1.5" />
+            <span>Unduh Logo</span>
+          </TombolDasar>
+        </div>
+      </div>
+    </ModalDialog>
   </div>
 </template>

@@ -14,6 +14,7 @@ const routes = [
   { path: '/berita', name: 'berita', component: () => import('../views/BeritaView.vue') },
   { path: '/berita/:id', name: 'detail-berita', component: () => import('../views/DetailBeritaView.vue') },
   { path: '/pendaftaran', name: 'pendaftaran', component: () => import('../views/PendaftaranView.vue') },
+  { path: '/lapor-match', name: 'lapor-match', component: () => import('../views/LaporMatchView.vue') },
   { path: '/admin', name: 'admin', component: () => import('../views/AdminView.vue') }
 ]
 

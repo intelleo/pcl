@@ -42,7 +42,7 @@ const pesanError = ref(null);
 const formTambahTerbuka = ref(false);
 const pemainBaru = ref({
   name: "",
-  squad_number: 10,
+  game_id: "",
   position: "FW",
   goals: 0,
   assists: 0,
@@ -96,6 +96,7 @@ async function simpanPemain(p) {
   try {
     await api.updatePlayer(p.id, {
       name: p.name,
+      game_id: p.game_id || null,
       squad_number: Number(p.squad_number) || 1,
       position: p.position,
       goals: Math.max(0, Number(p.goals) || 0),
@@ -124,10 +125,12 @@ async function tambahPemainBaru() {
   pesanError.value = null;
 
   try {
+    const noPunggungOtomatis = (daftarPemain.value.length || 0) + 1;
     await api.createPlayer({
       team_id: props.tim.id,
       name: pemainBaru.value.name.trim(),
-      squad_number: Number(pemainBaru.value.squad_number) || 1,
+      game_id: pemainBaru.value.game_id.trim() || null,
+      squad_number: noPunggungOtomatis,
       position: pemainBaru.value.position,
       goals: Math.max(0, Number(pemainBaru.value.goals) || 0),
       assists: Math.max(0, Number(pemainBaru.value.assists) || 0),
@@ -139,7 +142,7 @@ async function tambahPemainBaru() {
     emit("dataBerubah");
     pemainBaru.value = {
       name: "",
-      squad_number: 10,
+      game_id: "",
       position: "FW",
       goals: 0,
       assists: 0,
@@ -260,10 +263,10 @@ async function hapusPemain(p) {
           </span>
         </div>
 
-        <div class="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
-          <div class="sm:col-span-2">
+        <div class="grid grid-cols-1 sm:grid-cols-12 gap-2.5">
+          <div class="sm:col-span-5">
             <label class="block text-[11px] font-semibold text-slate-700 mb-1"
-              >Nama Pemain</label
+              >Nama Pemain *</label
             >
             <input
               v-model="pemainBaru.name"
@@ -274,33 +277,30 @@ async function hapusPemain(p) {
             />
           </div>
 
-          <div class="grid grid-cols-2 gap-2">
-            <div>
-              <label class="block text-[11px] font-semibold text-slate-700 mb-1"
-                >No. Punggung</label
-              >
-              <input
-                v-model.number="pemainBaru.squad_number"
-                type="number"
-                min="1"
-                max="99"
-                class="w-full bg-white border border-slate-300 rounded-lg px-2.5 py-1.5 text-xs font-medium text-ink-900 outline-none focus:border-ucl-500"
-                required
-              />
-            </div>
-            <div>
-              <label class="block text-[11px] font-semibold text-slate-700 mb-1"
-                >Posisi</label
-              >
-              <select
-                v-model="pemainBaru.position"
-                class="w-full bg-white border border-slate-300 rounded-lg px-2 py-1.5 text-xs font-semibold text-ink-900 outline-none focus:border-ucl-500"
-              >
-                <option v-for="pos in opsiPosisi" :key="pos" :value="pos">
-                  {{ pos }}
-                </option>
-              </select>
-            </div>
+          <div class="sm:col-span-4">
+            <label class="block text-[11px] font-semibold text-slate-700 mb-1"
+              >ID Game</label
+            >
+            <input
+              v-model="pemainBaru.game_id"
+              type="text"
+              placeholder="contoh: 12889220"
+              class="w-full bg-white border border-slate-300 rounded-lg px-2.5 py-1.5 text-xs font-medium text-ink-900 outline-none focus:border-ucl-500 focus:ring-1 focus:ring-ucl-500"
+            />
+          </div>
+
+          <div class="sm:col-span-3">
+            <label class="block text-[11px] font-semibold text-slate-700 mb-1"
+              >Posisi</label
+            >
+            <select
+              v-model="pemainBaru.position"
+              class="w-full bg-white border border-slate-300 rounded-lg px-2 py-1.5 text-xs font-semibold text-ink-900 outline-none focus:border-ucl-500"
+            >
+              <option v-for="pos in opsiPosisi" :key="pos" :value="pos">
+                {{ pos }}
+              </option>
+            </select>
           </div>
         </div>
 
@@ -411,25 +411,29 @@ async function hapusPemain(p) {
           :key="p.id"
           class="p-3 rounded-xl border border-slate-200 bg-white hover:border-slate-300 transition-all shadow-xs space-y-2.5"
         >
-          <!-- Baris Identitas Pemain -->
-          <div class="flex flex-wrap items-center justify-between gap-2">
-            <div class="flex items-center gap-2 flex-1 min-w-[200px]">
-              <span
-                class="w-7 h-7 rounded-lg bg-slate-100 border border-slate-200 text-xs font-bold text-slate-700 flex items-center justify-center shrink-0"
-              >
-                #{{ p.squad_number }}
-              </span>
-              <div class="flex-1">
+          <!-- Baris Identitas Pemain (Flex column on tiny mobile, row on tablet/desktop) -->
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+            <div class="flex items-center gap-2 flex-1 w-full min-w-0">
+              <div class="flex-1 min-w-0">
                 <input
                   v-model="p.name"
                   type="text"
-                  class="w-full font-bold text-xs text-ink-900 border-b border-transparent hover:border-slate-300 focus:border-ucl-500 outline-none px-1 py-0.5 rounded transition"
+                  class="w-full font-bold text-xs text-ink-900 border-b border-slate-200 sm:border-transparent hover:border-slate-300 focus:border-ucl-500 outline-none px-1 py-0.5 rounded transition"
                   placeholder="Nama Pemain"
+                />
+              </div>
+              <div class="w-24 sm:w-36 shrink-0">
+                <input
+                  v-model="p.game_id"
+                  type="text"
+                  class="w-full text-[11px] font-mono text-slate-600 bg-slate-50 border border-slate-200 hover:border-slate-300 focus:border-ucl-500 focus:bg-white outline-none px-1.5 sm:px-2 py-0.5 rounded transition"
+                  placeholder="ID Game"
+                  title="ID Akun Game Pemain"
                 />
               </div>
               <select
                 v-model="p.position"
-                class="text-[11px] font-bold px-2 py-0.5 rounded bg-slate-100 border border-slate-200 text-slate-700 outline-none"
+                class="text-[11px] font-bold px-1.5 sm:px-2 py-0.5 rounded bg-slate-100 border border-slate-200 text-slate-700 outline-none shrink-0"
               >
                 <option v-for="pos in opsiPosisi" :key="pos" :value="pos">
                   {{ pos }}
@@ -437,7 +441,7 @@ async function hapusPemain(p) {
               </select>
             </div>
 
-            <div class="flex items-center gap-1.5 shrink-0">
+            <div class="flex items-center justify-end gap-1.5 shrink-0 self-end sm:self-auto">
               <button
                 type="button"
                 @click="simpanPemain(p)"

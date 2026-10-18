@@ -9,6 +9,9 @@ USE `pcl_tournament`;
 SET FOREIGN_KEY_CHECKS = 0;
 
 -- Hapus tabel lama jika ada agar inisialisasi ulang berjalan bersih
+DROP TABLE IF EXISTS `pcl_match_recaps`;
+DROP TABLE IF EXISTS `pcl_team_accounts`;
+DROP TABLE IF EXISTS `pcl_admins`;
 DROP TABLE IF EXISTS `pcl_settings`;
 DROP TABLE IF EXISTS `pcl_news`;
 DROP TABLE IF EXISTS `pcl_season_champions`;
@@ -24,6 +27,19 @@ DROP TABLE IF EXISTS `pcl_tournaments`;
 -- ====================================================================
 -- 1. STRUKTUR TABEL DDL
 -- ====================================================================
+
+-- 0. ADMINS (PENGELOLA / PANITIA TURNAMEN)
+CREATE TABLE IF NOT EXISTS `pcl_admins` (
+    `id` VARCHAR(36) NOT NULL PRIMARY KEY,
+    `username` VARCHAR(50) NOT NULL UNIQUE,
+    `email` VARCHAR(100) NOT NULL UNIQUE,
+    `password_hash` VARCHAR(255) NOT NULL,
+    `salt` VARCHAR(64) NOT NULL,
+    `nama` VARCHAR(100) NOT NULL,
+    `role` VARCHAR(20) NOT NULL DEFAULT 'admin',
+    `created_at` DATETIME DEFAULT CURRENT_TIMESTAMP,
+    `updated_at` DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- A. TOURNAMENTS (SEASON)
 CREATE TABLE IF NOT EXISTS `pcl_tournaments` (
@@ -54,9 +70,15 @@ CREATE TABLE IF NOT EXISTS `pcl_players` (
     `id` VARCHAR(36) NOT NULL PRIMARY KEY,
     `team_id` VARCHAR(36) NOT NULL,
     `name` VARCHAR(255) NOT NULL,
+    `game_id` VARCHAR(50) NULL,
     `squad_number` INT NOT NULL DEFAULT 1,
     `position` ENUM('GK', 'DF', 'CB', 'MF', 'CM', 'WF', 'FW', 'ST') NOT NULL,
     `avatar_url` TEXT NULL,
+    `goals` INT NOT NULL DEFAULT 0,
+    `assists` INT NOT NULL DEFAULT 0,
+    `passes` INT NOT NULL DEFAULT 0,
+    `defense` INT NOT NULL DEFAULT 0,
+    `mvp` INT NOT NULL DEFAULT 0,
     `created_at` DATETIME DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT `fk_players_team` FOREIGN KEY (`team_id`) REFERENCES `pcl_teams`(`id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
@@ -159,15 +181,16 @@ CREATE TABLE IF NOT EXISTS `pcl_season_champions` (
 CREATE TABLE IF NOT EXISTS `pcl_news` (
     `id` VARCHAR(36) NOT NULL PRIMARY KEY,
     `judul` VARCHAR(255) NOT NULL,
-    `ringkasan` TEXT NULL,
-    `konten` TEXT NOT NULL,
+    `ringkasan` LONGTEXT NULL,
+    `konten` LONGTEXT NOT NULL,
     `kategori` VARCHAR(50) DEFAULT 'turnamen',
     `tag` VARCHAR(50) DEFAULT 'MATCH RECAP',
     `penulis` VARCHAR(100) DEFAULT 'Redaksi PCL',
-    `gambar_url` TEXT NULL,
+    `gambar_url` LONGTEXT NULL,
     `waktu_baca` VARCHAR(50) DEFAULT '3 min read',
     `terkait_match_id` VARCHAR(36) NULL,
     `likes_count` INT DEFAULT 0,
+    `is_pinned` TINYINT(1) DEFAULT 0,
     `diterbitkan_pada` DATETIME DEFAULT CURRENT_TIMESTAMP,
     `created_at` DATETIME DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT `fk_news_match` FOREIGN KEY (`terkait_match_id`) REFERENCES `pcl_matches`(`id`) ON DELETE SET NULL
@@ -176,8 +199,48 @@ CREATE TABLE IF NOT EXISTS `pcl_news` (
 -- I. SETTINGS & APP CONFIG
 CREATE TABLE IF NOT EXISTS `pcl_settings` (
     `key` VARCHAR(100) NOT NULL PRIMARY KEY,
-    `value` TEXT NOT NULL,
+    `value` LONGTEXT NOT NULL,
     `updated_at` DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- J. AKUN LOGIN TIM (KAPTEN)
+CREATE TABLE IF NOT EXISTS `pcl_team_accounts` (
+    `id` VARCHAR(36) NOT NULL PRIMARY KEY,
+    `team_id` VARCHAR(36) NOT NULL UNIQUE,
+    `username` VARCHAR(50) NOT NULL UNIQUE,
+    `password_hash` VARCHAR(255) NOT NULL,
+    `salt` VARCHAR(64) NOT NULL,
+    `created_at` DATETIME DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT `fk_team_accounts_team` FOREIGN KEY (`team_id`) REFERENCES `pcl_teams`(`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- K. RECAP MATCH (BUKTI SCREENSHOT PERTANDINGAN)
+CREATE TABLE IF NOT EXISTS `pcl_match_recaps` (
+    `id` VARCHAR(36) NOT NULL PRIMARY KEY,
+    `match_id` VARCHAR(36) NOT NULL,
+    `team_id` VARCHAR(36) NOT NULL,
+    `recap_image_url` TEXT NOT NULL,
+    `gk_stats_image_url` TEXT NULL,
+    `catatan` TEXT NULL,
+    `status` ENUM('pending', 'verified', 'rejected') NOT NULL DEFAULT 'pending',
+    `created_at` DATETIME DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE KEY `unique_recap_match_team` (`match_id`, `team_id`),
+    CONSTRAINT `fk_recaps_match` FOREIGN KEY (`match_id`) REFERENCES `pcl_matches`(`id`) ON DELETE CASCADE,
+    CONSTRAINT `fk_recaps_team` FOREIGN KEY (`team_id`) REFERENCES `pcl_teams`(`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- L. BOOKING KEYS (SLOT RESERVASI PENDAFTARAN)
+CREATE TABLE IF NOT EXISTS `pcl_booking_keys` (
+    `id` VARCHAR(36) NOT NULL PRIMARY KEY,
+    `key_code` VARCHAR(32) NOT NULL UNIQUE,
+    `is_used` TINYINT(1) NOT NULL DEFAULT 0,
+    `used_by_team_id` VARCHAR(36) NULL,
+    `used_by_team_name` VARCHAR(255) NULL,
+    `used_at` DATETIME NULL,
+    `catatan` VARCHAR(255) NULL,
+    `created_at` DATETIME DEFAULT CURRENT_TIMESTAMP,
+    INDEX `idx_booking_key_code` (`key_code`),
+    INDEX `idx_booking_is_used` (`is_used`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- ====================================================================
@@ -202,11 +265,30 @@ CREATE INDEX `idx_pcl_teams_group_name` ON `pcl_teams`(`group_name`);
 CREATE INDEX `idx_pcl_teams_name` ON `pcl_teams`(`name`);
 
 CREATE INDEX `idx_pcl_news_diterbitkan` ON `pcl_news`(`diterbitkan_pada` DESC);
+CREATE INDEX `idx_pcl_news_pinned` ON `pcl_news`(`is_pinned` DESC, `diterbitkan_pada` DESC);
 CREATE INDEX `idx_pcl_team_reg_status` ON `pcl_team_registrations`(`status`);
+
+CREATE INDEX `idx_pcl_team_accounts_team` ON `pcl_team_accounts`(`team_id`);
+CREATE INDEX `idx_pcl_match_recaps_match` ON `pcl_match_recaps`(`match_id`);
+CREATE INDEX `idx_pcl_match_recaps_team` ON `pcl_match_recaps`(`team_id`);
+CREATE INDEX `idx_pcl_match_recaps_status` ON `pcl_match_recaps`(`status`);
 
 -- ====================================================================
 -- 3. DATA AWAL (SEED INITIAL DATA)
 -- ====================================================================
+
+-- 0. Admin Default (Username: adminpcl, Password: pcl#27 di-hash dengan PBKDF2 SHA-512)
+INSERT INTO `pcl_admins` (`id`, `username`, `email`, `password_hash`, `salt`, `nama`, `role`)
+VALUES (
+    '51c5c160-c6ba-43f4-b5e5-011f03d020a3',
+    'adminpcl',
+    'admin@pcl.web.id',
+    '64bc5be673ee6a0c0ad52f20f01ba3e1c66c303f26fe6542ce0ffda38ca661c944ebc0a6b73138b556f8f17bc84d169e6b6680a6b47c0bbf231bbd7fa4429ae7',
+    '7b4be2c0ee9393a2e379cceeaeb95ea6',
+    'Super Admin PCL',
+    'admin'
+)
+ON DUPLICATE KEY UPDATE `password_hash` = VALUES(`password_hash`), `salt` = VALUES(`salt`);
 
 -- 1. Turnamen Utama
 INSERT INTO `pcl_tournaments` (`id`, `name`, `season`, `status`)

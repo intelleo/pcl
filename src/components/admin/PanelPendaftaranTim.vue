@@ -1,9 +1,11 @@
 <script setup>
-import { ref, onMounted } from 'vue'
-import { Check, X, User, Phone, Lock, Unlock, QrCode, Upload, CheckCircle2, MessageCircle } from 'lucide-vue-next'
+import { ref, computed, onMounted } from 'vue'
+import { Check, X, User, Phone, Lock, Unlock, QrCode, Upload, CheckCircle2, MessageCircle, Trash2, AlertTriangle, KeyRound } from 'lucide-vue-next'
 import { api } from '../../lib/api.js'
 import { kompresGambar, validasiUkuranGambar } from '../../lib/gambar.js'
 import TombolDasar from '../umum/TombolDasar.vue'
+import ModalDialog from '../umum/ModalDialog.vue'
+import PanelBookingKeys from './PanelBookingKeys.vue'
 
 const props = defineProps({
   daftarPendaftaran: { type: Array, default: () => [] }
@@ -17,6 +19,7 @@ const pendaftaranBuka = ref(true)
 const sedangUbahStatus = ref(false)
 
 const panelQRTerbuka = ref(false)
+const panelKeysTerbuka = ref(false)
 const qrPembayaranUrl = ref('')
 const biayaPendaftaran = ref('Rp 50.000 / Tim')
 const kontakPanitiaWa = ref('081234567890')
@@ -26,6 +29,23 @@ const pesanSuksesQR = ref(null)
 
 const itemTerpilih = ref(null)
 const modalDetailTerbuka = ref(false)
+const modalKonfirmasiHapus = ref(false)
+const pendaftaranDihapus = ref(null)
+const sedangHapus = ref(false)
+
+function bukaKonfirmasiHapus(item) {
+  pendaftaranDihapus.value = item
+  modalKonfirmasiHapus.value = true
+}
+
+function eksekusiHapus() {
+  if (!pendaftaranDihapus.value) return
+  sedangHapus.value = true
+  emit('hapus', pendaftaranDihapus.value.id)
+  modalKonfirmasiHapus.value = false
+  pendaftaranDihapus.value = null
+  sedangHapus.value = false
+}
 
 async function muatStatusPendaftaran() {
   try {
@@ -114,6 +134,20 @@ function bukaDetail(item) {
   modalDetailTerbuka.value = true
 }
 
+const daftarPendaftaranTerfilter = computed(() => {
+  return props.daftarPendaftaran.filter((p) => {
+    const matchStatus = filterStatus.value === 'semua' || p.status === filterStatus.value
+    const q = cariTeks.value.toLowerCase()
+    const matchQ =
+      !q ||
+      p.nama_tim?.toLowerCase().includes(q) ||
+      p.manager_name?.toLowerCase().includes(q) ||
+      p.kontak?.includes(q) ||
+      p.short_name?.toLowerCase().includes(q)
+    return matchStatus && matchQ
+  })
+})
+
 onMounted(muatStatusPendaftaran)
 </script>
 
@@ -127,6 +161,16 @@ onMounted(muatStatusPendaftaran)
       </div>
 
       <div class="flex flex-wrap items-center gap-2">
+        <button
+          type="button"
+          @click="panelKeysTerbuka = !panelKeysTerbuka"
+          class="px-3 py-2 rounded-lg text-xs font-semibold transition-all cursor-pointer flex items-center gap-1.5 border"
+          :class="panelKeysTerbuka ? 'bg-gold-50 text-gold-700 border-gold-300' : 'bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100'"
+        >
+          <KeyRound class="w-4 h-4 text-gold-600" />
+          <span>{{ panelKeysTerbuka ? 'Tutup Key Booking' : 'Kelola Booking Key' }}</span>
+        </button>
+
         <button
           type="button"
           @click="panelQRTerbuka = !panelQRTerbuka"
@@ -148,6 +192,9 @@ onMounted(muatStatusPendaftaran)
         </button>
       </div>
     </div>
+
+    <!-- Panel Booking Keys Khusus Slot Reservasi -->
+    <PanelBookingKeys v-if="panelKeysTerbuka" />
 
     <!-- Panel Konfigurasi QR & WA Pembayaran -->
     <div v-if="panelQRTerbuka" class="bg-white rounded-xl border border-slate-200 p-5 shadow-card space-y-4 anim-muncul">
@@ -232,7 +279,7 @@ onMounted(muatStatusPendaftaran)
       </div>
     </div>
 
-    <!-- Table -->
+    <!-- Tabel Pendaftaran Tim -->
     <div class="bg-white rounded-xl border border-slate-200 overflow-hidden shadow-card">
       <div class="overflow-x-auto">
         <table class="w-full text-left border-collapse text-sm">
@@ -247,19 +294,14 @@ onMounted(muatStatusPendaftaran)
             </tr>
           </thead>
           <tbody class="divide-y divide-slate-100">
-            <tr v-if="daftarPendaftaran.length === 0">
+            <tr v-if="daftarPendaftaranTerfilter.length === 0">
               <td colspan="6" class="py-12 text-center text-xs text-slate-400">
                 Belum ada tim yang mendaftar turnamen.
               </td>
             </tr>
 
             <tr
-              v-for="item in daftarPendaftaran.filter(p => {
-                const matchStatus = filterStatus === 'semua' || p.status === filterStatus
-                const q = cariTeks.toLowerCase()
-                const matchQ = !q || p.nama_tim.toLowerCase().includes(q) || p.manager_name.toLowerCase().includes(q) || p.kontak.includes(q)
-                return matchStatus && matchQ
-              })"
+              v-for="item in daftarPendaftaranTerfilter"
               :key="item.id"
               class="hover:bg-slate-50/70 transition-colors"
             >
@@ -273,6 +315,10 @@ onMounted(muatStatusPendaftaran)
                     <div class="font-semibold text-xs text-ink-900 flex items-center gap-1.5">
                       <span>{{ item.nama_tim }}</span>
                       <span class="px-1.5 py-0.2 rounded bg-slate-100 font-mono text-[10px] text-slate-600 font-bold uppercase tracking-wider">{{ item.short_name }}</span>
+                      <span v-if="parseCatatan(item.catatan)?.booking_key" class="inline-flex items-center gap-1 px-1.5 py-0.2 rounded bg-gold-50 border border-gold-300 text-gold-800 font-mono text-[9px] font-bold" title="Mendaftar via Key Booking">
+                        <KeyRound class="w-2.5 h-2.5" />
+                        {{ parseCatatan(item.catatan)?.booking_key }}
+                      </span>
                     </div>
                     <div class="text-[11px] text-slate-400">Pendaftaran Online</div>
                   </div>
@@ -318,8 +364,11 @@ onMounted(muatStatusPendaftaran)
                   <button v-if="item.status !== 'diterima'" @click="terapkanStatus(item.id, 'diterima')" class="p-1.5 rounded-lg bg-emerald-50 text-emerald-600 border border-emerald-200 hover:bg-emerald-100 transition-colors cursor-pointer" title="Terima Klub">
                     <Check class="w-4 h-4" />
                   </button>
-                  <button v-if="item.status !== 'ditolak'" @click="terapkanStatus(item.id, 'ditolak')" class="p-1.5 rounded-lg bg-red-50 text-red-600 border border-red-200 hover:bg-red-100 transition-colors cursor-pointer" title="Tolak Pendaftaran">
+                  <button v-if="item.status !== 'ditolak'" @click="terapkanStatus(item.id, 'ditolak')" class="p-1.5 rounded-lg bg-amber-50 text-amber-700 border border-amber-200 hover:bg-amber-100 transition-colors cursor-pointer" title="Tolak Pendaftaran">
                     <X class="w-4 h-4" />
+                  </button>
+                  <button @click="bukaKonfirmasiHapus(item)" class="p-1.5 rounded-lg bg-red-50 text-red-600 border border-red-200 hover:bg-red-100 transition-colors cursor-pointer" title="Hapus Data Pendaftaran">
+                    <Trash2 class="w-4 h-4" />
                   </button>
                 </div>
               </td>
@@ -405,5 +454,43 @@ onMounted(muatStatusPendaftaran)
         </div>
       </div>
     </div>
+
+    <!-- Modal Konfirmasi Hapus Data Pendaftaran -->
+    <ModalDialog
+      :terbuka="modalKonfirmasiHapus"
+      judul="Hapus Pendaftaran Tim"
+      @tutup="modalKonfirmasiHapus = false"
+    >
+      <div v-if="pendaftaranDihapus" class="space-y-4">
+        <div class="p-4 rounded-xl bg-red-50 border border-red-200 flex items-start gap-3">
+          <AlertTriangle class="w-5 h-5 text-red-600 shrink-0 mt-0.5" />
+          <div class="space-y-1 text-xs text-red-800">
+            <p class="font-bold">Apakah Anda yakin ingin menghapus data pendaftaran ini?</p>
+            <p>
+              Data pendaftaran tim <span class="font-bold underline">{{ pendaftaranDihapus.nama_tim }} ({{ pendaftaranDihapus.short_name }})</span> dengan manajer/kapten <span class="font-semibold">{{ pendaftaranDihapus.manager_name }}</span> akan dihapus permanen dari daftar pendaftaran turnamen.
+            </p>
+          </div>
+        </div>
+
+        <div class="flex items-center justify-end gap-2 pt-2">
+          <TombolDasar
+            varian="sekunder"
+            @click="modalKonfirmasiHapus = false"
+            class="justify-center"
+          >
+            Batal
+          </TombolDasar>
+          <button
+            type="button"
+            @click="eksekusiHapus"
+            :disabled="sedangHapus"
+            class="px-4 py-2 rounded-xl bg-red-600 hover:bg-red-700 text-white text-xs font-semibold transition-colors cursor-pointer flex items-center gap-1.5 shadow-sm disabled:opacity-50"
+          >
+            <Trash2 class="w-3.5 h-3.5" />
+            <span>{{ sedangHapus ? 'Menghapus...' : 'Ya, Hapus Pendaftaran' }}</span>
+          </button>
+        </div>
+      </div>
+    </ModalDialog>
   </div>
 </template>

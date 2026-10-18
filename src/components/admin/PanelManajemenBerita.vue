@@ -15,7 +15,8 @@ import {
   AlertCircle,
   Upload,
   Image as ImageIcon,
-  X
+  X,
+  Pin
 } from 'lucide-vue-next'
 import TombolDasar from '../umum/TombolDasar.vue'
 import { kompresGambar, validasiUkuranGambar } from '../../lib/gambar.js'
@@ -35,7 +36,7 @@ const props = defineProps({
   }
 })
 
-const emit = defineEmits(['tambahBerita', 'updateBerita', 'hapusBerita'])
+const emit = defineEmits(['tambahBerita', 'updateBerita', 'togglePinBerita', 'hapusBerita'])
 
 const formTerbuka = ref(false)
 const modeEdit = ref(false)
@@ -54,7 +55,8 @@ const form = ref({
   penulis: 'Redaksi PCL',
   gambar_url: '',
   waktu_baca: '3 min read',
-  terkait_match_id: ''
+  terkait_match_id: '',
+  is_pinned: false
 })
 
 async function handleUploadGambar(event) {
@@ -108,7 +110,8 @@ function resetForm() {
     penulis: 'Redaksi PCL',
     gambar_url: '',
     waktu_baca: '3 min read',
-    terkait_match_id: ''
+    terkait_match_id: '',
+    is_pinned: false
   }
 }
 
@@ -125,7 +128,8 @@ function handleEdit(item) {
     penulis: item.penulis || 'Redaksi PCL',
     gambar_url: item.gambar_url || '',
     waktu_baca: item.waktu_baca || '3 min read',
-    terkait_match_id: item.terkait_match_id || ''
+    terkait_match_id: item.terkait_match_id || '',
+    is_pinned: Boolean(item.is_pinned)
   }
   window.scrollTo({ top: 300, behavior: 'smooth' })
 }
@@ -142,7 +146,8 @@ function submitForm() {
     penulis: form.value.penulis.trim() || 'Redaksi PCL',
     gambar_url: form.value.gambar_url.trim() || null,
     waktu_baca: form.value.waktu_baca.trim() || '3 min read',
-    terkait_match_id: form.value.terkait_match_id || null
+    terkait_match_id: form.value.terkait_match_id || null,
+    is_pinned: Boolean(form.value.is_pinned)
   }
 
   if (modeEdit.value && idSedangDiedit.value) {
@@ -322,8 +327,8 @@ const beritaTersaring = computed(() => {
             </div>
 
             <!-- Preview Mini Gambar -->
-            <div v-if="form.gambar_url" class="relative w-full h-24 rounded-lg border border-slate-200 overflow-hidden bg-slate-50">
-              <img :src="form.gambar_url" alt="Preview Cover" class="w-full h-full object-cover" loading="lazy" decoding="async" />
+            <div v-if="form.gambar_url" class="relative w-full max-h-56 rounded-lg border border-slate-200 overflow-hidden bg-slate-100 flex items-center justify-center p-1">
+              <img :src="form.gambar_url" alt="Preview Cover" class="max-h-52 w-auto object-contain mx-auto rounded" loading="lazy" decoding="async" />
             </div>
           </div>
 
@@ -362,6 +367,20 @@ const beritaTersaring = computed(() => {
           ></textarea>
         </div>
 
+        <!-- Opsi Sematkan (Pin) Berita -->
+        <div class="flex items-center gap-2.5 p-3 rounded-xl bg-amber-50/60 border border-amber-200/80">
+          <input
+            id="checkbox-pin-berita"
+            v-model="form.is_pinned"
+            type="checkbox"
+            class="w-4 h-4 text-amber-600 bg-white border-slate-300 rounded focus:ring-amber-500 cursor-pointer"
+          />
+          <label for="checkbox-pin-berita" class="text-xs text-ink-800 font-medium cursor-pointer select-none flex items-center gap-1.5">
+            <Pin class="w-3.5 h-3.5 text-amber-600 fill-amber-600" />
+            <span>Sematkan berita ini (Pin ke urutan paling atas agar tidak tertimbun)</span>
+          </label>
+        </div>
+
         <div class="flex items-center gap-3 pt-2">
           <TombolDasar tipe="submit" varian="primer" :sedangMemuat="sedangMemuat">
             {{ modeEdit ? 'Simpan Perubahan Berita' : 'Terbitkan Berita Sekarang' }}
@@ -387,39 +406,42 @@ const beritaTersaring = computed(() => {
         </div>
 
         <!-- Tombol Buat Berita + Filter & Search -->
-        <div class="flex items-center gap-2 max-w-lg w-full sm:w-auto">
+        <div class="grid grid-cols-1 sm:flex items-center gap-2 w-full sm:w-auto">
           <button
             v-if="!formTerbuka"
             @click="formTerbuka = true; modeEdit = false"
             type="button"
-            class="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg bg-ucl-600 hover:bg-blue-700 text-white text-xs font-semibold transition-colors cursor-pointer shrink-0"
+            class="inline-flex items-center justify-center gap-1.5 px-3.5 py-2 sm:py-1.5 rounded-lg bg-ucl-600 hover:bg-blue-700 text-white text-xs font-semibold transition-colors cursor-pointer w-full sm:w-auto"
           >
             <Plus class="w-3.5 h-3.5" />
-            Buat Berita
+            <span>Buat Berita</span>
           </button>
 
-          <div class="relative flex-1 sm:w-52">
-            <input
-              v-model="cariTeks"
-              type="text"
-              placeholder="Cari judul berita..."
-              class="w-full pl-8 pr-3 py-1.5 bg-slate-50 border border-slate-300 rounded-lg text-xs text-ink-900 outline-none focus:bg-white focus:border-ucl-500"
-            />
-            <Search class="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-1/2 -translate-y-1/2" />
-          </div>
+          <div class="flex items-center gap-2 w-full sm:w-auto">
+            <div class="relative flex-1 sm:w-52">
+              <input
+                v-model="cariTeks"
+                type="text"
+                placeholder="Cari judul berita..."
+                class="w-full pl-8 pr-3 py-1.5 bg-slate-50 border border-slate-300 rounded-lg text-xs text-ink-900 outline-none focus:bg-white focus:border-ucl-500"
+              />
+              <Search class="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-1/2 -translate-y-1/2" />
+            </div>
 
-          <select
-            v-model="filterKategori"
-            class="bg-slate-50 border border-slate-300 rounded-lg px-2.5 py-1.5 text-xs text-ink-900 outline-none focus:bg-white focus:border-ucl-500 cursor-pointer"
-          >
-            <option value="semua">Semua</option>
-            <option value="turnamen">Turnamen</option>
-            <option value="taktik">Taktik</option>
-            <option value="rekap">Rekap</option>
-          </select>
+            <select
+              v-model="filterKategori"
+              class="bg-slate-50 border border-slate-300 rounded-lg px-2.5 py-1.5 text-xs text-ink-900 outline-none focus:bg-white focus:border-ucl-500 cursor-pointer shrink-0"
+            >
+              <option value="semua">Semua</option>
+              <option value="turnamen">Turnamen</option>
+              <option value="taktik">Taktik</option>
+              <option value="rekap">Rekap</option>
+            </select>
+          </div>
         </div>
       </div>
 
+      <!-- Tabel Publikasi Berita -->
       <div class="overflow-x-auto">
         <table class="w-full text-left border-collapse text-xs">
           <thead>
@@ -437,9 +459,19 @@ const beritaTersaring = computed(() => {
                 Tidak ada artikel berita yang cocok.
               </td>
             </tr>
-            <tr v-for="b in beritaTersaring" :key="b.id" class="hover:bg-slate-50/80 transition-colors">
+            <tr v-for="b in beritaTersaring" :key="b.id" class="hover:bg-slate-50/80 transition-colors" :class="{ 'bg-amber-50/30': b.is_pinned }">
               <td class="py-3 px-4 max-w-xs sm:max-w-md">
-                <div class="font-semibold text-ink-900 line-clamp-1 mb-0.5">{{ b.judul }}</div>
+                <div class="flex items-center gap-1.5 mb-0.5">
+                  <span
+                    v-if="b.is_pinned"
+                    class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-bold bg-amber-100 text-amber-800 border border-amber-200 shrink-0"
+                    title="Berita Disematkan (Pin)"
+                  >
+                    <Pin class="w-2.5 h-2.5 fill-amber-700 text-amber-700" />
+                    Dipin
+                  </span>
+                  <div class="font-semibold text-ink-900 line-clamp-1">{{ b.judul }}</div>
+                </div>
                 <div class="text-[11px] text-slate-500 line-clamp-1">{{ b.ringkasan || b.konten }}</div>
               </td>
               <td class="py-3 px-4 whitespace-nowrap">
@@ -453,6 +485,15 @@ const beritaTersaring = computed(() => {
               </td>
               <td class="py-3 px-4 text-right whitespace-nowrap">
                 <div class="inline-flex items-center gap-1.5">
+                  <button
+                    @click="emit('togglePinBerita', b.id)"
+                    type="button"
+                    class="p-1.5 rounded-lg transition-colors cursor-pointer"
+                    :class="b.is_pinned ? 'text-amber-600 hover:text-amber-700 bg-amber-50 hover:bg-amber-100' : 'text-slate-400 hover:text-amber-600 hover:bg-slate-100'"
+                    :title="b.is_pinned ? 'Lepas Sematan (Unpin)' : 'Sematkan Berita (Pin)'"
+                  >
+                    <Pin class="w-3.5 h-3.5" :class="{ 'fill-amber-600': b.is_pinned }" />
+                  </button>
                   <router-link
                     :to="`/berita/${b.id}`"
                     target="_blank"

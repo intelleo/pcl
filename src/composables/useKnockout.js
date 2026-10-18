@@ -4,7 +4,11 @@ import { invalidateCache } from '../lib/cache.js'
 /**
  * Generate jadwal knockout bracket dari daftar tim terpilih via backend API.
  */
-export async function generateJadwalKnockoutSupabase(daftarTimTerpilih, kapasitas = 8, customTournamentId = null) {
+/**
+ * Composable untuk Logika Bagan Fase Gugur (Knockout Bracket)
+ * Terintegrasi dengan Backend Express + MySQL
+ */
+export async function generateJadwalKnockout(daftarTimTerpilih, kapasitas = 8, customTournamentId = null) {
   try {
     const res = await api.generateKnockout({
       daftarTimTerpilih,
@@ -560,7 +564,7 @@ export function bentukDataBagan(listKnockoutMatches = []) {
 /**
  * Otomatis memasukkan pemenang laga knockout ke babak berikutnya via backend API.
  */
-export async function majukanPemenangKnockoutSupabase(matchId, homeScore, awayScore) {
+export async function majukanPemenangKnockout(matchId, homeScore, awayScore) {
   try {
     const res = await api.advanceKnockout({
       match_id: matchId,

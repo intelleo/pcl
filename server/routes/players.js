@@ -3,7 +3,7 @@ import { query, generateUUID } from '../config/db.js'
 
 const router = express.Router()
 
-// Pastikan kolom statistik pemain tersedia di database
+// Pastikan kolom statistik pemain dan game_id tersedia di database
 async function ensureStatsColumns() {
   try {
     const cols = await query("SHOW COLUMNS FROM `pcl_players` LIKE 'goals'")
@@ -13,6 +13,10 @@ async function ensureStatsColumns() {
       await query("ALTER TABLE `pcl_players` ADD COLUMN `passes` INT NOT NULL DEFAULT 0 AFTER `assists`")
       await query("ALTER TABLE `pcl_players` ADD COLUMN `defense` INT NOT NULL DEFAULT 0 AFTER `passes`")
       await query("ALTER TABLE `pcl_players` ADD COLUMN `mvp` INT NOT NULL DEFAULT 0 AFTER `defense`")
+    }
+    const gameIdCol = await query("SHOW COLUMNS FROM `pcl_players` LIKE 'game_id'")
+    if (gameIdCol.length === 0) {
+      await query("ALTER TABLE `pcl_players` ADD COLUMN `game_id` VARCHAR(50) NULL AFTER `name`")
     }
   } catch (e) {
     // Abaikan jika tabel belum ada saat boot awal
@@ -28,7 +32,7 @@ router.get('/', async (req, res) => {
   try {
     const { team_id } = req.query
     let sql = `
-      SELECT p.id, p.team_id, p.name, p.squad_number, p.position, p.avatar_url,
+      SELECT p.id, p.team_id, p.name, p.game_id, p.squad_number, p.position, p.avatar_url,
              p.goals, p.assists, p.passes, p.defense, p.mvp,
              t.name AS team_name, t.short_name AS team_short
       FROM pcl_players p
@@ -57,6 +61,7 @@ router.post('/', async (req, res) => {
     const {
       team_id,
       name,
+      game_id = null,
       squad_number = 1,
       position = 'MF',
       avatar_url = null,
@@ -73,12 +78,13 @@ router.post('/', async (req, res) => {
 
     const id = generateUUID()
     await query(
-      `INSERT INTO pcl_players (id, team_id, name, squad_number, position, avatar_url, goals, assists, passes, defense, mvp)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      `INSERT INTO pcl_players (id, team_id, name, game_id, squad_number, position, avatar_url, goals, assists, passes, defense, mvp)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         id,
         team_id,
         name.trim(),
+        game_id ? String(game_id).trim() : null,
         Number(squad_number),
         position,
         avatar_url || null,
@@ -106,6 +112,7 @@ router.put('/:id', async (req, res) => {
     const { id } = req.params
     const {
       name,
+      game_id,
       squad_number,
       position,
       avatar_url,
@@ -120,6 +127,7 @@ router.put('/:id', async (req, res) => {
     const params = []
 
     if (name !== undefined) { updates.push('name = ?'); params.push(name.trim()) }
+    if (game_id !== undefined) { updates.push('game_id = ?'); params.push(game_id ? String(game_id).trim() : null) }
     if (squad_number !== undefined) { updates.push('squad_number = ?'); params.push(Number(squad_number)) }
     if (position !== undefined) { updates.push('position = ?'); params.push(position) }
     if (avatar_url !== undefined) { updates.push('avatar_url = ?'); params.push(avatar_url) }

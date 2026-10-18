@@ -28,7 +28,7 @@ const daftarMenu = [
   { nama: "Jadwal & Tim", rute: "/jadwal", ikon: Calendar },
   { nama: "Statistik", rute: "/statistik", ikon: BarChart3 },
   { nama: "Riwayat Juara", rute: "/riwayat-juara", ikon: Crown },
-  { nama: "Berita", rute: "/berita", ikon: Newspaper },
+  { nama: "Informasi", rute: "/berita", ikon: Newspaper },
 ];
 
 function navigasi(rute) {

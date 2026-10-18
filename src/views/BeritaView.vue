@@ -12,7 +12,8 @@ import {
   ArrowRight,
   Clock,
   Sparkles,
-  Heart
+  Heart,
+  Pin
 } from 'lucide-vue-next'
 
 const router = useRouter()
@@ -86,13 +87,13 @@ function navigasiKeDetail(id) {
     <!-- Header -->
     <div class="anim-muncul flex flex-col md:flex-row md:items-end justify-between gap-4 pb-5 sm:pb-6 border-b border-slate-200">
       <div>
-        <span class="text-xs font-semibold uppercase tracking-[0.14em] text-gold-600">Newsroom Turnamen</span>
+        <span class="text-xs font-semibold uppercase tracking-[0.14em] text-gold-600">Newsroom &amp; Regulasi</span>
         <h1 class="font-display text-2xl sm:text-3xl font-bold tracking-tight text-ink-900 mt-1 flex items-center gap-2.5">
           <Newspaper class="w-7 h-7 text-ucl-600 shrink-0" />
-          Kabar &amp; Liputan PCL
+          Pusat Informasi &amp; Berita
         </h1>
         <p class="text-xs sm:text-sm text-slate-500 mt-1">
-          Ulasan pertandingan, analisis taktik skuad, dan kabar resmi turnamen Peak Champions League.
+          Pengumuman resmi panitia, regulasi turnamen, ulasan pertandingan, dan kabar terbaru Peak Champions League.
         </p>
       </div>
 
@@ -100,7 +101,7 @@ function navigasiKeDetail(id) {
       <div class="flex items-center gap-2 text-xs text-slate-500 self-start md:self-auto bg-slate-50 border border-slate-200 px-3 py-1.5 rounded-xl">
         <span>Total <strong class="text-ink-900 font-semibold">{{ daftarBerita.length }}</strong> Artikel</span>
         <span class="text-slate-300">·</span>
-        <span class="text-ucl-700 font-medium">Liputan Resmi</span>
+        <span class="text-ucl-700 font-medium">Informasi Resmi</span>
       </div>
     </div>
 
@@ -117,12 +118,12 @@ function navigasiKeDetail(id) {
       <div
         v-if="beritaUtama && tagTerpilih === 'semua' && !kataKunci"
         @click="navigasiKeDetail(beritaUtama.id)"
-        class="anim-muncul group relative overflow-hidden rounded-2xl bg-white border border-ucl-500/40 ring-1 ring-ucl-500/20 shadow-card hover:shadow-lift transition-all cursor-pointer"
+        class="anim-muncul group relative overflow-hidden rounded-2xl bg-white border border-slate-200 shadow-card hover:shadow-lift transition-all cursor-pointer"
         style="animation-delay: 60ms"
       >
-        <div class="grid grid-cols-1 lg:grid-cols-12 items-stretch">
-          <!-- Featured Cover Image -->
-          <div class="lg:col-span-7 relative overflow-hidden bg-slate-100 aspect-[16/9] lg:aspect-auto lg:min-h-[320px]">
+        <div class="grid grid-cols-1 md:grid-cols-12 items-stretch">
+          <!-- Featured Cover Image (Dibatasi compact, tidak raksasa) -->
+          <div class="md:col-span-5 relative overflow-hidden bg-slate-100 aspect-[16/9] md:aspect-auto md:min-h-[220px] max-h-[260px]">
             <img
               v-if="beritaUtama.gambar_url"
               :src="beritaUtama.gambar_url"
@@ -130,23 +131,30 @@ function navigasiKeDetail(id) {
               class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
               decoding="async"
             />
-            <div v-else class="w-full h-full bg-gradient-to-br from-navy-900 via-ucl-900 to-ucl-700 flex items-center justify-center min-h-[220px]">
-              <span class="font-display text-white/30 text-4xl sm:text-5xl font-bold tracking-tight">PCL NEWS</span>
+            <div v-else class="w-full h-full bg-gradient-to-br from-navy-900 via-ucl-900 to-ucl-700 flex items-center justify-center min-h-[180px]">
+              <span class="font-display text-white/30 text-3xl font-bold tracking-tight">PCL NEWS</span>
             </div>
-            <div class="absolute inset-0 bg-gradient-to-t from-slate-900/40 via-transparent to-transparent lg:hidden"></div>
+            <div class="absolute inset-0 bg-gradient-to-t from-slate-900/40 via-transparent to-transparent md:hidden"></div>
           </div>
 
           <!-- Featured Content -->
-          <div class="lg:col-span-5 p-4 sm:p-6 lg:p-7 flex flex-col justify-between space-y-4">
-            <div class="space-y-3">
+          <div class="md:col-span-7 p-4 sm:p-5 lg:p-6 flex flex-col justify-between space-y-3">
+            <div class="space-y-2">
               <!-- Badges & Date -->
               <div class="flex items-center justify-between gap-2 flex-wrap text-xs">
-                <div class="flex items-center gap-1.5">
-                  <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-ucl-600 text-white text-[10px] sm:text-[11px] font-bold uppercase tracking-wider shadow-sm">
-                    <Sparkles class="w-3 h-3 text-gold-300" />
+                <div class="flex items-center gap-1.5 flex-wrap">
+                  <span
+                    v-if="beritaUtama.is_pinned"
+                    class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-amber-500 text-white text-[10px] font-bold uppercase tracking-wider shadow-sm"
+                  >
+                    <Pin class="w-2.5 h-2.5 fill-white text-white" />
+                    Disematkan
+                  </span>
+                  <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-ucl-600 text-white text-[10px] font-bold uppercase tracking-wider shadow-sm">
+                    <Sparkles class="w-2.5 h-2.5 text-gold-300" />
                     Sorotan Utama
                   </span>
-                  <span class="inline-flex items-center px-2.5 py-0.5 rounded-full bg-ucl-50 border border-ucl-100 text-ucl-700 text-[10px] sm:text-[11px] font-bold">
+                  <span class="inline-flex items-center px-2 py-0.5 rounded-full bg-ucl-50 border border-ucl-100 text-ucl-700 text-[10px] font-bold">
                     {{ beritaUtama.tag }}
                   </span>
                 </div>
@@ -156,20 +164,20 @@ function navigasiKeDetail(id) {
               </div>
 
               <!-- Title -->
-              <h2 class="font-display text-lg sm:text-xl md:text-2xl font-bold tracking-tight text-ink-900 group-hover:text-ucl-600 transition-colors leading-snug">
+              <h2 class="font-display text-base sm:text-lg md:text-xl font-bold tracking-tight text-ink-900 group-hover:text-ucl-600 transition-colors leading-snug">
                 {{ beritaUtama.judul }}
               </h2>
 
               <!-- Summary -->
-              <p class="text-xs sm:text-sm text-slate-600 leading-relaxed line-clamp-3">
+              <p class="text-xs sm:text-sm text-slate-600 leading-relaxed line-clamp-2 sm:line-clamp-3">
                 {{ beritaUtama.ringkasan }}
               </p>
             </div>
 
             <!-- Footer Meta & CTA -->
-            <div class="pt-3 border-t border-slate-100 flex items-center justify-between gap-2 text-xs">
-              <div class="flex items-center gap-3 text-slate-500 text-[11px] sm:text-xs">
-                <span class="flex items-center gap-1 font-medium truncate max-w-[130px]">
+            <div class="pt-2.5 border-t border-slate-100 flex items-center justify-between gap-2 text-xs">
+              <div class="flex items-center gap-3 text-slate-500 text-[11px]">
+                <span class="flex items-center gap-1 font-medium truncate max-w-[120px]">
                   <User class="w-3.5 h-3.5 text-slate-400 shrink-0" /> {{ beritaUtama.penulis }}
                 </span>
                 <span class="flex items-center gap-1 text-slate-400 shrink-0">
@@ -179,9 +187,9 @@ function navigasiKeDetail(id) {
                   <Heart class="w-3.5 h-3.5 fill-rose-500" /> {{ beritaUtama.likes_count }}
                 </span>
               </div>
-              <span class="text-xs sm:text-sm font-bold text-ucl-600 flex items-center gap-1 group-hover:translate-x-1 transition-transform shrink-0">
+              <span class="text-xs font-bold text-ucl-600 flex items-center gap-1 group-hover:translate-x-1 transition-transform shrink-0">
                 <span>Baca Lengkap</span>
-                <ArrowRight class="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                <ArrowRight class="w-3.5 h-3.5" />
               </span>
             </div>
           </div>
@@ -228,17 +236,17 @@ function navigasiKeDetail(id) {
         <p class="text-xs text-slate-500 max-w-sm mx-auto">Coba ubah kata kunci pencarian atau pilih kategori lainnya.</p>
       </div>
 
-      <!-- Article Grid (Responsive Mobile Card Layout) -->
-      <div v-else class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-5 lg:gap-6">
+      <!-- Article Grid (Clean 3-Column Compact Cards on Desktop) -->
+      <div v-else class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-5">
         <article
           v-for="(berita, idx) in beritaLainnya"
           :key="berita.id"
           @click="navigasiKeDetail(berita.id)"
-          class="anim-muncul flex flex-col justify-between rounded-2xl bg-white border border-slate-200 shadow-card hover:shadow-lift transition-all duration-300 group cursor-pointer overflow-hidden"
+          class="anim-muncul flex flex-col justify-between rounded-xl bg-white border border-slate-200 shadow-card hover:shadow-lift transition-all duration-300 group cursor-pointer overflow-hidden"
           :style="{ animationDelay: `${Math.min(idx, 6) * 50}ms` }"
         >
-          <!-- Card Media Container -->
-          <div class="relative w-full aspect-[16/9] sm:aspect-[16/10] overflow-hidden bg-slate-100 shrink-0">
+          <!-- Card Media Container (Tinggi Foto Dibatasi Pendek 150px agar tidak raksasa) -->
+          <div class="relative w-full h-36 sm:h-40 overflow-hidden bg-slate-100 shrink-0">
             <img
               v-if="berita.gambar_url"
               :src="berita.gambar_url"
@@ -248,20 +256,27 @@ function navigasiKeDetail(id) {
               decoding="async"
             />
             <div v-else class="w-full h-full bg-gradient-to-br from-navy-900 to-ucl-700 flex items-center justify-center">
-              <span class="font-display text-white/30 text-2xl font-bold tracking-tight">PCL</span>
+              <span class="font-display text-white/30 text-xl font-bold tracking-tight">PCL</span>
             </div>
 
-            <!-- Category Pill on Image (Mobile Enhanced) -->
-            <div class="absolute top-2.5 left-2.5">
-              <span class="inline-flex items-center px-2.5 py-0.5 rounded-md bg-navy-950/80 backdrop-blur-sm text-gold-400 text-[10px] font-bold uppercase tracking-wider border border-white/10 shadow-sm">
+            <!-- Category Pill on Image -->
+            <div class="absolute top-2.5 left-2.5 flex items-center gap-1.5 flex-wrap">
+              <span
+                v-if="berita.is_pinned"
+                class="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-amber-500/95 backdrop-blur-sm text-white text-[10px] font-bold uppercase tracking-wider shadow-sm"
+              >
+                <Pin class="w-2.5 h-2.5 fill-white text-white" />
+                Dipin
+              </span>
+              <span class="inline-flex items-center px-2 py-0.5 rounded-md bg-navy-950/80 backdrop-blur-sm text-gold-400 text-[10px] font-bold uppercase tracking-wider border border-white/10 shadow-sm">
                 {{ berita.tag }}
               </span>
             </div>
           </div>
 
           <!-- Card Body Content -->
-          <div class="p-4 sm:p-5 flex flex-col flex-1 justify-between space-y-3">
-            <div class="space-y-2">
+          <div class="p-3.5 sm:p-4 flex flex-col flex-1 justify-between space-y-2.5">
+            <div class="space-y-1.5">
               <!-- Date & Category Meta -->
               <div class="flex items-center justify-between text-[11px] text-slate-400">
                 <span class="font-medium text-slate-500 capitalize">{{ berita.kategori || 'Berita' }}</span>
@@ -272,7 +287,7 @@ function navigasiKeDetail(id) {
               </div>
 
               <!-- Title -->
-              <h3 class="font-display text-sm sm:text-base font-bold text-ink-900 group-hover:text-ucl-600 transition-colors line-clamp-2 leading-snug">
+              <h3 class="font-display text-sm font-bold text-ink-900 group-hover:text-ucl-600 transition-colors line-clamp-2 leading-snug">
                 {{ berita.judul }}
               </h3>
 
@@ -283,14 +298,14 @@ function navigasiKeDetail(id) {
             </div>
 
             <!-- Footer Card Meta -->
-            <div class="pt-3 border-t border-slate-100 flex items-center justify-between text-xs">
-              <div class="flex items-center gap-2.5 text-slate-500 text-[11px] min-w-0">
-                <span class="flex items-center gap-1 truncate max-w-[110px]">
-                  <User class="w-3.5 h-3.5 text-slate-400 shrink-0" />
+            <div class="pt-2.5 border-t border-slate-100 flex items-center justify-between text-xs">
+              <div class="flex items-center gap-2 text-slate-500 text-[11px] min-w-0">
+                <span class="flex items-center gap-1 truncate max-w-[100px]">
+                  <User class="w-3 h-3 text-slate-400 shrink-0" />
                   <span class="truncate">{{ berita.penulis }}</span>
                 </span>
                 <span v-if="Number(berita.likes_count || 0) > 0" class="flex items-center gap-1 text-rose-500 font-semibold shrink-0">
-                  <Heart class="w-3.5 h-3.5 fill-rose-500" /> {{ berita.likes_count }}
+                  <Heart class="w-3 h-3 fill-rose-500" /> {{ berita.likes_count }}
                 </span>
               </div>
               <span class="font-semibold text-xs text-ucl-600 flex items-center gap-1 group-hover:translate-x-1 transition-transform shrink-0">

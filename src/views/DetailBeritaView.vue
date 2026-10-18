@@ -113,6 +113,22 @@ function formatTanggalIndo(isoStr) {
   }
 }
 
+// Helper untuk mendeteksi link URL (http/https) dan mengubahnya menjadi tag <a> yang bisa diklik
+function formatTeksDenganLink(teks) {
+  if (!teks) return ''
+  // Escape HTML entities dasar untuk keamanan
+  const sanitized = String(teks)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+
+  // Regex mendeteksi URL http/https
+  const urlRegex = /(https?:\/\/[^\s<]+[^<.,:;"')\]\s])/gi
+  return sanitized.replace(urlRegex, (url) => {
+    return `<a href="${url}" target="_blank" rel="noopener noreferrer" class="text-ucl-600 hover:text-ucl-700 font-semibold underline underline-offset-2 break-all inline-flex items-center gap-0.5">${url}</a>`
+  })
+}
+
 // Helper untuk mengekstrak paragraf teks dari data konten/isi
 const daftarParagraf = computed(() => {
   if (!artikel.value) return []
@@ -244,7 +260,7 @@ function salinTautan() {
         class="text-xs sm:text-sm py-1.5 sm:py-2 px-3 sm:px-4"
       >
         <ArrowLeft class="w-3.5 h-3.5 sm:w-4 sm:h-4 mr-1 sm:mr-1.5 shrink-0" />
-        <span class="hidden sm:inline">Kembali ke Berita</span>
+        <span class="hidden sm:inline">Kembali ke Informasi</span>
         <span class="sm:hidden">Kembali</span>
       </TombolDasar>
 
@@ -290,12 +306,12 @@ function salinTautan() {
     <div v-else class="grid grid-cols-1 lg:grid-cols-3 gap-5 sm:gap-6 items-start">
       <!-- Article Body -->
       <article class="anim-muncul lg:col-span-2 rounded-2xl bg-white border border-slate-200 shadow-card overflow-hidden">
-        <!-- Hero Cover Image -->
-        <div v-if="artikel.gambar_url" class="w-full h-48 sm:h-72 md:h-80 overflow-hidden bg-slate-100 relative">
+        <!-- Hero Cover Image (Full Aspect, No Crop) -->
+        <div v-if="artikel.gambar_url" class="w-full bg-slate-950/5 flex items-center justify-center border-b border-slate-100">
           <img
             :src="artikel.gambar_url"
             :alt="artikel.judul"
-            class="w-full h-full object-cover"
+            class="w-full max-h-[500px] object-contain mx-auto"
             decoding="async"
           />
         </div>
@@ -329,34 +345,37 @@ function salinTautan() {
             </div>
 
             <!-- Summary / Lead Box -->
-            <p v-if="artikel.ringkasan" class="text-xs sm:text-sm md:text-base text-ink-900 font-medium bg-ucl-50/80 border-l-4 border-ucl-600 p-3 sm:p-4 rounded-r-xl leading-relaxed">
-              {{ artikel.ringkasan }}
-            </p>
+            <p
+              v-if="artikel.ringkasan"
+              class="text-sm sm:text-base text-ink-900 font-medium bg-ucl-50/80 border-l-4 border-ucl-600 p-3.5 sm:p-4 rounded-r-xl leading-relaxed"
+              v-html="formatTeksDenganLink(artikel.ringkasan)"
+            ></p>
           </div>
 
           <!-- Paragraphs Content -->
-          <div class="space-y-3.5 sm:space-y-4 text-xs sm:text-sm md:text-base text-ink-700 leading-relaxed sm:leading-loose">
+          <div class="space-y-4 sm:space-y-5 text-sm sm:text-base text-ink-800 leading-relaxed sm:leading-relaxed">
             <template v-if="daftarParagraf.length > 0">
               <p
                 v-for="(paragraf, pIdx) in daftarParagraf"
                 :key="pIdx"
                 class="whitespace-pre-line"
-              >
-                {{ paragraf }}
-              </p>
+                v-html="formatTeksDenganLink(paragraf)"
+              ></p>
             </template>
-            <p v-else class="text-slate-400 italic text-xs sm:text-sm">
-              {{ artikel.konten || artikel.isi || 'Belum ada isi konten artikel.' }}
-            </p>
+            <p
+              v-else
+              class="text-slate-400 italic text-sm sm:text-base"
+              v-html="formatTeksDenganLink(artikel.konten || artikel.isi || 'Belum ada isi konten artikel.')"
+            ></p>
           </div>
 
           <!-- Blockquote -->
           <div v-if="artikel.kutipan" class="relative p-4 sm:p-5 rounded-xl bg-slate-50 border border-slate-200 space-y-1.5 my-4">
             <Quote class="w-5 h-5 sm:w-6 sm:h-6 text-ucl-500/30 absolute right-3 top-3" />
-            <p class="text-xs sm:text-sm italic text-ink-900 leading-relaxed pr-6">
+            <p class="text-sm sm:text-base italic text-ink-900 leading-relaxed pr-6">
               "{{ artikel.kutipan }}"
             </p>
-            <div class="text-[11px] sm:text-xs font-semibold text-ucl-600">
+            <div class="text-xs sm:text-sm font-semibold text-ucl-600">
               — {{ artikel.narasumber }}
             </div>
           </div>

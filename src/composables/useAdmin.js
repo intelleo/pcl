@@ -1,7 +1,7 @@
 import { ref } from 'vue'
 import { api } from '../lib/api.js'
 import { invalidateCache } from '../lib/cache.js'
-import { majukanPemenangKnockoutSupabase } from './useKnockout.js'
+import { majukanPemenangKnockout } from './useKnockout.js'
 
 /**
  * Validasi nilai skor pertandingan.
@@ -46,7 +46,7 @@ export function useAdmin() {
       await api.updateMatch(matchId, payload)
 
       if (status === 'finished') {
-        await majukanPemenangKnockoutSupabase(matchId, homeScore, awayScore)
+        await majukanPemenangKnockout(matchId, homeScore, awayScore)
       }
 
       invalidateCache() // Reset all caches agar klasemen & statistik terupdate
@@ -148,7 +148,7 @@ export async function ambilDataLengkapAdmin() {
 /**
  * Operasi CRUD Berita PCL
  */
-export async function tambahBeritaSupabase(berita) {
+export async function tambahBerita(berita) {
   const res = await api.createNews({
     judul: berita.judul,
     ringkasan: berita.ringkasan,
@@ -158,13 +158,14 @@ export async function tambahBeritaSupabase(berita) {
     penulis: berita.penulis,
     gambar_url: berita.gambar_url,
     waktu_baca: berita.waktu_baca,
-    terkait_match_id: berita.terkait_match_id || null
+    terkait_match_id: berita.terkait_match_id || null,
+    is_pinned: berita.is_pinned ? 1 : 0
   })
   invalidateCache(/news/)
   return res
 }
 
-export async function perbaruiBeritaSupabase(berita) {
+export async function perbaruiBerita(berita) {
   const res = await api.updateNews(berita.id, {
     judul: berita.judul,
     ringkasan: berita.ringkasan,
@@ -174,13 +175,20 @@ export async function perbaruiBeritaSupabase(berita) {
     penulis: berita.penulis,
     gambar_url: berita.gambar_url,
     waktu_baca: berita.waktu_baca,
-    terkait_match_id: berita.terkait_match_id || null
+    terkait_match_id: berita.terkait_match_id || null,
+    is_pinned: berita.is_pinned ? 1 : 0
   })
   invalidateCache(/news/)
   return res
 }
 
-export async function hapusBeritaSupabase(beritaId) {
+export async function togglePinBerita(beritaId) {
+  const res = await api.togglePinNews(beritaId)
+  invalidateCache(/news/)
+  return res
+}
+
+export async function hapusBerita(beritaId) {
   const res = await api.deleteNews(beritaId)
   invalidateCache(/news/)
   return res
@@ -189,19 +197,19 @@ export async function hapusBeritaSupabase(beritaId) {
 /**
  * Operasi CRUD Tim Peserta
  */
-export async function buatTimBaruSupabase(payload) {
+export async function buatTimBaru(payload) {
   const res = await api.createTeam(payload)
   invalidateCache()
   return res
 }
 
-export async function perbaruiTimSupabase(payload) {
+export async function perbaruiTim(payload) {
   const res = await api.updateTeam(payload.id, payload)
   invalidateCache()
   return res
 }
 
-export async function hapusTimSupabase(timId) {
+export async function hapusTim(timId) {
   const res = await api.deleteTeam(timId)
   invalidateCache()
   return res
@@ -210,11 +218,30 @@ export async function hapusTimSupabase(timId) {
 /**
  * Operasi Status Pendaftaran Tim
  */
-export async function perbaruiStatusPendaftaranSupabase(pendaftaranId, status) {
+export async function perbaruiStatusPendaftaran(pendaftaranId, status) {
   const res = await api.updateRegistrationStatus(pendaftaranId, status)
   invalidateCache()
   return res
 }
+
+/**
+ * Hapus Data Pendaftaran Tim
+ */
+export async function hapusPendaftaran(pendaftaranId) {
+  const res = await api.deleteRegistration(pendaftaranId)
+  invalidateCache()
+  return res
+}
+
+// Backward compatibility alias
+export const tambahBeritaSupabase = tambahBerita
+export const perbaruiBeritaSupabase = perbaruiBerita
+export const hapusBeritaSupabase = hapusBerita
+export const buatTimBaruSupabase = buatTimBaru
+export const perbaruiTimSupabase = perbaruiTim
+export const hapusTimSupabase = hapusTim
+export const perbaruiStatusPendaftaranSupabase = perbaruiStatusPendaftaran
+export const hapusPendaftaranSupabase = hapusPendaftaran
 
 /**
  * Operasi Reset Drawing

@@ -182,24 +182,29 @@ async function simpanKeTurnamen() {
 <template>
   <div class="space-y-6">
     <!-- Drawing Control Card -->
-    <div class="bg-white rounded-xl border border-slate-200 p-5 sm:p-6 shadow-card space-y-4">
+    <div class="bg-white rounded-xl border border-slate-200 p-5 sm:p-6 shadow-card space-y-5">
+      <!-- Header Atas: Judul & Pemilih Musim -->
       <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-100">
-        <div>
-          <h3 class="text-base font-semibold text-ink-900 flex items-center gap-2">
-            <Dices class="w-5 h-5 text-ucl-600" />
-            Drawing &amp; Pengundian Bagan Knockout
-          </h3>
-          <p class="text-xs text-slate-500 mt-1">
-            Kocok dan pasangkan {{ timTerfilter.length }} klub peserta di musim ini ke dalam bagan turnamen sistem gugur secara acak.
+        <div class="space-y-1">
+          <div class="flex items-center gap-2">
+            <div class="w-8 h-8 rounded-lg bg-ucl-50 flex items-center justify-center text-ucl-600 border border-ucl-100">
+              <Dices class="w-4 h-4" />
+            </div>
+            <h3 class="text-base font-bold text-ink-900 tracking-tight">
+              Drawing &amp; Pengundian Bagan Knockout
+            </h3>
+          </div>
+          <p class="text-xs text-slate-500">
+            Kocok dan pasangkan <span class="font-semibold text-ink-900">{{ timTerfilter.length }} klub</span> ke dalam bagan fase gugur turnamen.
           </p>
         </div>
 
-        <div class="flex flex-wrap items-center gap-2">
+        <div class="flex items-center gap-2 shrink-0">
           <!-- Season Selector -->
           <div v-if="daftarSeason.length > 0" class="relative">
             <select
               v-model="seasonTerpilihId"
-              class="appearance-none bg-slate-50 border border-slate-300 rounded-lg pl-3 pr-8 py-1.5 text-xs font-semibold text-ink-900 cursor-pointer hover:border-ucl-400 focus:border-ucl-500 outline-none transition-colors"
+              class="appearance-none bg-slate-50 border border-slate-300 rounded-lg pl-3 pr-8 py-2 text-xs font-semibold text-ink-900 cursor-pointer hover:border-ucl-400 focus:border-ucl-500 outline-none transition-colors"
             >
               <option v-for="s in daftarSeason" :key="s.id" :value="s.id">
                 {{ s.name }} ({{ s.season }})
@@ -208,62 +213,76 @@ async function simpanKeTurnamen() {
             <ChevronDown class="w-3.5 h-3.5 text-slate-400 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
           </div>
 
-          <!-- Pilih Kapasitas Bagan -->
-          <div class="flex items-center gap-1.5 p-1 bg-slate-100 rounded-lg text-xs font-semibold">
-            <span class="px-2 text-slate-500 flex items-center gap-1">
-              <Users class="w-3.5 h-3.5" />
-              Format:
-            </span>
+          <!-- Reset Drawing DB Button -->
+          <button
+            type="button"
+            @click="konfirmasiResetTotal"
+            class="px-3 py-2 rounded-lg bg-red-50 hover:bg-red-100 text-xs font-semibold text-red-700 border border-red-200 transition-colors cursor-pointer flex items-center gap-1.5"
+            title="Hapus seluruh hasil drawing, jadwal pertandingan, dan klasemen di database"
+          >
+            <RotateCcw class="w-3.5 h-3.5 text-red-600" />
+            <span class="hidden sm:inline">Reset DB</span>
+            <span class="sm:hidden">Reset</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Baris Kontrol: Pilihan Format & Metode Pengundian -->
+      <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-4 p-3.5 bg-slate-50/80 rounded-xl border border-slate-200/80">
+        <!-- Pilihan Format Kapasitas Bagan -->
+        <div class="flex items-center gap-2">
+          <span class="text-xs font-bold text-slate-500 uppercase tracking-wider flex items-center gap-1.5 shrink-0">
+            <Users class="w-3.5 h-3.5 text-slate-400" />
+            Format Bagan:
+          </span>
+          <div class="inline-flex p-1 bg-white border border-slate-200 rounded-lg text-xs font-semibold shadow-sm">
             <button
               v-for="k in opsiKapasitas"
               :key="k"
               type="button"
               @click="kapasitas = k; resetDrawing()"
-              class="px-2.5 py-1 rounded-md transition cursor-pointer"
-              :class="kapasitas === k ? 'bg-white text-ucl-700 shadow-sm' : 'text-slate-500 hover:text-ink-900'"
+              class="px-3 py-1 rounded-md transition cursor-pointer"
+              :class="kapasitas === k ? 'bg-ucl-600 text-white shadow-xs' : 'text-slate-600 hover:text-ink-900 hover:bg-slate-50'"
             >
               {{ k }} Klub
             </button>
           </div>
+        </div>
 
+        <!-- Tombol Aksi Pengundian -->
+        <div class="grid grid-cols-1 sm:flex sm:flex-wrap items-center gap-2 w-full lg:w-auto">
+          <!-- Batal Pratinjau jika sudah drawing -->
+          <button
+            v-if="sudahDrawing"
+            type="button"
+            @click="resetDrawing"
+            class="px-3 py-1.5 rounded-lg bg-white border border-slate-300 text-slate-600 hover:bg-slate-100 text-xs font-semibold transition-colors cursor-pointer flex items-center justify-center gap-1.5 shadow-xs"
+          >
+            <RefreshCw class="w-3.5 h-3.5 text-slate-500 shrink-0" />
+            <span>Batal Pratinjau</span>
+          </button>
+
+          <!-- Ambil Juara 1 & Runner-up Tiap Grup (Metode Baku Turnamen) -->
           <button
             type="button"
             @click="pasangkanOtomatisDariKlasemen"
             :disabled="sedangDrawing"
-            class="px-3 py-1.5 rounded-lg bg-emerald-50 text-emerald-700 border border-emerald-200 text-xs font-semibold hover:bg-emerald-100 disabled:opacity-50 transition-colors cursor-pointer flex items-center gap-1.5 shadow-sm"
+            class="px-3.5 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold disabled:opacity-50 transition-colors cursor-pointer flex items-center justify-center gap-1.5 shadow-sm active:scale-95 w-full sm:w-auto"
             title="Ambil Juara 1 &amp; Runner-up tiap Grup (A, B, C, D) untuk Perempat Final 8 Besar"
           >
-            <LayoutGrid class="w-3.5 h-3.5 text-emerald-600" />
-            Ambil Top 2 Tiap Grup (8 Besar)
+            <LayoutGrid class="w-3.5 h-3.5 text-white/90 shrink-0" />
+            <span class="truncate">Ambil Top 2 Grup (8 Besar)</span>
           </button>
 
-          <TombolDasar
-            @click="jalankanDrawingOtomatis"
-            varian="primer"
-            :sedangMemuat="sedangDrawing"
-            :dinonaktifkan="timTerfilter.length < 2"
-            class="flex items-center gap-1.5"
-          >
-            <Sparkles class="w-4 h-4" />
-            <span>{{ sudahDrawing ? 'Kocok Acak Ulang' : 'Kocok Acak Bagan' }}</span>
-          </TombolDasar>
-
-          <TombolDasar
-            v-if="sudahDrawing"
-            @click="resetDrawing"
-            varian="sekunder"
-          >
-            Batal Pratinjau
-          </TombolDasar>
-
+          <!-- Kocok Acak Bebas -->
           <button
             type="button"
-            @click="konfirmasiResetTotal"
-            class="px-3 py-1.5 rounded-lg bg-red-50 hover:bg-red-100 text-xs font-semibold text-red-700 border border-red-200 transition-colors cursor-pointer flex items-center gap-1.5"
-            title="Hapus seluruh hasil drawing, jadwal pertandingan, dan klasemen di database"
+            @click="jalankanDrawingOtomatis"
+            :disabled="sedangDrawing || timTerfilter.length < 2"
+            class="px-3.5 py-2 rounded-lg bg-ucl-600 hover:bg-blue-700 text-white text-xs font-semibold disabled:opacity-50 transition-colors cursor-pointer flex items-center justify-center gap-1.5 shadow-sm active:scale-95 w-full sm:w-auto"
           >
-            <RotateCcw class="w-3.5 h-3.5 text-red-600" />
-            Reset Drawing DB
+            <Sparkles class="w-3.5 h-3.5 text-white/90 shrink-0" />
+            <span class="truncate">{{ sudahDrawing ? 'Kocok Acak Ulang' : 'Kocok Acak Bagan' }}</span>
           </button>
         </div>
       </div>
@@ -291,14 +310,14 @@ async function simpanKeTurnamen() {
 
       <!-- Hasil Drawing Grid -->
       <div v-if="sudahDrawing" class="space-y-4 pt-2">
-        <div class="flex items-center justify-between">
+        <div class="flex items-center justify-between pb-2 border-b border-slate-100">
           <div class="flex items-center gap-2">
             <Trophy class="w-4 h-4 text-gold-500" />
-            <h4 class="text-xs font-semibold uppercase tracking-wider text-ink-900">
+            <h4 class="text-xs font-bold uppercase tracking-wider text-ink-900">
               Hasil Pengundian Pasangan {{ babakAwalLabel }}
             </h4>
           </div>
-          <span class="text-xs text-slate-500">
+          <span class="text-xs font-semibold text-slate-500 bg-slate-100 px-2.5 py-1 rounded-full">
             Total {{ hasilPasangan.length }} Laga Babak Awal
           </span>
         </div>
@@ -310,13 +329,13 @@ async function simpanKeTurnamen() {
             class="bg-slate-50 border border-slate-200 rounded-xl p-3.5 space-y-2.5 hover:border-ucl-500/50 transition-colors shadow-sm"
           >
             <div class="flex items-center justify-between text-[11px] font-semibold text-slate-400 pb-1.5 border-b border-slate-200">
-              <span class="text-ucl-700 font-mono">{{ match.label }}</span>
+              <span class="text-ucl-700 font-mono font-bold">{{ match.label }}</span>
               <span>Babak 1</span>
             </div>
 
             <div class="space-y-1.5">
               <!-- Home -->
-              <div class="flex items-center gap-2 p-1.5 rounded-lg bg-white border border-slate-200 text-xs">
+              <div class="flex items-center gap-2 p-1.5 rounded-lg bg-white border border-slate-200 text-xs shadow-2xs">
                 <img
                   v-if="match.home?.logo_url"
                   :src="match.home.logo_url"
@@ -340,7 +359,7 @@ async function simpanKeTurnamen() {
               <div class="text-center text-[10px] font-bold text-slate-400">VS</div>
 
               <!-- Away -->
-              <div class="flex items-center gap-2 p-1.5 rounded-lg bg-white border border-slate-200 text-xs">
+              <div class="flex items-center gap-2 p-1.5 rounded-lg bg-white border border-slate-200 text-xs shadow-2xs">
                 <img
                   v-if="match.away?.logo_url"
                   :src="match.away.logo_url"
@@ -367,11 +386,10 @@ async function simpanKeTurnamen() {
         <div class="pt-4 border-t border-slate-100 flex items-center justify-end gap-3">
           <TombolDasar
             @click="simpanKeTurnamen"
-            variant="emas"
-            ukuran="sedang"
-            :disabled="sedangMenyimpan"
+            varian="gold"
+            :sedangMemuat="sedangMenyimpan"
           >
-            <Check class="w-4 h-4" />
+            <Check class="w-4 h-4 mr-1.5" />
             <span>{{ sedangMenyimpan ? 'Menyimpan Jadwal Bagan...' : 'Terapkan Bagan & Generate Jadwal' }}</span>
           </TombolDasar>
         </div>
@@ -382,7 +400,7 @@ async function simpanKeTurnamen() {
         <Dices class="w-8 h-8 text-slate-300 mx-auto" />
         <p class="text-sm font-semibold text-ink-900">Bagan Turnamen Belum Diundi</p>
         <p class="text-xs text-slate-500 max-w-sm mx-auto">
-          Pilih format kapasitas klub di atas, lalu klik tombol "Mulai Drawing Bagan" untuk memasangkan klub secara otomatis.
+          Pilih format kapasitas klub di atas, lalu klik tombol <span class="font-semibold text-emerald-700">"Ambil Top 2 Grup"</span> atau <span class="font-semibold text-ucl-700">"Kocok Acak Bagan"</span> untuk memasangkan klub.
         </p>
       </div>
     </div>

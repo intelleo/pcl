@@ -1,11 +1,6 @@
 import { ref, computed } from 'vue'
 import { api } from '../lib/api.js'
 
-const PENGGUNA_ADMIN_DEFAULT = [
-  { username: 'admin', email: 'admin@pcl.com', nama: 'Super Admin PCL', role: 'admin' },
-  { username: 'panitia', email: 'panitia@pcl.com', nama: 'Panitia Turnamen', role: 'panitia' }
-]
-
 const adminAktif = ref(null)
 const terotentikasi = ref(false)
 
@@ -39,36 +34,17 @@ export function useAuth() {
     }
 
     try {
-      // 1. Coba login via backend API
-      try {
-        const res = await api.login(idBersih, passBersih)
-        if (res && res.user) {
-          adminAktif.value = res.user
-          terotentikasi.value = true
-          localStorage.setItem('pcl_admin_session', JSON.stringify(res.user))
-          return true
-        }
-      } catch (apiErr) {
-        // Jika API offline atau melempar error, cek fallback lokal
-      }
-
-      // 2. Fallback kredensial lokal panitia turnamen PCL
-      const kecocokan = PENGGUNA_ADMIN_DEFAULT.find(
-        u => u.username.toLowerCase() === idBersih || u.email.toLowerCase() === idBersih
-      )
-
-      if (kecocokan && (passBersih === 'admin123' || passBersih === 'pcl2026')) {
-        const userObj = { ...kecocokan, id: `local-${kecocokan.username}` }
-        adminAktif.value = userObj
+      const res = await api.login(idBersih, passBersih)
+      if (res && res.user) {
+        adminAktif.value = res.user
         terotentikasi.value = true
-        localStorage.setItem('pcl_admin_session', JSON.stringify(userObj))
+        localStorage.setItem('pcl_admin_session', JSON.stringify(res.user))
         return true
       }
-
-      pesanKesalahan.value = 'Username/Email atau Password salah. (Default: admin / admin123)'
+      pesanKesalahan.value = 'Username/Email atau Password salah.'
       return false
     } catch (err) {
-      pesanKesalahan.value = err.message || 'Gagal melakukan login admin.'
+      pesanKesalahan.value = err.message || 'Username/Email atau Password salah.'
       return false
     } finally {
       sedangMasuk.value = false

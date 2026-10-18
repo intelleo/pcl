@@ -170,12 +170,12 @@ function eksekusiResetTotal() {
           </p>
         </div>
 
-        <div class="flex flex-wrap items-center gap-2 shrink-0">
+        <div class="grid grid-cols-1 sm:flex sm:flex-wrap items-center gap-2 shrink-0 w-full sm:w-auto">
           <!-- Season Picker -->
           <div v-if="daftarSeason.length > 0" class="relative">
             <select
               v-model="seasonTerpilihId"
-              class="appearance-none bg-slate-50 border border-slate-300 rounded-lg pl-3 pr-8 py-1.5 text-xs font-semibold text-ink-900 cursor-pointer hover:border-ucl-400 focus:border-ucl-500 outline-none transition-colors"
+              class="w-full sm:w-auto appearance-none bg-slate-50 border border-slate-300 rounded-lg pl-3 pr-8 py-1.5 text-xs font-semibold text-ink-900 cursor-pointer hover:border-ucl-400 focus:border-ucl-500 outline-none transition-colors"
             >
               <option v-for="s in daftarSeason" :key="s.id" :value="s.id">
                 {{ s.name }} ({{ s.season }})
@@ -184,34 +184,36 @@ function eksekusiResetTotal() {
             <ChevronDown class="w-3.5 h-3.5 text-slate-400 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
           </div>
 
-          <button
-            type="button"
-            @click="konfirmasiResetTotal"
-            class="px-3 py-1.5 rounded-lg bg-red-50 hover:bg-red-100 text-xs font-semibold text-red-700 border border-red-200 transition-colors cursor-pointer flex items-center gap-1.5"
-            title="Hapus seluruh hasil drawing, jadwal pertandingan, dan klasemen di database"
-          >
-            <RotateCcw class="w-3.5 h-3.5 text-red-600" />
-            Reset Drawing DB
-          </button>
+          <div class="grid grid-cols-2 sm:flex items-center gap-2">
+            <button
+              type="button"
+              @click="konfirmasiResetTotal"
+              class="px-3 py-1.5 rounded-lg bg-red-50 hover:bg-red-100 text-xs font-semibold text-red-700 border border-red-200 transition-colors cursor-pointer flex items-center justify-center gap-1.5"
+              title="Hapus seluruh hasil drawing, jadwal pertandingan, dan klasemen di database"
+            >
+              <RotateCcw class="w-3.5 h-3.5 text-red-600 shrink-0" />
+              <span class="truncate">Reset DB</span>
+            </button>
 
-          <button
-            type="button"
-            @click="resetDrawing"
-            v-if="sudahDrawing"
-            class="px-3 py-1.5 rounded-lg bg-slate-100 text-xs font-semibold text-slate-600 hover:bg-slate-200 transition-colors cursor-pointer flex items-center gap-1.5"
-          >
-            <RefreshCw class="w-3.5 h-3.5" />
-            Batal Pratinjau
-          </button>
+            <button
+              type="button"
+              @click="resetDrawing"
+              v-if="sudahDrawing"
+              class="px-3 py-1.5 rounded-lg bg-slate-100 text-xs font-semibold text-slate-600 hover:bg-slate-200 transition-colors cursor-pointer flex items-center justify-center gap-1.5"
+            >
+              <RefreshCw class="w-3.5 h-3.5 shrink-0" />
+              <span class="truncate">Batal</span>
+            </button>
+          </div>
 
           <TombolDasar
             @click="jalankanDrawingOtomatis"
             varian="primer"
             :sedangMemuat="sedangDrawing"
-            class="flex items-center gap-1.5"
+            class="flex items-center justify-center gap-1.5 w-full sm:w-auto"
           >
-            <Dices class="w-4 h-4" />
-            Kocok Drawing Sekarang
+            <Dices class="w-4 h-4 shrink-0" />
+            <span>Kocok Drawing Sekarang</span>
           </TombolDasar>
         </div>
       </div>

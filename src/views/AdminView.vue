@@ -1,9 +1,10 @@
 <script setup>
 import { ref, computed, onMounted, watch } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
 import { api } from '../lib/api.js'
 import { invalidateCache } from '../lib/cache.js'
-import { useAdmin, ambilDataLengkapAdmin, tambahBeritaSupabase, perbaruiBeritaSupabase, hapusBeritaSupabase, buatTimBaruSupabase, perbaruiTimSupabase, hapusTimSupabase, perbaruiStatusPendaftaranSupabase } from '../composables/useAdmin.js'
-import { generateJadwalKnockoutSupabase } from '../composables/useKnockout.js'
+import { useAdmin, ambilDataLengkapAdmin, tambahBerita, perbaruiBerita, hapusBerita, buatTimBaru, perbaruiTim, hapusTim, perbaruiStatusPendaftaran, hapusPendaftaran } from '../composables/useAdmin.js'
+import { generateJadwalKnockout } from '../composables/useKnockout.js'
 import { useAuth } from '../composables/useAuth.js'
 import FormInputSkor from '../components/admin/FormInputSkor.vue'
 import ManajemenTim from '../components/admin/ManajemenTim.vue'
@@ -14,15 +15,33 @@ import PanelManajemenJuara from '../components/admin/PanelManajemenJuara.vue'
 import PanelManajemenBerita from '../components/admin/PanelManajemenBerita.vue'
 import PanelPemilihLagaSkor from '../components/admin/PanelPemilihLagaSkor.vue'
 import PanelManajemenSeason from '../components/admin/PanelManajemenSeason.vue'
+import PanelRecapMatch from '../components/admin/PanelRecapMatch.vue'
 import ModalDialog from '../components/umum/ModalDialog.vue'
 import TombolDasar from '../components/umum/TombolDasar.vue'
-import { ShieldCheck, Lock, User, Users, Dices, Trophy, Activity, PlusCircle, CheckCircle2, Newspaper, Calendar, LayoutGrid, GitBranch } from 'lucide-vue-next'
+import { ShieldCheck, Lock, User, Users, Dices, Trophy, Activity, PlusCircle, CheckCircle2, Newspaper, Calendar, LayoutGrid, GitBranch, Camera } from 'lucide-vue-next'
 
 const { terotentikasi, sedangMasuk, pesanKesalahan: pesanErrorAuth, masukAdmin } = useAuth()
 const inputUsername = ref('')
 const inputPassword = ref('')
-const tabAktif = ref('skor') // 'skor' | 'season' | 'berita' | 'pendaftaran' | 'drawing' | 'klub' | 'juara'
+const route = useRoute()
+const router = useRouter()
+const TAB_VALID = ['skor', 'recap', 'season', 'berita', 'pendaftaran', 'drawing', 'klub', 'juara']
+const tabAktif = ref(TAB_VALID.includes(route.query.tab) ? route.query.tab : 'skor')
 const subTabDrawing = ref('grup') // 'grup' | 'bagan'
+
+watch(
+  () => route.query.tab,
+  (newTab) => {
+    if (newTab && TAB_VALID.includes(newTab) && tabAktif.value !== newTab) {
+      tabAktif.value = newTab
+    }
+  }
+)
+
+function gantiTab(id) {
+  tabAktif.value = id
+  router.replace({ query: { ...route.query, tab: id } })
+}
 
 const {
   sedangMemuat,
@@ -45,6 +64,7 @@ const modalSkorTerbuka = ref(false)
 
 const daftarNavTabs = computed(() => [
   { id: 'skor', label: 'Input Skor', icon: Activity },
+  { id: 'recap', label: 'Recap Match', icon: Camera },
   { id: 'season', label: 'Season Turnamen', icon: Calendar },
   { id: 'berita', label: 'Berita', icon: Newspaper, count: daftarBerita.value.length, countBg: 'bg-ucl-500' },
   { id: 'pendaftaran', label: 'Pendaftaran', icon: Users, count: daftarPendaftaran.value.filter(p => p.status === 'pending').length, countBg: 'bg-amber-500' },
@@ -181,7 +201,7 @@ async function handleSetujuiPendaftaran(id) {
   const item = daftarPendaftaran.value.find(p => p.id === id)
   if (item) item.status = 'diterima'
   simpanOverrideStatus(id, 'diterima')
-  await perbaruiStatusPendaftaranSupabase(id, 'diterima')
+  await perbaruiStatusPendaftaran(id, 'diterima')
   await muatSemuaDataAdmin()
 }
 
@@ -189,14 +209,25 @@ async function handleTolakPendaftaran(id) {
   const item = daftarPendaftaran.value.find(p => p.id === id)
   if (item) item.status = 'ditolak'
   simpanOverrideStatus(id, 'ditolak')
-  await perbaruiStatusPendaftaranSupabase(id, 'ditolak')
+  await perbaruiStatusPendaftaran(id, 'ditolak')
+}
+
+async function handleHapusPendaftaran(id) {
+  daftarPendaftaran.value = daftarPendaftaran.value.filter(p => p.id !== id)
+  try {
+    const local = JSON.parse(localStorage.getItem('pcl_reg_status_overrides') || '{}')
+    delete local[id]
+    localStorage.setItem('pcl_reg_status_overrides', JSON.stringify(local))
+  } catch (e) {}
+  await hapusPendaftaran(id)
+  await muatSemuaDataAdmin()
 }
 
 async function handleTerapkanDrawing(payload) {
   const timTerpilih = payload.timTerpilih || payload
   const kapasitas = payload.kapasitas || 8
   const customTournamentId = payload.customTournamentId || null
-  await generateJadwalKnockoutSupabase(timTerpilih, kapasitas, customTournamentId)
+  await generateJadwalKnockout(timTerpilih, kapasitas, customTournamentId)
   await muatSemuaDataAdmin()
 }
 
@@ -245,18 +276,18 @@ async function handleResetDrawingTotal() {
 }
 
 async function handleTambahTimBaru(tim) {
-  const created = await buatTimBaruSupabase({ ...tim, rating: 89, group_name: null })
+  const created = await buatTimBaru({ ...tim, rating: 89, group_name: null })
   if (created) daftarTim.value.push(created)
 }
 async function handleUpdateTimBaru(tim) {
-  const updated = await perbaruiTimSupabase(tim)
+  const updated = await perbaruiTim(tim)
   if (updated) {
     const idx = daftarTim.value.findIndex(t => t.id === tim.id)
     if (idx !== -1) daftarTim.value[idx] = { ...daftarTim.value[idx], ...updated }
   }
 }
 async function handleHapusTimBaru(id) {
-  await hapusTimSupabase(id)
+  await hapusTim(id)
   daftarTim.value = daftarTim.value.filter(t => t.id !== id)
 }
 async function handleTambahRiwayat(item) {
@@ -272,18 +303,38 @@ async function handleHapusRiwayat(id) {
   daftarRiwayat.value = daftarRiwayat.value.filter(r => r.id !== id)
 }
 async function handleTambahBerita(b) {
-  const created = await tambahBeritaSupabase(b)
+  const created = await tambahBerita(b)
   if (created) daftarBerita.value.unshift(created)
 }
 async function handleUpdateBerita(b) {
-  const updated = await perbaruiBeritaSupabase(b)
+  const updated = await perbaruiBerita(b)
   if (updated) {
     const idx = daftarBerita.value.findIndex(item => item.id === b.id)
     if (idx !== -1) daftarBerita.value[idx] = updated
   }
 }
+async function handleTogglePinBerita(id) {
+  try {
+    const res = await api.togglePinNews(id)
+    if (res && res.news) {
+      const idx = daftarBerita.value.findIndex(item => item.id === id)
+      if (idx !== -1) {
+        daftarBerita.value[idx] = res.news
+      }
+      // Re-sort: pin di atas, lalu berdasarkan tanggal
+      daftarBerita.value.sort((a, b) => {
+        if ((b.is_pinned ? 1 : 0) !== (a.is_pinned ? 1 : 0)) {
+          return (b.is_pinned ? 1 : 0) - (a.is_pinned ? 1 : 0)
+        }
+        return new Date(b.diterbitkan_pada || b.created_at) - new Date(a.diterbitkan_pada || a.created_at)
+      })
+    }
+  } catch (err) {
+    pesanKesalahan.value = `Gagal mengubah status sematan berita: ${err.message}`
+  }
+}
 async function handleHapusBerita(id) {
-  await hapusBeritaSupabase(id)
+  await hapusBerita(id)
   daftarBerita.value = daftarBerita.value.filter(b => b.id !== id)
 }
 </script>
@@ -338,37 +389,33 @@ async function handleHapusBerita(id) {
         <TombolDasar tipe="submit" varian="primer" class="w-full justify-center mt-2" :disabled="sedangMasuk">
           {{ sedangMasuk ? 'Memverifikasi...' : 'Masuk Panel Admin' }}
         </TombolDasar>
-
-        <div class="pt-2 text-center">
-          <p class="text-[11px] text-slate-400">Akun default: <span class="font-mono text-slate-600 font-semibold">admin</span> / <span class="font-mono text-slate-600 font-semibold">admin123</span></p>
-        </div>
       </form>
     </div>
 
     <!-- Admin Dashboard -->
-    <div v-else class="space-y-6">
+    <div v-else class="space-y-4 sm:space-y-6">
       <!-- Admin Header -->
-      <div class="anim-muncul pb-5 border-b border-slate-200">
-        <span class="text-xs font-semibold uppercase tracking-[0.14em] text-gold-600">Control Room</span>
-        <h1 class="font-display text-2xl sm:text-3xl font-semibold tracking-tight text-ink-900 mt-1 flex items-center gap-2.5">
-          <ShieldCheck class="w-7 h-7 text-emerald-600 shrink-0" />
-          Panel Panitia Turnamen
+      <div class="anim-muncul pb-4 sm:pb-5 border-b border-slate-200">
+        <span class="text-[10px] sm:text-xs font-semibold uppercase tracking-[0.14em] text-gold-600">Control Room</span>
+        <h1 class="font-display text-xl sm:text-3xl font-semibold tracking-tight text-ink-900 mt-1 flex items-center gap-2 sm:gap-2.5">
+          <ShieldCheck class="w-6 h-6 sm:w-7 sm:h-7 text-emerald-600 shrink-0" />
+          <span>Panel Panitia Turnamen</span>
         </h1>
-        <p class="text-sm text-ink-400 mt-1">Kelola season, jadwal, skor, berita, tim, dan turnamen PCL.</p>
+        <p class="text-xs sm:text-sm text-ink-400 mt-0.5 sm:mt-1">Kelola season, jadwal, skor, berita, tim, dan turnamen PCL.</p>
       </div>
 
-      <!-- Navigation Tabs Module -->
-      <div class="inline-flex p-1.5 rounded-2xl bg-slate-100 border border-slate-200/70 overflow-x-auto max-w-full gap-1.5 shadow-inner">
+      <!-- Navigation Tabs Module (Mobile Scrollable with fade/no scrollbar) -->
+      <div class="p-1 sm:p-1.5 rounded-xl sm:rounded-2xl bg-slate-100 border border-slate-200/70 overflow-x-auto max-w-full flex items-center gap-1 sm:gap-1.5 shadow-inner scrollbar-none">
         <button
           v-for="tab in daftarNavTabs"
           :key="tab.id"
-          @click="tabAktif = tab.id"
-          class="flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-semibold whitespace-nowrap transition-all cursor-pointer"
+          @click="gantiTab(tab.id)"
+          class="flex items-center gap-1.5 sm:gap-2 px-3 sm:px-3.5 py-1.5 sm:py-2 rounded-lg sm:rounded-xl text-xs font-semibold whitespace-nowrap transition-all cursor-pointer shrink-0"
           :class="tabAktif === tab.id ? 'bg-white text-ink-900 shadow-card border border-slate-200/80' : 'text-slate-600 hover:text-ink-900'"
         >
-          <component :is="tab.icon" class="w-4 h-4" :class="tabAktif === tab.id ? (tab.id === 'juara' ? 'text-gold-600' : 'text-ucl-600') : 'text-slate-400'" />
-          {{ tab.label }}
-          <span v-if="tab.count > 0" class="px-1.5 py-0.2 rounded-full text-[10px] font-bold text-white" :class="tab.countBg">
+          <component :is="tab.icon" class="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0" :class="tabAktif === tab.id ? (tab.id === 'juara' ? 'text-gold-600' : 'text-ucl-600') : 'text-slate-400'" />
+          <span>{{ tab.label }}</span>
+          <span v-if="tab.count > 0" class="px-1.5 py-0.2 rounded-full text-[10px] font-bold text-white shrink-0" :class="tab.countBg">
             {{ tab.count }}
           </span>
         </button>
@@ -412,6 +459,11 @@ async function handleHapusBerita(id) {
         </ModalDialog>
       </div>
 
+      <!-- TAB: Recap Match (Bukti Screenshot Match) -->
+      <div v-else-if="tabAktif === 'recap'">
+        <PanelRecapMatch :daftarTim="daftarTim" />
+      </div>
+
       <!-- TAB: Manajemen Season Turnamen -->
       <div v-else-if="tabAktif === 'season'">
         <PanelManajemenSeason />
@@ -425,6 +477,7 @@ async function handleHapusBerita(id) {
           :sedangMemuat="sedangMemuat"
           @tambahBerita="handleTambahBerita"
           @updateBerita="handleUpdateBerita"
+          @togglePinBerita="handleTogglePinBerita"
           @hapusBerita="handleHapusBerita"
         />
       </div>
@@ -435,27 +488,28 @@ async function handleHapusBerita(id) {
           :daftarPendaftaran="daftarPendaftaran"
           @setujui="handleSetujuiPendaftaran"
           @tolak="handleTolakPendaftaran"
+          @hapus="handleHapusPendaftaran"
         />
       </div>
 
       <!-- TAB: Drawing Turnamen (Grup & Knockout) -->
-      <div v-else-if="tabAktif === 'drawing'" class="space-y-6">
-        <div class="flex items-center gap-2 p-1 bg-slate-100 rounded-xl w-fit">
+      <div v-else-if="tabAktif === 'drawing'" class="space-y-5 sm:space-y-6">
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-1 p-1 bg-slate-100 rounded-xl w-full sm:w-fit">
           <button
             @click="subTabDrawing = 'grup'"
-            class="px-4 py-2 rounded-lg text-xs font-semibold transition-all cursor-pointer flex items-center gap-1.5"
+            class="px-3 sm:px-4 py-2 rounded-lg text-xs font-semibold transition-all cursor-pointer flex items-center justify-center sm:justify-start gap-1.5"
             :class="subTabDrawing === 'grup' ? 'bg-white text-ucl-700 shadow-sm' : 'text-slate-500 hover:text-ink-900'"
           >
-            <LayoutGrid class="w-3.5 h-3.5" />
-            Drawing Fase Grup (16 Tim)
+            <LayoutGrid class="w-3.5 h-3.5 shrink-0" />
+            <span>Drawing Fase Grup (16 Tim)</span>
           </button>
           <button
             @click="subTabDrawing = 'bagan'"
-            class="px-4 py-2 rounded-lg text-xs font-semibold transition-all cursor-pointer flex items-center gap-1.5"
+            class="px-3 sm:px-4 py-2 rounded-lg text-xs font-semibold transition-all cursor-pointer flex items-center justify-center sm:justify-start gap-1.5"
             :class="subTabDrawing === 'bagan' ? 'bg-white text-ucl-700 shadow-sm' : 'text-slate-500 hover:text-ink-900'"
           >
-            <GitBranch class="w-3.5 h-3.5" />
-            Drawing Bagan Knockout (8 Besar)
+            <GitBranch class="w-3.5 h-3.5 shrink-0" />
+            <span>Drawing Bagan Knockout (8 Besar)</span>
           </button>
         </div>
 

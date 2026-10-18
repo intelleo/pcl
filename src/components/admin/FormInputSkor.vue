@@ -453,20 +453,20 @@ function simpanPerubahanSkor(tutup = false) {
       </div>
     </div>
 
-    <!-- Setting Waktu & Tombol Aksi -->
-    <div class="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 pt-2">
-      <div class="flex items-center gap-2 bg-slate-50 border border-slate-200 rounded-lg px-3 py-1.5 text-xs">
+    <!-- Setting Waktu & Tombol Aksi (Sticky footer on mobile for easy thumb reach) -->
+    <div class="sticky -bottom-3.5 sm:static bg-white/95 backdrop-blur-sm -mx-3.5 sm:mx-0 p-3 sm:p-0 border-t sm:border-t-0 border-slate-200 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5 pt-2 z-20">
+      <div class="flex items-center gap-2 bg-slate-50 border border-slate-200 rounded-lg px-3 py-1.5 text-xs w-full sm:w-auto">
         <Calendar class="w-3.5 h-3.5 text-slate-400 shrink-0" />
-        <span class="text-slate-500 font-medium">Jadwal:</span>
+        <span class="text-slate-500 font-medium shrink-0">Jadwal:</span>
         <input
           v-model="scheduledAt"
           @change="simpanPerubahanSkor(false)"
           type="datetime-local"
-          class="bg-transparent text-xs text-ink-900 outline-none cursor-pointer"
+          class="bg-transparent text-xs text-ink-900 outline-none cursor-pointer w-full"
         />
       </div>
 
-      <div class="flex items-center gap-2 justify-end">
+      <div class="grid grid-cols-2 sm:flex sm:items-center gap-2">
         <TombolDasar
           @click="emit('tutup')"
           varian="sekunder"
@@ -482,7 +482,7 @@ function simpanPerubahanSkor(tutup = false) {
           class="justify-center"
         >
           <CheckCircle2 class="w-4 h-4 mr-1.5" />
-          Simpan &amp; Selesai
+          <span>Simpan &amp; Selesai</span>
         </TombolDasar>
       </div>
     </div>

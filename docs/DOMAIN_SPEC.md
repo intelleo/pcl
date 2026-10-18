@@ -15,7 +15,7 @@ Semua tabel menggunakan database MySQL dengan prefix `pcl_`. Backend menggunakan
 2. **`pcl_teams`**:
    - `id` (VARCHAR 36, PK), `tournament_id` (VARCHAR 36, FK), `name` (VARCHAR 255), `short_name` (VARCHAR 10), `logo_url` (LONGTEXT), `manager_name` (VARCHAR 255), `group_name` (VARCHAR 50), `rating` (INT DEFAULT 90), `created_at`.
 3. **`pcl_players`**:
-   - `id` (VARCHAR 36, PK), `team_id` (VARCHAR 36, FK), `name` (VARCHAR 255), `squad_number` (INT), `position` (ENUM `'GK'|'DF'|'CB'|'MF'|'CM'|'WF'|'FW'|'ST'`), `avatar_url` (TEXT), `created_at`.
+   - `id` (VARCHAR 36, PK), `team_id` (VARCHAR 36, FK), `name` (VARCHAR 255), `game_id` (VARCHAR 50), `squad_number` (INT), `position` (ENUM `'GK'|'DF'|'CB'|'MF'|'CM'|'WF'|'FW'|'ST'`), `avatar_url` (TEXT), `goals`, `assists`, `passes`, `defense`, `mvp`, `created_at`.
 4. **`pcl_tournament_groups`**:
    - `id` (VARCHAR 36, PK), `tournament_id` (VARCHAR 36, FK), `name` (VARCHAR 50, contoh: 'Grup A', 'Grup B', 'Grup C', 'Grup D'), `created_at`.
 5. **`pcl_group_standings`**:

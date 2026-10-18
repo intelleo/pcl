@@ -13,3 +13,5 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+server/uploads/*
+!server/uploads/.gitkeep
