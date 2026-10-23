@@ -1,6 +1,6 @@
 <script setup>
 import { ref, computed, onMounted, watch } from 'vue'
-import { Shield, Plus, X, Edit3, Trash2, Users, Copy, ChevronDown, CheckCircle2, AlertCircle, Download, ExternalLink, Image as ImageIcon, Upload } from 'lucide-vue-next'
+import { Shield, Plus, X, Edit3, Trash2, Users, Copy, ChevronDown, CheckCircle2, AlertCircle, Download, ExternalLink, Image as ImageIcon, Upload, User, Phone } from 'lucide-vue-next'
 import { api } from '../../lib/api.js'
 import { unduhGambar, kompresGambar, validasiUkuranGambar } from '../../lib/gambar.js'
 import TombolDasar from '../umum/TombolDasar.vue'
@@ -85,6 +85,7 @@ const timTerpilihPemain = ref(null)
 const namaTim = ref('')
 const shortName = ref('')
 const managerName = ref('')
+const contact = ref('')
 const logoUrl = ref('')
 const inputLogoRef = ref(null)
 const sedangProsesLogo = ref(false)
@@ -95,10 +96,11 @@ function pulihkanDraftTambahTim() {
     if (!raw) return
     const d = JSON.parse(raw)
     // Hanya pulihkan jika form sebelumnya memang sedang terbuka atau ada data terisi
-    if (d && (d.formTerbuka || d.namaTim || d.shortName || d.managerName || d.logoUrl)) {
+    if (d && (d.formTerbuka || d.namaTim || d.shortName || d.managerName || d.contact || d.logoUrl)) {
       namaTim.value = d.namaTim || ''
       shortName.value = d.shortName || ''
       managerName.value = d.managerName || ''
+      contact.value = d.contact || ''
       logoUrl.value = d.logoUrl || ''
       formTerbuka.value = true
     }
@@ -111,7 +113,7 @@ function simpanDraftTambahTim() {
   // Hanya simpan draft untuk mode tambah baru (bukan saat edit data tim existing)
   if (modeEdit.value) return
   try {
-    if (!formTerbuka.value && !namaTim.value && !shortName.value && !managerName.value && !logoUrl.value) {
+    if (!formTerbuka.value && !namaTim.value && !shortName.value && !managerName.value && !contact.value && !logoUrl.value) {
       localStorage.removeItem(DRAFT_TAMBAH_TIM_KEY)
       return
     }
@@ -120,6 +122,7 @@ function simpanDraftTambahTim() {
       namaTim: namaTim.value,
       shortName: shortName.value,
       managerName: managerName.value,
+      contact: contact.value,
       logoUrl: logoUrl.value
     }
     localStorage.setItem(DRAFT_TAMBAH_TIM_KEY, JSON.stringify(draft))
@@ -133,7 +136,7 @@ function bersihkanDraftTambahTim() {
 }
 
 // Auto-save draft saat ada perubahan input atau form dibuka/tutup
-watch([formTerbuka, namaTim, shortName, managerName, logoUrl], () => {
+watch([formTerbuka, namaTim, shortName, managerName, contact, logoUrl], () => {
   simpanDraftTambahTim()
 })
 
@@ -176,6 +179,7 @@ function resetForm() {
   namaTim.value = ''
   shortName.value = ''
   managerName.value = ''
+  contact.value = ''
   logoUrl.value = ''
   if (inputLogoRef.value) {
     inputLogoRef.value.value = ''
@@ -196,6 +200,7 @@ function editTim(t) {
   namaTim.value = t.name
   shortName.value = t.short_name
   managerName.value = t.manager_name || ''
+  contact.value = t.contact || ''
   logoUrl.value = t.logo_url || ''
   modeEdit.value = true
   formTerbuka.value = true
@@ -236,12 +241,14 @@ async function prosesUnduhLogo(t) {
 function submit() {
   if (!namaTim.value || !shortName.value) return
   const finalLogo = logoUrl.value ? logoUrl.value.trim() : null
+  const finalContact = contact.value ? contact.value.trim() : null
   if (modeEdit.value && idTimEdit.value) {
     emit('updateTim', {
       id: idTimEdit.value,
       name: namaTim.value,
       short_name: shortName.value.toUpperCase(),
       manager_name: managerName.value,
+      contact: finalContact,
       logo_url: finalLogo,
       tournament_id: seasonTerpilihId.value || null
     })
@@ -250,6 +257,7 @@ function submit() {
       name: namaTim.value,
       short_name: shortName.value.toUpperCase(),
       manager_name: managerName.value,
+      contact: finalContact,
       logo_url: finalLogo,
       tournament_id: seasonTerpilihId.value || null
     })
@@ -325,9 +333,10 @@ function konfirmasiHapus(t) {
         </button>
       </div>
 
-      <div class="grid grid-cols-1 sm:grid-cols-4 gap-4">
-        <div>
-          <label class="block text-xs font-semibold text-ink-600 mb-1.5">Nama klub</label>
+      <div class="grid grid-cols-1 sm:grid-cols-12 gap-4">
+        <!-- Baris 1: Info Tim -->
+        <div class="sm:col-span-5">
+          <label class="block text-xs font-semibold text-ink-600 mb-1.5">Nama Klub *</label>
           <input
             v-model="namaTim"
             type="text"
@@ -337,8 +346,8 @@ function konfirmasiHapus(t) {
           />
         </div>
 
-        <div>
-          <label class="block text-xs font-semibold text-ink-600 mb-1.5">Tag Tim (Maks 3 Huruf)</label>
+        <div class="sm:col-span-3">
+          <label class="block text-xs font-semibold text-ink-600 mb-1.5">Tag Tim (Maks 3 Huruf) *</label>
           <input
             v-model="shortName"
             type="text"
@@ -349,17 +358,7 @@ function konfirmasiHapus(t) {
           />
         </div>
 
-        <div>
-          <label class="block text-xs font-semibold text-ink-600 mb-1.5">Manager / Kapten</label>
-          <input
-            v-model="managerName"
-            type="text"
-            placeholder="Manager / Kapten Tim"
-            class="w-full bg-white border border-slate-300 rounded-lg px-3 py-2 text-xs font-medium text-ink-900 placeholder-slate-400 outline-none transition focus:border-ucl-500 focus:ring-2 focus:ring-ucl-500/20"
-          />
-        </div>
-
-        <div>
+        <div class="sm:col-span-4">
           <label class="block text-xs font-semibold text-ink-600 mb-1.5">Logo Klub</label>
           <div class="flex items-center gap-2">
             <!-- Hidden native file input -->
@@ -403,6 +402,33 @@ function konfirmasiHapus(t) {
             </button>
           </div>
         </div>
+
+        <!-- Baris 2: Info Kapten & Kontak -->
+        <div class="sm:col-span-6">
+          <label class="flex items-center gap-1.5 text-xs font-semibold text-ink-600 mb-1.5">
+            <User class="w-3.5 h-3.5 text-ucl-600" />
+            <span>Manager / Kapten Tim</span>
+          </label>
+          <input
+            v-model="managerName"
+            type="text"
+            placeholder="Nama Manager atau Kapten Tim"
+            class="w-full bg-white border border-slate-300 rounded-lg px-3 py-2 text-xs font-medium text-ink-900 placeholder-slate-400 outline-none transition focus:border-ucl-500 focus:ring-2 focus:ring-ucl-500/20"
+          />
+        </div>
+
+        <div class="sm:col-span-6">
+          <label class="flex items-center gap-1.5 text-xs font-semibold text-ink-600 mb-1.5">
+            <Phone class="w-3.5 h-3.5 text-emerald-600" />
+            <span>No WhatsApp / HP Kapten</span>
+          </label>
+          <input
+            v-model="contact"
+            type="tel"
+            placeholder="contoh: 08123456789 atau +62812..."
+            class="w-full bg-white border border-slate-300 rounded-lg px-3 py-2 text-xs font-medium text-ink-900 placeholder-slate-400 outline-none transition focus:border-ucl-500 focus:ring-2 focus:ring-ucl-500/20 font-mono"
+          />
+        </div>
       </div>
 
       <div class="grid grid-cols-2 gap-2 pt-2 border-t border-slate-100">
@@ -443,6 +469,7 @@ function konfirmasiHapus(t) {
               <th class="py-2.5 px-4">Klub</th>
               <th class="py-2.5 px-4">Grup</th>
               <th class="py-2.5 px-4">Manager / Kapten</th>
+              <th class="py-2.5 px-4">Kontak Kapten</th>
               <th class="py-2.5 px-4 text-right">Aksi &amp; Skuad</th>
             </tr>
           </thead>
@@ -485,7 +512,18 @@ function konfirmasiHapus(t) {
                 </div>
               </td>
               <td class="py-2.5 px-4 text-slate-600">{{ t.group_name || 'Belum Ditentukan' }}</td>
-              <td class="py-2.5 px-4 text-slate-500">{{ t.manager_name || '-' }}</td>
+              <td class="py-2.5 px-4 text-slate-600 font-medium">{{ t.manager_name || '-' }}</td>
+              <td class="py-2.5 px-4 font-mono text-slate-600">
+                <a
+                  v-if="t.contact"
+                  :href="`https://wa.me/${String(t.contact).replace(/\D/g, '').replace(/^0/, '62')}`"
+                  target="_blank"
+                  class="text-emerald-700 hover:text-emerald-800 hover:underline inline-flex items-center gap-1"
+                >
+                  <span>{{ t.contact }}</span>
+                </a>
+                <span v-else class="text-slate-400">-</span>
+              </td>
               <td class="py-2.5 px-4 text-right space-x-1.5 whitespace-nowrap">
                 <button
                   v-if="t.logo_url"

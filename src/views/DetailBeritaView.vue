@@ -8,18 +8,17 @@ import {
   User,
   ArrowLeft,
   Quote,
-  Activity,
-  Award,
   Share2,
   Check,
   BookOpen,
   Clock,
-  ArrowRight,
   Heart
 } from 'lucide-vue-next'
 import ModalDetailPertandingan from '../components/turnamen/ModalDetailPertandingan.vue'
+import KartuLagaTerkaitBerita from '../components/turnamen/KartuLagaTerkaitBerita.vue'
 import TombolDasar from '../components/umum/TombolDasar.vue'
 import { perbaruiMetaHalaman } from '../lib/meta.js'
+import { parseKontenBerita } from '../lib/parserBerita.js'
 
 const route = useRoute()
 const router = useRouter()
@@ -47,6 +46,15 @@ function cekStatusLike(id) {
   }
 }
 
+function updateCacheLike(id, count) {
+  const cacheKey = `news_detail_${id}`
+  const cached = getCache(cacheKey)
+  if (cached?.artikel) {
+    cached.artikel.likes_count = count
+    setCache(cacheKey, cached, 60000)
+  }
+}
+
 async function handleToggleLike() {
   if (!artikel.value || sedangLike.value) return
   sedangLike.value = true
@@ -55,49 +63,33 @@ async function handleToggleLike() {
   const statusAwal = sudahLike.value
   const delta = statusAwal ? -1 : 1
 
-  // Optimistic UI Update
   sudahLike.value = !statusAwal
   jumlahLike.value = Math.max(0, jumlahLike.value + delta)
-  if (artikel.value) {
-    artikel.value.likes_count = jumlahLike.value
-  }
+  artikel.value.likes_count = jumlahLike.value
 
   try {
     localStorage.setItem(`pcl_news_liked_${targetId}`, String(!statusAwal))
   } catch {}
 
-  // Update Cache agar saat refresh angka tidak kembali ke cache lama
-  const cacheKey = `news_detail_${targetId}`
-  const cached = getCache(cacheKey)
-  if (cached && cached.artikel) {
-    cached.artikel.likes_count = jumlahLike.value
-    setCache(cacheKey, cached, 60000)
-  }
+  updateCacheLike(targetId, jumlahLike.value)
   invalidateCache('news_list')
 
   try {
     const res = await api.likeNews(targetId, delta)
-    if (res && res.likes_count !== undefined) {
+    if (res?.likes_count !== undefined) {
       jumlahLike.value = Number(res.likes_count)
-      if (artikel.value) artikel.value.likes_count = Number(res.likes_count)
-      if (cached && cached.artikel) {
-        cached.artikel.likes_count = Number(res.likes_count)
-        setCache(cacheKey, cached, 60000)
-      }
+      if (artikel.value) artikel.value.likes_count = jumlahLike.value
+      updateCacheLike(targetId, jumlahLike.value)
     }
   } catch (err) {
-    console.error('Gagal menyimpan like ke server:', err)
-    // Rollback jika request backend gagal
+    console.error('Gagal like:', err)
     sudahLike.value = statusAwal
     jumlahLike.value = Math.max(0, jumlahLike.value - delta)
     if (artikel.value) artikel.value.likes_count = jumlahLike.value
     try {
       localStorage.setItem(`pcl_news_liked_${targetId}`, String(statusAwal))
     } catch {}
-    if (cached && cached.artikel) {
-      cached.artikel.likes_count = jumlahLike.value
-      setCache(cacheKey, cached, 60000)
-    }
+    updateCacheLike(targetId, jumlahLike.value)
   } finally {
     sedangLike.value = false
   }
@@ -106,42 +98,25 @@ async function handleToggleLike() {
 function formatTanggalIndo(isoStr) {
   if (!isoStr) return '-'
   try {
-    const d = new Date(isoStr)
-    return d.toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })
-  } catch (e) {
+    return new Date(isoStr).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })
+  } catch {
     return '-'
   }
 }
 
-// Helper untuk mendeteksi link URL (http/https) dan mengubahnya menjadi tag <a> yang bisa diklik
+// Helper untuk mengekstrak paragraf teks dari data konten/isi
 function formatTeksDenganLink(teks) {
   if (!teks) return ''
-  // Escape HTML entities dasar untuk keamanan
-  const sanitized = String(teks)
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-
-  // Regex mendeteksi URL http/https
-  const urlRegex = /(https?:\/\/[^\s<]+[^<.,:;"')\]\s])/gi
-  return sanitized.replace(urlRegex, (url) => {
+  const sanitized = String(teks).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+  return sanitized.replace(/(https?:\/\/[^\s<]+[^<.,:;"')\]\s])/gi, (url) => {
     return `<a href="${url}" target="_blank" rel="noopener noreferrer" class="text-ucl-600 hover:text-ucl-700 font-semibold underline underline-offset-2 break-all inline-flex items-center gap-0.5">${url}</a>`
   })
 }
 
-// Helper untuk mengekstrak paragraf teks dari data konten/isi
-const daftarParagraf = computed(() => {
+// Blok konten parsed
+const blokKonten = computed(() => {
   if (!artikel.value) return []
-  const teks = artikel.value.konten || artikel.value.isi || ''
-
-  if (Array.isArray(teks)) return teks.filter(p => typeof p === 'string' && p.trim())
-  if (typeof teks === 'string' && teks.trim()) {
-    return teks
-      .split(/\n\n+/)
-      .map(p => p.trim())
-      .filter(Boolean)
-  }
-  return []
+  return parseKontenBerita(artikel.value.konten || artikel.value.isi || '')
 })
 
 async function muatArtikel() {
@@ -352,15 +327,66 @@ function salinTautan() {
             ></p>
           </div>
 
-          <!-- Paragraphs Content -->
+          <!-- Paragraphs & Dynamic Content (Teks, Heading, List, Foto Inline) -->
           <div class="space-y-4 sm:space-y-5 text-sm sm:text-base text-ink-800 leading-relaxed sm:leading-relaxed">
-            <template v-if="daftarParagraf.length > 0">
-              <p
-                v-for="(paragraf, pIdx) in daftarParagraf"
-                :key="pIdx"
-                class="whitespace-pre-line"
-                v-html="formatTeksDenganLink(paragraf)"
-              ></p>
+            <template v-if="blokKonten.length > 0">
+              <template v-for="(blok, bIdx) in blokKonten" :key="bIdx">
+                <!-- Heading 2 -->
+                <h2
+                  v-if="blok.tipe === 'heading' && blok.level === 2"
+                  class="font-display text-lg sm:text-xl font-bold text-ink-900 pt-2 pb-0.5 tracking-tight border-b border-slate-100"
+                  v-html="blok.html"
+                ></h2>
+
+                <!-- Heading 3/4 -->
+                <h3
+                  v-else-if="blok.tipe === 'heading'"
+                  class="font-display text-base sm:text-lg font-bold text-ink-900 pt-1 tracking-tight"
+                  v-html="blok.html"
+                ></h3>
+
+                <!-- Kutipan / Quote -->
+                <blockquote
+                  v-else-if="blok.tipe === 'kutipan'"
+                  class="relative p-3.5 sm:p-4 rounded-xl bg-slate-50 border-l-4 border-ucl-500 italic text-slate-700 text-sm sm:text-base my-2"
+                  v-html="blok.html"
+                ></blockquote>
+
+                <!-- List Items -->
+                <ul
+                  v-else-if="blok.tipe === 'list'"
+                  class="list-disc pl-5 space-y-1 text-sm sm:text-base text-ink-800 marker:text-ucl-600"
+                >
+                  <li v-for="(item, iIdx) in blok.items" :key="iIdx" v-html="item"></li>
+                </ul>
+
+                <!-- Foto Inline Fleksibel dengan Figcaption -->
+                <figure
+                  v-else-if="blok.tipe === 'gambar'"
+                  class="my-4 sm:my-6 rounded-2xl overflow-hidden bg-slate-50 border border-slate-200 p-1 sm:p-2 space-y-2 shadow-sm"
+                >
+                  <img
+                    :src="blok.url"
+                    :alt="blok.alt"
+                    class="w-full max-h-[500px] object-contain mx-auto rounded-xl"
+                    loading="lazy"
+                    decoding="async"
+                  />
+                  <figcaption
+                    v-if="blok.alt && blok.alt !== 'Foto Dokumentasi PCL'"
+                    class="text-xs text-center text-slate-500 italic pb-1"
+                  >
+                    {{ blok.alt }}
+                  </figcaption>
+                </figure>
+
+                <!-- Paragraf Standar -->
+                <p
+                  v-else
+                  class="whitespace-pre-line leading-relaxed sm:leading-relaxed"
+                  v-html="blok.html"
+                ></p>
+              </template>
             </template>
             <p
               v-else
@@ -417,55 +443,11 @@ function salinTautan() {
       <!-- Sidebar -->
       <aside class="space-y-4">
         <!-- Related Match Card -->
-        <div
+        <KartuLagaTerkaitBerita
           v-if="lagaTerkait"
-          class="rounded-2xl bg-white border border-slate-200 shadow-card p-4 sm:p-5 space-y-3 hover:shadow-lift transition-shadow"
-        >
-          <div class="flex items-center justify-between border-b border-slate-100 pb-2">
-            <span class="text-[10px] sm:text-[11px] font-semibold uppercase tracking-wider text-slate-500">
-              Laga Terkait
-            </span>
-            <span class="font-mono text-[10px] sm:text-[11px] font-bold text-ucl-600">MD {{ lagaTerkait.matchday }}</span>
-          </div>
-
-          <div class="flex items-center justify-between py-1">
-            <div class="text-center min-w-0 flex-1">
-              <div class="w-9 h-9 sm:w-10 sm:h-10 mx-auto rounded-full bg-slate-50 border border-slate-200 flex items-center justify-center font-display font-semibold text-navy-800 text-xs">
-                {{ lagaTerkait.home_team?.short_name || 'H' }}
-              </div>
-              <div class="text-[10px] sm:text-[11px] font-medium text-ink-600 mt-1 truncate max-w-[80px] mx-auto">
-                {{ lagaTerkait.home_team?.name || 'Home' }}
-              </div>
-            </div>
-
-            <div class="font-display text-base sm:text-lg font-bold text-navy-800 tabular-nums px-3 py-1 rounded-lg bg-slate-50 border border-slate-200 shrink-0">
-              {{ lagaTerkait.home_score ?? 0 }} – {{ lagaTerkait.away_score ?? 0 }}
-            </div>
-
-            <div class="text-center min-w-0 flex-1">
-              <div class="w-9 h-9 sm:w-10 sm:h-10 mx-auto rounded-full bg-slate-50 border border-slate-200 flex items-center justify-center font-display font-semibold text-navy-800 text-xs">
-                {{ lagaTerkait.away_team?.short_name || 'A' }}
-              </div>
-              <div class="text-[10px] sm:text-[11px] font-medium text-ink-600 mt-1 truncate max-w-[80px] mx-auto">
-                {{ lagaTerkait.away_team?.name || 'Away' }}
-              </div>
-            </div>
-          </div>
-
-          <div v-if="lagaTerkait.mvp" class="p-2 sm:p-2.5 rounded-lg bg-slate-50 border border-slate-200 text-xs flex items-center gap-1.5">
-            <Award class="w-3.5 h-3.5 text-gold-500 shrink-0" />
-            <span class="text-ink-600 truncate">MVP: <strong class="text-ink-900 font-semibold">{{ lagaTerkait.mvp.name }}</strong></span>
-          </div>
-
-          <TombolDasar
-            varian="primer"
-            @click="modalLagaTerbuka = true"
-            class="w-full text-xs sm:text-sm py-2"
-          >
-            <Activity class="w-3.5 h-3.5 sm:w-4 sm:h-4 mr-1.5" />
-            Lihat Detail Laga
-          </TombolDasar>
-        </div>
+          :laga="lagaTerkait"
+          @lihatDetail="modalLagaTerbuka = true"
+        />
 
         <!-- Related News -->
         <div v-if="beritaTerkaitList.length > 0" class="rounded-2xl bg-white border border-slate-200 shadow-card p-4 sm:p-5 space-y-3">

@@ -7,6 +7,8 @@ import { useAdmin, ambilDataLengkapAdmin, tambahBerita, perbaruiBerita, hapusBer
 import { generateJadwalKnockout } from '../composables/useKnockout.js'
 import { useAuth } from '../composables/useAuth.js'
 import FormInputSkor from '../components/admin/FormInputSkor.vue'
+import ModalUbahJadwalLaga from '../components/admin/ModalUbahJadwalLaga.vue'
+import ModalAturJadwalMassalGrup from '../components/admin/ModalAturJadwalMassalGrup.vue'
 import ManajemenTim from '../components/admin/ManajemenTim.vue'
 import PanelPendaftaranTim from '../components/admin/PanelPendaftaranTim.vue'
 import PanelDrawingGrup from '../components/admin/PanelDrawingGrup.vue'
@@ -61,6 +63,9 @@ const daftarPemainLaga = ref([])
 const daftarEventLaga = ref([])
 const selectedMatchId = ref('')
 const modalSkorTerbuka = ref(false)
+const modalJadwalTerbuka = ref(false)
+const modalJadwalMassalTerbuka = ref(false)
+const sedangUbahJadwal = ref(false)
 
 const daftarNavTabs = computed(() => [
   { id: 'skor', label: 'Input Skor', icon: Activity },
@@ -136,6 +141,43 @@ async function handleLogin() {
   if (sukses) {
     inputPassword.value = ''
     muatSemuaDataAdmin()
+  }
+}
+
+async function handleSimpanJadwalMassal({ tanggalJamMulai, jedaMenit }) {
+  sedangUbahJadwal.value = true
+  try {
+    const res = await api.batchRescheduleGroup({
+      tanggalJamMulai,
+      jedaMenit
+    })
+    if (res?.success) {
+      await muatSemuaDataAdmin()
+      modalJadwalMassalTerbuka.value = false
+      alert(res.message || 'Jadwal fase grup berhasil diatur!')
+    }
+  } catch (err) {
+    alert('Gagal mengatur jadwal massal: ' + (err.message || 'Error'))
+  } finally {
+    sedangUbahJadwal.value = false
+  }
+}
+
+async function handleSimpanJadwal({ matchId, scheduledAt }) {
+  sedangUbahJadwal.value = true
+  try {
+    const res = await api.updateMatch(matchId, { scheduled_at: scheduledAt })
+    if (res) {
+      const matchIndex = daftarLaga.value.findIndex(m => m.id === matchId)
+      if (matchIndex !== -1) {
+        daftarLaga.value[matchIndex].scheduled_at = scheduledAt
+      }
+      modalJadwalTerbuka.value = false
+    }
+  } catch (err) {
+    alert('Gagal memperbarui jadwal: ' + (err.message || 'Error'))
+  } finally {
+    sedangUbahJadwal.value = false
   }
 }
 
@@ -436,6 +478,24 @@ async function handleHapusBerita(id) {
           :daftarLaga="daftarLaga"
           v-model="selectedMatchId"
           @bukaModalSkor="modalSkorTerbuka = true"
+          @bukaModalJadwal="modalJadwalTerbuka = true"
+          @bukaModalJadwalMassal="modalJadwalMassalTerbuka = true"
+        />
+
+        <ModalAturJadwalMassalGrup
+          :terbuka="modalJadwalMassalTerbuka"
+          :daftarLaga="daftarLaga"
+          :sedangMemuat="sedangUbahJadwal"
+          @tutup="modalJadwalMassalTerbuka = false"
+          @terapkan="handleSimpanJadwalMassal"
+        />
+
+        <ModalUbahJadwalLaga
+          :terbuka="modalJadwalTerbuka"
+          :laga="lagaAktif"
+          :sedangMemuat="sedangUbahJadwal"
+          @tutup="modalJadwalTerbuka = false"
+          @simpan="handleSimpanJadwal"
         />
 
         <ModalDialog

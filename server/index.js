@@ -215,11 +215,49 @@ app.use((err, req, res, next) => {
   res.status(500).json({ error: err.message || 'Terjadi kesalahan internal pada server backend.' })
 })
 
+// Auto-migrate: pastikan struktur tabel mutakhir
+async function jalankanMigrasi() {
+  try {
+    const { query } = await import('./config/db.js')
+
+    // 1. Kolom catatan pendaftaran -> LONGTEXT
+    const [colCatatan] = await query("SHOW COLUMNS FROM pcl_team_registrations WHERE Field = 'catatan'")
+    if (colCatatan && colCatatan.Type.toLowerCase() !== 'longtext') {
+      await query('ALTER TABLE pcl_team_registrations MODIFY COLUMN catatan LONGTEXT NULL')
+      console.log('✅ Migrasi: kolom catatan diubah ke LONGTEXT')
+    }
+
+    // 2. Kolom contact di pcl_teams
+    const [colContact] = await query("SHOW COLUMNS FROM pcl_teams WHERE Field = 'contact'")
+    if (!colContact) {
+      await query('ALTER TABLE pcl_teams ADD COLUMN contact VARCHAR(50) NULL AFTER manager_name')
+      console.log('✅ Migrasi: kolom contact ditambahkan ke pcl_teams')
+    }
+
+    // 3. Sinkronkan nomor kontak dari pcl_team_registrations jika contact masih null
+    await query(`
+      UPDATE pcl_teams t
+      JOIN (
+        SELECT nama_tim, MAX(kontak) AS kontak
+        FROM pcl_team_registrations
+        WHERE kontak IS NOT NULL AND kontak != ''
+        GROUP BY nama_tim
+      ) r ON t.name = r.nama_tim
+      SET t.contact = r.kontak
+      WHERE t.contact IS NULL OR t.contact = ''
+    `)
+  } catch (e) {
+    console.warn('⚠️  Migrasi database dilewati:', e.message)
+  }
+}
+
 // Jalankan Server jika dipanggil langsung
 if (process.env.NODE_ENV !== 'test') {
-  app.listen(PORT, () => {
-    console.log(`🚀 PCL Express API Server berjalan di http://localhost:${PORT}`)
-    console.log(`📡 Healthcheck: http://localhost:${PORT}/api/health`)
+  jalankanMigrasi().then(() => {
+    app.listen(PORT, () => {
+      console.log(`🚀 PCL Express API Server berjalan di http://localhost:${PORT}`)
+      console.log(`📡 Healthcheck: http://localhost:${PORT}/api/health`)
+    })
   })
 }
 

@@ -15,7 +15,7 @@ const props = defineProps({
   }
 })
 
-const emit = defineEmits(['update:modelValue', 'bukaModalSkor'])
+const emit = defineEmits(['update:modelValue', 'bukaModalSkor', 'bukaModalJadwal', 'bukaModalJadwalMassal'])
 
 const filterStatus = ref('pending') // 'pending' default agar fokus laga yang perlu diisi
 const filterFase = ref('semua')
@@ -94,6 +94,11 @@ function pilihLaga(id) {
   emit('update:modelValue', id)
   emit('bukaModalSkor', id)
 }
+
+function ubahJadwalLaga(id) {
+  emit('update:modelValue', id)
+  emit('bukaModalJadwal', id)
+}
 </script>
 
 <template>
@@ -101,8 +106,20 @@ function pilihLaga(id) {
     <!-- Header & Filter Bar -->
     <div class="flex flex-col md:flex-row md:items-center justify-between gap-3 pb-3 border-b border-slate-100">
       <div>
-        <h3 class="text-sm font-semibold text-ink-900">Tabel Jadwal &amp; Hasil Pertandingan</h3>
-        <p class="text-[11px] text-slate-500">Klik baris atau tombol untuk membuka popup input skor laga.</p>
+        <div class="flex items-center gap-2 flex-wrap">
+          <h3 class="text-sm font-semibold text-ink-900">Tabel Jadwal &amp; Hasil Pertandingan</h3>
+          <button
+            v-if="daftarLaga.some(m => m.stage === 'group')"
+            type="button"
+            @click="emit('bukaModalJadwalMassal')"
+            class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-ucl-50 hover:bg-ucl-100 text-ucl-700 text-xs font-bold border border-ucl-200 transition-colors cursor-pointer"
+            title="Atur kick-off seluruh laga fase grup secara serentak"
+          >
+            <Calendar class="w-3.5 h-3.5" />
+            <span>Atur Jadwal Massal Fase Grup</span>
+          </button>
+        </div>
+        <p class="text-[11px] text-slate-500 mt-0.5">Klik baris atau tombol untuk membuka popup input skor laga atau ubah jam pertandingan.</p>
       </div>
 
       <!-- Quick Filter Status Tabs -->
@@ -286,14 +303,26 @@ function pilihLaga(id) {
 
               <!-- Action Button -->
               <td class="py-3 px-3 text-right whitespace-nowrap">
-                <TombolDasar
-                  varian="primer"
-                  class="!px-3 !py-1 text-xs"
-                  @click.stop="pilihLaga(laga.id)"
-                >
-                  <Edit3 class="w-3 h-3 mr-1" />
-                  {{ laga.status === 'finished' ? 'Edit Skor' : 'Input Skor' }}
-                </TombolDasar>
+                <div class="inline-flex items-center gap-1.5">
+                  <TombolDasar
+                    varian="sekunder"
+                    class="!px-2.5 !py-1 text-xs"
+                    title="Ubah Jadwal Kick-off"
+                    @click.stop="ubahJadwalLaga(laga.id)"
+                  >
+                    <Calendar class="w-3 h-3 text-slate-500 mr-1" />
+                    <span>Jadwal</span>
+                  </TombolDasar>
+
+                  <TombolDasar
+                    varian="primer"
+                    class="!px-3 !py-1 text-xs"
+                    @click.stop="pilihLaga(laga.id)"
+                  >
+                    <Edit3 class="w-3 h-3 mr-1" />
+                    {{ laga.status === 'finished' ? 'Edit Skor' : 'Input Skor' }}
+                  </TombolDasar>
+                </div>
               </td>
             </tr>
           </tbody>

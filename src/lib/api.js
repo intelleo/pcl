@@ -80,6 +80,7 @@ export const api = {
   getMatchDetail: (id) => request(`/matches/${id}`),
   updateMatch: (id, payload) => request(`/matches/${id}`, { method: 'PUT', body: payload }),
   updateMatchScore: (id, payload) => request(`/matches/${id}`, { method: 'PUT', body: payload }),
+  batchRescheduleGroup: (payload) => request('/matches/batch-reschedule-group', { method: 'POST', body: payload }),
 
   // === MATCH EVENTS (GOL/KARTU) ===
   addMatchEvent: (payload) => request('/match-events', { method: 'POST', body: payload }),
@@ -118,6 +119,7 @@ export const api = {
   createNews: (payload) => request('/news', { method: 'POST', body: payload }),
   updateNews: (id, payload) => request(`/news/${id}`, { method: 'PUT', body: payload }),
   deleteNews: (id) => request(`/news/${id}`, { method: 'DELETE' }),
+  uploadNewsImage: (image) => request('/news/upload-image', { method: 'POST', body: { image } }),
   likeNews: (id, delta = 1) => request(`/news/${id}/like`, { method: 'POST', body: { delta } }),
   togglePinNews: (id) => request(`/news/${id}/pin`, { method: 'POST' }),
 

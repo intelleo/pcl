@@ -20,6 +20,93 @@ Membangun web turnamen Peak Champions League (PCL) berbasis Vue 3 + Express.js +
 ---
 
 ## Catatan Log & Keputusan
+- [2026-10-23]: Format Tabel Berurut Skuad Pemain di Halaman Publik Detail Klub (`/tim/:id`):
+  1. Komponen Baru Tabel Skuad Publik (`src/components/turnamen/TabelSkuadTim.vue`, 173 baris):
+     - Mengubah tampilan grid kartu skuad menjadi tabel urut bernomor badge (`1..N`) yang bersih dan rapi.
+     - Kolom tabel: `No`, `Nama Pemain`, `ID Game`, `Posisi (badge)`, `Gol`, `Ast`, `Pas`, `Def`, dan `MVP`.
+     - Footer tabel (`<tfoot>`): akumulasi total seluruh skuad untuk gol, assist, pass, defense, dan MVP tim.
+  2. Integrasi & Perampingan Halaman Detail Tim (`src/views/DetailTimView.vue`, 206 baris):
+     - Filter tabs posisi responsif (Semua, GK, CB, CM, WF, ST, dll) dengan sinkronisasi nomor urut tabel.
+     - Badge ringkasan total pemain di header kartu skuad tim.
+  3. Backend API (`server/routes/teams.js`):
+     - Memperbarui query `GET /api/teams/:id` agar menyertakan data statistik pemain (`goals`, `assists`, `passes`, `defense`, `mvp`).
+- [2026-10-23]: Redesain Tampilan Modal Kelola Skuad & Statistik ke Format Tabel Rapi:
+  1. Komponen Tabel Skuad (`src/components/admin/TabelKelolaPemain.vue`, 262 baris):
+     - Mengubah tampilan pemain dari deretan kartu bertumpuk menjadi satu tabel responsif yang padat, rapi, dan mudah diedit.
+     - Penomoran Urut Dinamis (kolom `No`): badge lingkaran nomor 1..N di setiap baris pemain sehingga admin langsung tahu urutan dan total jumlah pemain di setiap klub.
+     - Kolom tabel: `No`, `Nama Pemain`, `ID Game`, `Posisi (select)`, `Gol`, `Assist`, `Pass`, `Def`, `MVP`, dan tombol `Aksi (Simpan & Hapus)`.
+     - Baris Ringkasan Footer (`<tfoot>`): menampilkan total pemain serta kalkulasi otomatis total Gol, Assist, Pass, Defense, dan MVP satu tim.
+  2. Komponen Form Tambah Pemain (`src/components/admin/FormTambahPemain.vue`, 173 baris):
+     - Memisahkan form tambah pemain baru ke sub-komponen terisolasi dengan animasi muncul collapsible.
+  3. Perampingan Modal Induk (`src/components/admin/ModalKelolaPemain.vue`, 249 baris):
+     - Berhasil merampingkan file dari sebelumnya 564 baris (melanggar batas) menjadi 249 baris, mematuhi batas maksimal baris kode.
+     - Build Vite selesai bersih 6.72s tanpa error.
+- [2026-10-21]: Fitur Atur Jadwal Massal Fase Grup (Batch Reschedule Group Stage):
+  1. Backend API Endpoint (`server/routes/matches.js` & `src/lib/api.js`):
+     - Handler `POST /api/matches/batch-reschedule-group`: menerima `tanggalJamMulai` (kick-off MD 1) dan `jedaMenit` (interval antar matchday).
+     - Otomatis menghitung dan memperbarui jadwal semua laga fase grup (`stage = 'group'`) di database MySQL:
+       - Matchday 1 = waktu mulai
+       - Matchday 2 = waktu mulai + 1x interval
+       - Matchday 3 = waktu mulai + 2x interval
+  2. Frontend Admin Modal (`src/components/admin/ModalAturJadwalMassalGrup.vue`):
+     - Input datetime kick-off Matchday 1 + jeda menit, lengkap dengan pratinjau jam per matchday (MD 1, MD 2, MD 3).
+     - Tombol cepat "Atur Jadwal Massal Fase Grup" di toolbar tabel jadwal admin (`src/components/admin/PanelPemilihLagaSkor.vue`).
+- [2026-10-21]: Fitur Ubah Jadwal Laga di Panel Admin Pertandingan:
+  1. Komponen Modal Ubah Jadwal (`src/components/admin/ModalUbahJadwalLaga.vue`):
+     - Modal dialog cepat untuk mengganti tanggal & jam kick-off pertandingan (`datetime-local`) tanpa harus membuka popup input skor.
+     - Pratinjau matchup klub home vs away, fase/matchday, dan tombol simpan instan.
+  2. Tombol Aksi di Tabel Laga (`src/components/admin/PanelPemilihLagaSkor.vue`):
+     - Menambahkan tombol "Jadwal" berdampingan dengan tombol "Input Skor/Edit Skor" pada kolom Aksi.
+  3. Handler & State Admin (`src/views/AdminView.vue`):
+     - State `modalJadwalTerbuka` dan method `handleSimpanJadwal` terhubung ke API backend `PUT /api/matches/:id`.
+- [2026-10-21]: Fitur Formating Teks (Bold, Italic, Strikethrough, Heading, Quote, List) & Sisipkan Foto Fleksibel Berita:
+  1. Editor Berita Admin (`src/components/admin/EditorKontenBerita.vue`):
+     - Toolbar format cepat: Tebal (`**`), Miring (`*`), Coret (`~~`), Sub Judul (`##`/`###`), Kutipan (`>`), Daftar Poin (`-`).
+     - Tombol "+ Sisipkan Foto": mendukung unggah foto langsung dari perangkat (kompresi otomatis JPEG client-side) atau tautan URL web, lengkap dengan caption / alt text yang disisipkan di posisi kursor/area naskah (`![alt](url)`).
+     - Mode Pratinjau (Live Preview) langsung di dalam editor form untuk memeriksa tampilan teks dan foto sebelum dipublikasikan.
+  2. Parser & Rendering Berita (`src/lib/parserBerita.js`, `src/views/DetailBeritaView.vue`):
+     - Parser markdown ringan tanpa dependensi eksternal berat (stdlib regex-based).
+     - Sanitasi tag HTML bawaan untuk mencegah celah XSS injection sebelum format diterapkan.
+     - Merender foto inline fleksibel dengan kartu `<figure>` ber-border halus, background netral, dan caption `<figcaption>` di bawahnya.
+     - Merender sub-heading, blockquote, bullet points, dan auto-link URL secara dinamis dan responsif.
+  3. Backend Endpoint Upload Gambar Mandiri (`server/routes/news.js`, `src/lib/api.js`):
+     - Menambahkan handler `POST /api/news/upload-image` untuk menyimpan foto konten berita secara fisik ke `/uploads/news/` dan mengembalikan path URL statis publik.
+  4. Pemecahan & Kepatuhan Standar Baris Kode (< 500 baris):
+     - Memisahkan komponen input cover berita ke `src/components/admin/InputSampulBerita.vue` (117 baris).
+     - Memisahkan kartu laga terkait berita ke `src/components/turnamen/KartuLagaTerkaitBerita.vue` (67 baris).
+     - Menambahkan unit test `tests/parserBerita.test.js` (13/13 tests pass & build clean).
+- [2026-10-21]: Fitur Animasi Spin Roulette Drawing Fase Grup (Admin Panel):
+  1. Komponen Roulette Display (`src/components/admin/RouletteDrawingGrup.vue`):
+     - Menampilkan stage box bernuansa dark UEFA/esports dengan ambient glow, status undian grup target (`Grup A`, `Grup B`, dst.), dan counter progress klub terundi.
+     - Animasi putaran logo/nama klub berganti acak dengan pulse glow (`statusSpin === 'spinning'`) lalu melambat dan terkunci dengan lencana centang emas (`statusSpin === 'terpilih'`).
+  2. Alur Pengundian & Kontrol (`src/components/admin/PanelDrawingGrup.vue`):
+     - Membagi undian secara adil dan berurutan ke dalam masing-masing grup (A -> B -> C -> D) secara bertahap.
+     - Menyediakan tombol "Lewati Animasi" (`FastForward`) jika admin ingin langsung melihat hasil akhir tanpa menunggu animasi.
+     - Pemisahan komponen ke `RouletteDrawingGrup.vue`, `GridHasilDrawingGrup.vue`, dan composable `useEstimasiJadwal.js` untuk mematuhi batas maksimal 500 baris kode CLAUDE.md.
+- [2026-10-21]: Penambahan Kolom Kontak Kapten (Nomor HP/WA) pada Daftar Tim:
+  1. Skema Database & Sinkronisasi (`server/database/schema_mysql.sql`, `server/index.js`):
+     - Menambahkan kolom `contact VARCHAR(50) NULL` pada tabel `pcl_teams` setelah `manager_name`.
+     - Menjalankan auto-migrasi database saat server start dan menyinkronkan nomor HP kapten dari tabel `pcl_team_registrations` ke `pcl_teams`.
+  2. REST API Backend (`server/routes/teams.js`, `server/routes/registrations.js`):
+     - Memperbarui endpoint `GET /api/teams` dan `GET /api/teams/:id` untuk menyertakan `t.contact`.
+     - Mendukung input/update `contact` pada `POST /api/teams` dan `PUT /api/teams/:id`.
+     - Menyimpan nomor kontak registrasi pendaftar ke `pcl_teams.contact` saat status pendaftaran diubah ke 'diterima'.
+  3. UI Frontend Publik (`src/components/turnamen/TabelDaftarTim.vue`):
+     - Menambahkan kolom "Kontak Kapten" pada tabel daftar tim (Desktop).
+     - Desain Mobile bersih dan elegan: kontak kapten diletakkan di baris ketiga di bawah Manager tanpa background/border kotak, hanya icon WhatsApp dan teks hijau bersih (`text-emerald-600`) dengan underline halus saat hover.
+     - Menyediakan direct link WhatsApp (`wa.me`) dengan pesan otomatis terformat untuk memudahkan panitia dan sesama peserta berkoordinasi.
+     - Menyertakan nomor kontak ke dalam filter pencarian `kataKunci`.
+  4. UI Frontend Detail Tim & Admin Panel (`src/views/DetailTimView.vue`, `src/components/admin/ManajemenTim.vue`):
+     - Menampilkan nomor kontak kapten di hero card halaman detail klub (`/tim/:id`).
+     - Menambahkan input "No WhatsApp / HP Kapten" berdampingan dengan "Manager / Kapten Tim" pada form Tambah Klub dengan icon dan layout grid 12-kolom yang seimbang di mobile maupun desktop.
+     - Menyertakan nomor kontak pada draft auto-save/restore dan kolom tabel daftar klub peserta di admin.
+- [2026-10-20]: Perbaikan Stabilitas Form Pendaftaran & Error Data Too Long 'catatan':
+  1. Stabilitas Form Pendaftaran (`src/views/PendaftaranView.vue`):
+     - Mengubah directive kondisional template dari `v-if`/`v-else` menjadi `v-show` untuk skeleton loading, status pendaftaran tutup, dan form pendaftaran utama.
+     - Mencegah unmount/remount komponen secara berulang yang menyebabkan hilangnya input form user saat navigasi atau re-render terjadi.
+  2. Perbaikan Error Database `Data too long for column 'catatan'`:
+     - Penyebab: Kolom `catatan` pada tabel `pcl_team_registrations` menyimpan payload JSON skuad + base64 data URL gambar logo klub yang melebihi batas tipe kolom default (VARCHAR/TEXT biasa).
+     - Solusi: Mengubah tipe kolom `catatan` menjadi `LONGTEXT` di `schema_mysql.sql`, membuat skrip migrasi `server/database/migrate_catatan_text.sql`, dan menambahkan auto-migrate di `server/index.js` saat server API booting.
 - [2026-10-18]: Perbaikan State Persisten Admin & Auto-Save Draft Tambah Klub:
   1. Sinkronisasi Tab URL Admin Panel (`src/views/AdminView.vue`):
      - Menghubungkan `tabAktif` ke URL query (`/admin?tab=...`) menggunakan `useRoute` dan `useRouter.replace`.

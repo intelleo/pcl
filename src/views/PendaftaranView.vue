@@ -363,11 +363,11 @@ onMounted(async () => {
     </div>
 
     <!-- State Loading -->
-    <div v-if="sedangMemuatCek" class="h-64 rounded-2xl bg-white border border-slate-200 animate-pulse"></div>
+    <div v-show="sedangMemuatCek" class="h-64 rounded-2xl bg-white border border-slate-200 animate-pulse"></div>
 
     <!-- State Pendaftaran Ditutup (Namun ada opsi Key Booking) -->
     <div
-      v-else-if="!pendaftaranBuka && !keyTerverifikasi"
+      v-show="!sedangMemuatCek && !pendaftaranBuka && !keyTerverifikasi"
       class="anim-muncul bg-white border border-slate-200 rounded-2xl p-6 sm:p-10 text-center shadow-card space-y-6"
     >
       <div class="w-14 h-14 rounded-2xl bg-amber-50 border border-amber-200 text-amber-600 flex items-center justify-center mx-auto shadow-sm">
@@ -418,7 +418,7 @@ onMounted(async () => {
 
     <!-- State Sukses Mendaftar -->
     <div
-      v-else-if="pesanSukses"
+      v-show="!sedangMemuatCek && pesanSukses"
       class="anim-muncul bg-white border border-emerald-200 rounded-2xl p-8 sm:p-12 text-center shadow-card space-y-5"
     >
       <div class="w-14 h-14 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center mx-auto shadow-sm">
@@ -456,7 +456,7 @@ onMounted(async () => {
     </div>
 
     <!-- Form Pendaftaran -->
-    <form v-else @submit.prevent="handleKirimPendaftaran" class="anim-muncul space-y-6">
+    <form v-show="!sedangMemuatCek && (pendaftaranBuka || keyTerverifikasi) && !pesanSukses" @submit.prevent="handleKirimPendaftaran" class="anim-muncul space-y-6">
       <!-- Banner Khusus jika masuk lewat Key Booking -->
       <div v-if="keyTerverifikasi" class="p-4 rounded-2xl bg-gold-50 border border-gold-300 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-xs">
         <div class="flex items-center gap-2.5">

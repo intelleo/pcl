@@ -5,6 +5,64 @@ import { sinkronkanSemuaBaganKnockout } from './knockout.js'
 const router = express.Router()
 
 /**
+ * POST /api/matches/batch-reschedule-group
+ * Mengatur ulang jadwal seluruh pertandingan fase grup berdasarkan jam mulai & jeda interval per matchday
+ */
+router.post('/batch-reschedule-group', async (req, res) => {
+  try {
+    const { tournament_id, tanggalJamMulai, jedaMenit = 15 } = req.body
+
+    if (!tanggalJamMulai) {
+      return res.status(400).json({ error: 'Tanggal dan jam mulai kick-off wajib diisi.' })
+    }
+
+    const baseTime = new Date(tanggalJamMulai)
+    if (isNaN(baseTime.getTime())) {
+      return res.status(400).json({ error: 'Format tanggal dan jam mulai tidak valid.' })
+    }
+
+    const intervalMinutes = Math.max(1, Number(jedaMenit) || 15)
+    const pad = (n) => String(n).padStart(2, '0')
+
+    let sqlWhere = "stage = 'group'"
+    const params = []
+    if (tournament_id) {
+      sqlWhere += ' AND tournament_id = ?'
+      params.push(tournament_id)
+    }
+
+    // Ambil semua match grup
+    const matches = await query(
+      `SELECT id, matchday FROM pcl_matches WHERE ${sqlWhere}`,
+      params
+    )
+
+    if (matches.length === 0) {
+      return res.status(404).json({ error: 'Tidak ada pertandingan fase grup yang ditemukan.' })
+    }
+
+    for (const m of matches) {
+      const mdIndex = (m.matchday && m.matchday >= 1) ? (m.matchday - 1) : 0
+      const targetDate = new Date(baseTime.getTime() + (mdIndex * intervalMinutes * 60 * 1000))
+      const tglStr = `${targetDate.getFullYear()}-${pad(targetDate.getMonth() + 1)}-${pad(targetDate.getDate())} ${pad(targetDate.getHours())}:${pad(targetDate.getMinutes())}:${pad(targetDate.getSeconds())}`
+
+      await query(
+        'UPDATE pcl_matches SET scheduled_at = ? WHERE id = ?',
+        [tglStr, m.id]
+      )
+    }
+
+    res.json({
+      success: true,
+      message: `Jadwal ${matches.length} pertandingan fase grup berhasil diselaraskan ulang!`,
+      totalDiubah: matches.length
+    })
+  } catch (err) {
+    res.status(500).json({ error: err.message })
+  }
+})
+
+/**
  * GET /api/matches
  * Ambil daftar pertandingan lengkap dengan info tim home/away dan grup
  */

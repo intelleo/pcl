@@ -47,7 +47,7 @@ router.get('/', async (req, res) => {
     const { tournament_id, group_name } = req.query
     let sql = `
       SELECT t.id, t.tournament_id, t.name, t.short_name, t.logo_url,
-             t.manager_name, t.group_name, t.rating, t.created_at,
+             t.manager_name, t.contact, t.group_name, t.rating, t.created_at,
              COUNT(p.id) AS total_pemain
       FROM pcl_teams t
       LEFT JOIN pcl_players p ON t.id = p.team_id
@@ -91,7 +91,7 @@ router.get('/:id', async (req, res) => {
     }
 
     const players = await query(
-      'SELECT id, name, game_id, squad_number, position, avatar_url FROM pcl_players WHERE team_id = ? ORDER BY squad_number ASC',
+      'SELECT id, name, game_id, squad_number, position, avatar_url, goals, assists, passes, defense, mvp FROM pcl_players WHERE team_id = ? ORDER BY squad_number ASC, id ASC',
       [id]
     )
 
@@ -107,7 +107,7 @@ router.get('/:id', async (req, res) => {
  */
 router.post('/', async (req, res) => {
   try {
-    const { name, short_name, logo_url, manager_name, group_name, tournament_id, rating = 90, players = [] } = req.body
+    const { name, short_name, logo_url, manager_name, contact, group_name, tournament_id, rating = 90, players = [] } = req.body
 
     if (!name || !short_name) {
       return res.status(400).json({ error: 'Nama tim dan singkatan wajib diisi.' })
@@ -117,9 +117,9 @@ router.post('/', async (req, res) => {
     const finalLogoUrl = simpanBase64KeFile(logo_url, `team-${short_name.toLowerCase()}`)
 
     await query(
-      `INSERT INTO pcl_teams (id, tournament_id, name, short_name, logo_url, manager_name, group_name, rating)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-      [teamId, tournament_id || null, name.trim(), short_name.trim().toUpperCase(), finalLogoUrl || null, manager_name || null, group_name || null, rating]
+      `INSERT INTO pcl_teams (id, tournament_id, name, short_name, logo_url, manager_name, contact, group_name, rating)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [teamId, tournament_id || null, name.trim(), short_name.trim().toUpperCase(), finalLogoUrl || null, manager_name || null, contact ? contact.trim() : null, group_name || null, rating]
     )
 
     if (Array.isArray(players) && players.length > 0) {
@@ -214,7 +214,7 @@ router.post('/copy-from-season', async (req, res) => {
 router.put('/:id', async (req, res) => {
   try {
     const { id } = req.params
-    const { name, short_name, logo_url, manager_name, group_name, rating, tournament_id } = req.body
+    const { name, short_name, logo_url, manager_name, contact, group_name, rating, tournament_id } = req.body
 
     const updates = []
     const params = []
@@ -227,6 +227,7 @@ router.put('/:id', async (req, res) => {
       params.push(finalLogoUrl)
     }
     if (manager_name !== undefined) { updates.push('manager_name = ?'); params.push(manager_name) }
+    if (contact !== undefined) { updates.push('contact = ?'); params.push(contact ? contact.trim() : null) }
     if (group_name !== undefined) { updates.push('group_name = ?'); params.push(group_name) }
     if (rating !== undefined) { updates.push('rating = ?'); params.push(Number(rating)) }
     if (tournament_id !== undefined) { updates.push('tournament_id = ?'); params.push(tournament_id) }

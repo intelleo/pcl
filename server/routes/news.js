@@ -73,6 +73,25 @@ router.get('/', async (req, res) => {
 })
 
 /**
+ * POST /api/news/upload-image
+ * Upload satu gambar mandiri untuk disisipkan ke dalam konten artikel
+ */
+router.post('/upload-image', async (req, res) => {
+  try {
+    const { image } = req.body
+    if (!image) {
+      return res.status(400).json({ error: 'Payload gambar tidak ditemukan.' })
+    }
+
+    const id = generateUUID()
+    const url = simpanBase64KeFile(image, `konten-${id}`)
+    res.json({ url })
+  } catch (err) {
+    res.status(500).json({ error: err.message })
+  }
+})
+
+/**
  * GET /api/news/:id
  * Ambil detail 1 berita
  */

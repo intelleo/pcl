@@ -59,6 +59,7 @@ CREATE TABLE IF NOT EXISTS `pcl_teams` (
     `short_name` VARCHAR(10) NOT NULL,
     `logo_url` TEXT NULL,
     `manager_name` VARCHAR(255) NULL,
+    `contact` VARCHAR(50) NULL,
     `group_name` VARCHAR(50) NULL,
     `rating` INT DEFAULT 90,
     `created_at` DATETIME DEFAULT CURRENT_TIMESTAMP,
@@ -155,7 +156,7 @@ CREATE TABLE IF NOT EXISTS `pcl_team_registrations` (
     `manager_name` VARCHAR(255) NOT NULL,
     `kontak` VARCHAR(50) NOT NULL,
     `email` VARCHAR(255) NOT NULL,
-    `catatan` TEXT NULL,
+    `catatan` LONGTEXT NULL,
     `status` ENUM('pending', 'diterima', 'ditolak') NOT NULL DEFAULT 'pending',
     `created_at` DATETIME DEFAULT CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

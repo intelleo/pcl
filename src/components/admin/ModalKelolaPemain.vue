@@ -2,23 +2,10 @@
 import { ref, watch } from "vue";
 import { api } from "../../lib/api.js";
 import { invalidateCache } from "../../lib/cache.js";
-import {
-  Users,
-  Plus,
-  X,
-  Trash2,
-  Check,
-  AlertCircle,
-  Save,
-  Award,
-  Shield,
-  Footprints,
-  Target,
-  Sparkles,
-  Activity,
-} from "lucide-vue-next";
+import { Plus, X, Check, AlertCircle } from "lucide-vue-next";
 import ModalDialog from "../umum/ModalDialog.vue";
-import TombolDasar from "../umum/TombolDasar.vue";
+import FormTambahPemain from "./FormTambahPemain.vue";
+import TabelKelolaPemain from "./TabelKelolaPemain.vue";
 
 const props = defineProps({
   terbuka: {
@@ -38,18 +25,7 @@ const sedangMemuat = ref(false);
 const idSedangSimpan = ref(null);
 const pesanSukses = ref(null);
 const pesanError = ref(null);
-
 const formTambahTerbuka = ref(false);
-const pemainBaru = ref({
-  name: "",
-  game_id: "",
-  position: "FW",
-  goals: 0,
-  assists: 0,
-  passes: 0,
-  defense: 0,
-  mvp: 0,
-});
 
 const opsiPosisi = ["GK", "DF", "CB", "MF", "CM", "WF", "FW", "ST"];
 
@@ -118,8 +94,8 @@ async function simpanPemain(p) {
   }
 }
 
-async function tambahPemainBaru() {
-  if (!pemainBaru.value.name.trim() || !props.tim?.id) return;
+async function tambahPemainBaru(payload) {
+  if (!payload.name?.trim() || !props.tim?.id) return;
   sedangMemuat.value = true;
   pesanSukses.value = null;
   pesanError.value = null;
@@ -128,28 +104,11 @@ async function tambahPemainBaru() {
     const noPunggungOtomatis = (daftarPemain.value.length || 0) + 1;
     await api.createPlayer({
       team_id: props.tim.id,
-      name: pemainBaru.value.name.trim(),
-      game_id: pemainBaru.value.game_id.trim() || null,
       squad_number: noPunggungOtomatis,
-      position: pemainBaru.value.position,
-      goals: Math.max(0, Number(pemainBaru.value.goals) || 0),
-      assists: Math.max(0, Number(pemainBaru.value.assists) || 0),
-      passes: Math.max(0, Number(pemainBaru.value.passes) || 0),
-      defense: Math.max(0, Number(pemainBaru.value.defense) || 0),
-      mvp: Math.max(0, Number(pemainBaru.value.mvp) || 0),
+      ...payload,
     });
     invalidateCache();
     emit("dataBerubah");
-    pemainBaru.value = {
-      name: "",
-      game_id: "",
-      position: "FW",
-      goals: 0,
-      assists: 0,
-      passes: 0,
-      defense: 0,
-      mvp: 0,
-    };
     formTambahTerbuka.value = false;
     await muatDaftarPemain();
     pesanSukses.value = "Pemain baru berhasil ditambahkan!";
@@ -184,10 +143,10 @@ async function hapusPemain(p) {
   <ModalDialog
     :terbuka="terbuka"
     :judul="`Kelola Skuad & Statistik — ${tim?.name || 'Klub'}`"
-    lebarMaksimal="max-w-4xl"
+    lebarMaksimal="max-w-6xl"
     @tutup="emit('tutup')"
   >
-    <div class="space-y-4 ] overflow-y-auto pr-1">
+    <div class="space-y-4 overflow-y-auto pr-1">
       <!-- Header Info Tim -->
       <div
         class="flex items-center justify-between p-3 rounded-xl bg-slate-50 border border-slate-200"
@@ -197,13 +156,13 @@ async function hapusPemain(p) {
             v-if="tim?.logo_url"
             :src="tim.logo_url"
             :alt="tim.name"
-            class="w-8 h-8 rounded-lg object-contain bg-white border border-slate-200 p-0.5 shrink-0"
+            class="w-9 h-9 rounded-lg object-contain bg-white border border-slate-200 p-0.5 shrink-0"
             loading="lazy"
             decoding="async"
           />
           <div
             v-else
-            class="w-8 h-8 rounded-lg bg-blue-100 text-ucl-700 font-bold text-xs flex items-center justify-center shrink-0"
+            class="w-9 h-9 rounded-lg bg-blue-100 text-ucl-700 font-bold text-xs flex items-center justify-center shrink-0"
           >
             {{ tim?.short_name || "TIM" }}
           </div>
@@ -214,7 +173,10 @@ async function hapusPemain(p) {
               <span class="font-semibold text-ucl-600">{{
                 tim?.group_name || "Belum Ditentukan"
               }}</span>
-              • Total: {{ daftarPemain.length }} Pemain
+              •
+              <span class="font-semibold text-slate-700">
+                Total: {{ daftarPemain.length }} Pemain
+              </span>
             </p>
           </div>
         </div>
@@ -246,319 +208,42 @@ async function hapusPemain(p) {
         <span>{{ pesanError }}</span>
       </div>
 
-      <!-- Form Tambah Pemain Baru -->
-      <form
+      <!-- Form Tambah Pemain Baru (Collapsible) -->
+      <FormTambahPemain
         v-if="formTambahTerbuka"
-        @submit.prevent="tambahPemainBaru"
-        class="p-4 rounded-xl bg-blue-50/70 border border-blue-200 space-y-3 anim-muncul"
-      >
-        <div
-          class="flex items-center justify-between pb-2 border-b border-blue-200/60"
-        >
-          <span
-            class="text-xs font-bold text-blue-900 flex items-center gap-1.5"
-          >
-            <Plus class="w-3.5 h-3.5 text-blue-700" />
-            Tambah Pemain Baru
-          </span>
-        </div>
+        :opsiPosisi="opsiPosisi"
+        :sedangMemuat="sedangMemuat"
+        @tambah="tambahPemainBaru"
+      />
 
-        <div class="grid grid-cols-1 sm:grid-cols-12 gap-2.5">
-          <div class="sm:col-span-5">
-            <label class="block text-[11px] font-semibold text-slate-700 mb-1"
-              >Nama Pemain *</label
-            >
-            <input
-              v-model="pemainBaru.name"
-              type="text"
-              placeholder="contoh: Erling Haaland"
-              class="w-full bg-white border border-slate-300 rounded-lg px-2.5 py-1.5 text-xs font-medium text-ink-900 outline-none focus:border-ucl-500 focus:ring-1 focus:ring-ucl-500"
-              required
-            />
-          </div>
-
-          <div class="sm:col-span-4">
-            <label class="block text-[11px] font-semibold text-slate-700 mb-1"
-              >ID Game</label
-            >
-            <input
-              v-model="pemainBaru.game_id"
-              type="text"
-              placeholder="contoh: 12889220"
-              class="w-full bg-white border border-slate-300 rounded-lg px-2.5 py-1.5 text-xs font-medium text-ink-900 outline-none focus:border-ucl-500 focus:ring-1 focus:ring-ucl-500"
-            />
-          </div>
-
-          <div class="sm:col-span-3">
-            <label class="block text-[11px] font-semibold text-slate-700 mb-1"
-              >Posisi</label
-            >
-            <select
-              v-model="pemainBaru.position"
-              class="w-full bg-white border border-slate-300 rounded-lg px-2 py-1.5 text-xs font-semibold text-ink-900 outline-none focus:border-ucl-500"
-            >
-              <option v-for="pos in opsiPosisi" :key="pos" :value="pos">
-                {{ pos }}
-              </option>
-            </select>
-          </div>
-        </div>
-
-        <!-- Input Statistik Awal -->
-        <div class="pt-2 border-t border-blue-200/50">
-          <label class="block text-[11px] font-bold text-blue-900 mb-1.5"
-            >Statistik Awal Pemain:</label
-          >
-          <div class="grid grid-cols-5 gap-2 text-center text-xs">
-            <div>
-              <span class="text-[10px] font-semibold text-emerald-700 block"
-                >Gol</span
-              >
-              <input
-                v-model.number="pemainBaru.goals"
-                type="number"
-                min="0"
-                class="w-full bg-white border border-slate-300 rounded p-1 text-center font-bold text-xs"
-              />
-            </div>
-            <div>
-              <span class="text-[10px] font-semibold text-blue-700 block"
-                >Assist</span
-              >
-              <input
-                v-model.number="pemainBaru.assists"
-                type="number"
-                min="0"
-                class="w-full bg-white border border-slate-300 rounded p-1 text-center font-bold text-xs"
-              />
-            </div>
-            <div>
-              <span class="text-[10px] font-semibold text-indigo-700 block"
-                >Pass</span
-              >
-              <input
-                v-model.number="pemainBaru.passes"
-                type="number"
-                min="0"
-                class="w-full bg-white border border-slate-300 rounded p-1 text-center font-bold text-xs"
-              />
-            </div>
-            <div>
-              <span class="text-[10px] font-semibold text-purple-700 block"
-                >Def</span
-              >
-              <input
-                v-model.number="pemainBaru.defense"
-                type="number"
-                min="0"
-                class="w-full bg-white border border-slate-300 rounded p-1 text-center font-bold text-xs"
-              />
-            </div>
-            <div>
-              <span class="text-[10px] font-semibold text-amber-700 block"
-                >MVP</span
-              >
-              <input
-                v-model.number="pemainBaru.mvp"
-                type="number"
-                min="0"
-                class="w-full bg-white border border-slate-300 rounded p-1 text-center font-bold text-xs"
-              />
-            </div>
-          </div>
-        </div>
-
-        <div class="flex items-center justify-end gap-2 pt-2">
-          <TombolDasar
-            tipe="submit"
-            varian="primer"
-            ukuran="kecil"
-            :sedangMemuat="sedangMemuat"
-          >
-            Simpan Pemain
-          </TombolDasar>
-        </div>
-      </form>
-
-      <!-- Daftar Pemain Table / List -->
+      <!-- State Loading & Kosong -->
       <div
         v-if="sedangMemuat && daftarPemain.length === 0"
-        class="py-8 text-center text-xs text-slate-400"
+        class="py-12 text-center text-xs text-slate-400"
       >
         Memuat data pemain...
       </div>
 
       <div
         v-else-if="daftarPemain.length === 0"
-        class="py-8 text-center text-xs text-slate-400"
+        class="py-12 text-center border border-dashed border-slate-200 rounded-xl space-y-2 p-6"
       >
-        Belum ada pemain di tim ini. Klik "Tambah Pemain" untuk mendaftarkan
-        pemain.
+        <p class="text-xs font-semibold text-slate-600">Belum ada pemain di tim ini.</p>
+        <p class="text-[11px] text-slate-400">
+          Klik tombol "Tambah Pemain" di atas untuk mulai menambahkan skuad tim.
+        </p>
       </div>
 
-      <div v-else class="space-y-3">
-        <div
-          class="text-[11px] font-semibold text-slate-500 uppercase tracking-wider flex items-center justify-between"
-        >
-          <span>Daftar Skuad &amp; Statistik Performa</span>
-          <span class="text-[10px] text-slate-400 lowercase font-normal"
-            >(klik simpan untuk memperbarui)</span
-          >
-        </div>
-
-        <div
-          v-for="p in daftarPemain"
-          :key="p.id"
-          class="p-3 rounded-xl border border-slate-200 bg-white hover:border-slate-300 transition-all shadow-xs space-y-2.5"
-        >
-          <!-- Baris Identitas Pemain (Flex column on tiny mobile, row on tablet/desktop) -->
-          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-            <div class="flex items-center gap-2 flex-1 w-full min-w-0">
-              <div class="flex-1 min-w-0">
-                <input
-                  v-model="p.name"
-                  type="text"
-                  class="w-full font-bold text-xs text-ink-900 border-b border-slate-200 sm:border-transparent hover:border-slate-300 focus:border-ucl-500 outline-none px-1 py-0.5 rounded transition"
-                  placeholder="Nama Pemain"
-                />
-              </div>
-              <div class="w-24 sm:w-36 shrink-0">
-                <input
-                  v-model="p.game_id"
-                  type="text"
-                  class="w-full text-[11px] font-mono text-slate-600 bg-slate-50 border border-slate-200 hover:border-slate-300 focus:border-ucl-500 focus:bg-white outline-none px-1.5 sm:px-2 py-0.5 rounded transition"
-                  placeholder="ID Game"
-                  title="ID Akun Game Pemain"
-                />
-              </div>
-              <select
-                v-model="p.position"
-                class="text-[11px] font-bold px-1.5 sm:px-2 py-0.5 rounded bg-slate-100 border border-slate-200 text-slate-700 outline-none shrink-0"
-              >
-                <option v-for="pos in opsiPosisi" :key="pos" :value="pos">
-                  {{ pos }}
-                </option>
-              </select>
-            </div>
-
-            <div class="flex items-center justify-end gap-1.5 shrink-0 self-end sm:self-auto">
-              <button
-                type="button"
-                @click="simpanPemain(p)"
-                :disabled="idSedangSimpan === p.id"
-                class="px-2.5 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-[11px] font-semibold transition-colors flex items-center gap-1 cursor-pointer disabled:opacity-50"
-                title="Simpan Perubahan Pemain & Statistik"
-              >
-                <Save class="w-3 h-3" />
-                <span>{{ idSedangSimpan === p.id ? "..." : "Simpan" }}</span>
-              </button>
-              <button
-                type="button"
-                @click="hapusPemain(p)"
-                class="p-1 rounded-lg text-slate-400 hover:text-red-600 hover:bg-red-50 transition-colors cursor-pointer"
-                title="Hapus Pemain"
-              >
-                <Trash2 class="w-3.5 h-3.5" />
-              </button>
-            </div>
-          </div>
-
-          <!-- Baris Input Statistik (Gol, Assist, Pass, Def, MVP) -->
-          <div
-            class="grid grid-cols-5 gap-2 pt-2 border-t border-slate-100 text-center"
-          >
-            <!-- Gol -->
-            <div
-              class="p-1.5 rounded-lg bg-emerald-50/60 border border-emerald-200/70"
-            >
-              <span
-                class="text-[10px] font-bold text-emerald-800 flex items-center justify-center gap-1 mb-1"
-              >
-                <Target class="w-3 h-3 text-emerald-600" />
-                Gol
-              </span>
-              <input
-                v-model.number="p.goals"
-                type="number"
-                min="0"
-                class="w-full bg-white border border-emerald-300 rounded px-1 py-0.5 text-center font-bold text-xs text-emerald-900 outline-none focus:ring-1 focus:ring-emerald-500"
-              />
-            </div>
-
-            <!-- Assist -->
-            <div
-              class="p-1.5 rounded-lg bg-blue-50/60 border border-blue-200/70"
-            >
-              <span
-                class="text-[10px] font-bold text-blue-800 flex items-center justify-center gap-1 mb-1"
-              >
-                <Footprints class="w-3 h-3 text-blue-600" />
-                Assist
-              </span>
-              <input
-                v-model.number="p.assists"
-                type="number"
-                min="0"
-                class="w-full bg-white border border-blue-300 rounded px-1 py-0.5 text-center font-bold text-xs text-blue-900 outline-none focus:ring-1 focus:ring-blue-500"
-              />
-            </div>
-
-            <!-- Pass -->
-            <div
-              class="p-1.5 rounded-lg bg-indigo-50/60 border border-indigo-200/70"
-            >
-              <span
-                class="text-[10px] font-bold text-indigo-800 flex items-center justify-center gap-1 mb-1"
-              >
-                <Activity class="w-3 h-3 text-indigo-600" />
-                Pass
-              </span>
-              <input
-                v-model.number="p.passes"
-                type="number"
-                min="0"
-                class="w-full bg-white border border-indigo-300 rounded px-1 py-0.5 text-center font-bold text-xs text-indigo-900 outline-none focus:ring-1 focus:ring-indigo-500"
-              />
-            </div>
-
-            <!-- Defense -->
-            <div
-              class="p-1.5 rounded-lg bg-purple-50/60 border border-purple-200/70"
-            >
-              <span
-                class="text-[10px] font-bold text-purple-800 flex items-center justify-center gap-1 mb-1"
-              >
-                <Shield class="w-3 h-3 text-purple-600" />
-                Def
-              </span>
-              <input
-                v-model.number="p.defense"
-                type="number"
-                min="0"
-                class="w-full bg-white border border-purple-300 rounded px-1 py-0.5 text-center font-bold text-xs text-purple-900 outline-none focus:ring-1 focus:ring-purple-500"
-              />
-            </div>
-
-            <!-- MVP -->
-            <div
-              class="p-1.5 rounded-lg bg-amber-50/60 border border-amber-200/70"
-            >
-              <span
-                class="text-[10px] font-bold text-amber-800 flex items-center justify-center gap-1 mb-1"
-              >
-                <Award class="w-3 h-3 text-amber-600" />
-                MVP
-              </span>
-              <input
-                v-model.number="p.mvp"
-                type="number"
-                min="0"
-                class="w-full bg-white border border-amber-300 rounded px-1 py-0.5 text-center font-bold text-xs text-amber-900 outline-none focus:ring-1 focus:ring-amber-500"
-              />
-            </div>
-          </div>
-        </div>
-      </div>
+      <!-- Tabel Skuad Pemain & Statistik -->
+      <TabelKelolaPemain
+        v-else
+        :daftarPemain="daftarPemain"
+        :opsiPosisi="opsiPosisi"
+        :idSedangSimpan="idSedangSimpan"
+        :sedangMemuat="sedangMemuat"
+        @simpan="simpanPemain"
+        @hapus="hapusPemain"
+      />
     </div>
   </ModalDialog>
 </template>

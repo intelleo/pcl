@@ -110,14 +110,14 @@ router.put('/:id/status', async (req, res) => {
         if (!teamId) {
           teamId = generateUUID()
           await query(
-            `INSERT INTO pcl_teams (id, tournament_id, name, short_name, logo_url, manager_name, rating)
-             VALUES (?, ?, ?, ?, ?, ?, 90)`,
-            [teamId, tourneyId, reg.nama_tim.trim(), reg.short_name.trim().toUpperCase(), logoUrl, reg.manager_name.trim()]
+            `INSERT INTO pcl_teams (id, tournament_id, name, short_name, logo_url, manager_name, contact, rating)
+             VALUES (?, ?, ?, ?, ?, ?, ?, 90)`,
+            [teamId, tourneyId, reg.nama_tim.trim(), reg.short_name.trim().toUpperCase(), logoUrl, reg.manager_name.trim(), reg.kontak ? reg.kontak.trim() : null]
           )
         } else {
           await query(
-            'UPDATE pcl_teams SET logo_url = COALESCE(?, logo_url), manager_name = COALESCE(?, manager_name) WHERE id = ?',
-            [logoUrl, reg.manager_name.trim(), teamId]
+            'UPDATE pcl_teams SET logo_url = COALESCE(?, logo_url), manager_name = COALESCE(?, manager_name), contact = COALESCE(?, contact) WHERE id = ?',
+            [logoUrl, reg.manager_name.trim(), reg.kontak ? reg.kontak.trim() : null, teamId]
           )
         }
 
